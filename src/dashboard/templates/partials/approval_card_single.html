@@ -1,0 +1,33 @@
+<div class="approval-card {{ item.status }}" id="approval-{{ item.id }}">
+  <div class="d-flex justify-content-between align-items-start mb-1">
+    <div class="approval-card-title">{{ item.title }}</div>
+    <span class="impact-badge impact-{{ item.impact }}">{{ item.impact }}</span>
+  </div>
+  <div class="approval-card-desc">{{ item.description }}</div>
+  <div class="approval-card-action">&#x25B6; {{ item.proposed_action }}</div>
+
+  {% if item.status == "pending" %}
+  <div class="approval-actions">
+    <button class="btn-approve"
+            hx-post="/briefing/approvals/{{ item.id }}/approve"
+            hx-target="#approval-{{ item.id }}"
+            hx-swap="outerHTML">
+      APPROVE
+    </button>
+    <button class="btn-reject"
+            hx-post="/briefing/approvals/{{ item.id }}/reject"
+            hx-target="#approval-{{ item.id }}"
+            hx-swap="outerHTML">
+      REJECT
+    </button>
+  </div>
+  {% elif item.status == "approved" %}
+  <div class="text-success" style="font-size:0.82rem; font-family:'JetBrains Mono',monospace;">
+    &#x2713; Approved
+  </div>
+  {% elif item.status == "rejected" %}
+  <div class="text-danger" style="font-size:0.82rem; font-family:'JetBrains Mono',monospace;">
+    &#x2717; Rejected
+  </div>
+  {% endif %}
+</div>

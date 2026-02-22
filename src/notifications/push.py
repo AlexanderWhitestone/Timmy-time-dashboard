@@ -121,3 +121,25 @@ class PushNotifier:
 
 # Module-level singleton
 notifier = PushNotifier()
+
+
+async def notify_briefing_ready(briefing) -> None:
+    """Placeholder: notify the owner that a new morning briefing is ready.
+
+    Logs to console now.  Wire to real push (APNs/Pushover) later.
+
+    Args:
+        briefing: A timmy.briefing.Briefing instance.
+    """
+    n_approvals = len(briefing.approval_items) if briefing.approval_items else 0
+    message = (
+        f"Your morning briefing is ready. "
+        f"{n_approvals} item(s) await your approval."
+    )
+    notifier.notify(
+        title="Morning Briefing Ready",
+        message=message,
+        category="briefing",
+        native=True,
+    )
+    logger.info("Briefing push notification dispatched (%d approval(s))", n_approvals)
