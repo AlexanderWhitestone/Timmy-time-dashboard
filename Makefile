@@ -30,6 +30,21 @@ $(VENV)/bin/activate:
 dev:
 	$(UVICORN) dashboard.app:app --reload --host 0.0.0.0 --port 8000
 
+# Print the local IP addresses your phone can use to reach this machine.
+# Connect your phone to the same hotspot your Mac is sharing from,
+# then open  http://<IP>:8000  in your phone browser.
+# The server auto-reloads on Python/template changes (--reload above).
+# For CSS/static changes, just pull-to-refresh on your phone.
+ip:
+	@echo ""
+	@echo "  Open one of these on your phone:  http://<IP>:8000"
+	@echo ""
+	@ipconfig getifaddr en0  2>/dev/null | awk '{print "  en0 (Wi-Fi):    http://" $$1 ":8000"}' || true
+	@ipconfig getifaddr en1  2>/dev/null | awk '{print "  en1 (Ethernet): http://" $$1 ":8000"}' || true
+	@ipconfig getifaddr en2  2>/dev/null | awk '{print "  en2:            http://" $$1 ":8000"}' || true
+	@ifconfig 2>/dev/null | awk '/inet / && !/127\.0\.0\.1/ && !/::1/{print "  " $$2 "  →  http://" $$2 ":8000"}' | head -5 || true
+	@echo ""
+
 watch:
 	$(SELF_TDD) watch --interval 60
 
@@ -61,6 +76,7 @@ help:
 	@echo "  make install          create venv + install dev deps"
 	@echo "  make install-bigbrain install with AirLLM (big-model backend)"
 	@echo "  make dev              start dashboard at http://localhost:8000"
+	@echo "  make ip               print local IP addresses for phone testing"
 	@echo "  make test             run all 228 tests"
 	@echo "  make test-cov         tests + coverage report"
 	@echo "  make watch            self-TDD watchdog (60s poll)"

@@ -94,7 +94,7 @@ body {
 .mc-main {
   padding: 16px;
   height: calc(100dvh - var(--header-h));
-  overflow: hidden;
+  overflow: clip; /* clip = visual clipping only, no scroll container; lets trackpad events reach scrollable children */
 }
 .mc-content {
   height: 100%;
@@ -106,6 +106,7 @@ body {
 /* ── Sidebar ─────────────────────────────────────── */
 .mc-sidebar {
   overflow-y: auto;
+  min-height: 0; /* allow flex item to shrink so overflow-y: auto actually triggers */
 }
 
 /* ── Chat column ─────────────────────────────────── */
@@ -114,7 +115,7 @@ body {
 }
 .mc-chat-panel > .card {
   height: 100%;
-  overflow: hidden;
+  overflow: clip; /* visual clip only, preserves scroll events to .chat-log child */
 }
 
 /* ── Panel / Card overrides ──────────────────────── */
