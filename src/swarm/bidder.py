@@ -1,17 +1,21 @@
-"""15-second auction system for swarm task assignment.
+"""15-second auction system for swarm task assignment with SQLite persistence.
 
 When a task is posted, agents have 15 seconds to submit bids (in sats).
 The lowest bid wins.  If no bids arrive, the task remains unassigned.
+Auctions and bids are persisted in the swarm database to survive restarts.
 """
 
 import asyncio
 import logging
+import sqlite3
 from dataclasses import dataclass, field
-from typing import Optional
+from pathlib import Path
+from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
 AUCTION_DURATION_SECONDS = 15
+DB_PATH = Path("data/swarm.db")
 
 
 @dataclass
@@ -24,7 +28,7 @@ class Bid:
 @dataclass
 class Auction:
     task_id: str
-    bids: list[Bid] = field(default_factory=list)
+    bids: List[Bid] = field(default_factory=list)
     closed: bool = False
     winner: Optional[Bid] = None
 
@@ -50,32 +54,113 @@ class Auction:
 
 
 class AuctionManager:
-    """Manages concurrent auctions for multiple tasks."""
+    """Manages concurrent auctions for multiple tasks with persistence."""
 
     def __init__(self) -> None:
-        self._auctions: dict[str, Auction] = {}
+        self._init_db()
+
+    def _init_db(self) -> None:
+        """Initialize the auctions and bids tables."""
+        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS auctions (
+                task_id TEXT PRIMARY KEY,
+                closed INTEGER NOT NULL DEFAULT 0,
+                winner_agent_id TEXT,
+                winner_bid_sats INTEGER
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bids (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id TEXT NOT NULL,
+                agent_id TEXT NOT NULL,
+                bid_sats INTEGER NOT NULL,
+                FOREIGN KEY (task_id) REFERENCES auctions (task_id)
+            )
+            """
+        )
+        conn.commit()
+        conn.close()
+
+    def _get_conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        return conn
 
     def open_auction(self, task_id: str) -> Auction:
-        auction = Auction(task_id=task_id)
-        self._auctions[task_id] = auction
+        """Open a new auction in the persistent store."""
+        conn = self._get_conn()
+        conn.execute(
+            "INSERT OR IGNORE INTO auctions (task_id, closed) VALUES (?, 0)",
+            (task_id,),
+        )
+        conn.commit()
+        conn.close()
         logger.info("Auction opened for task %s", task_id)
-        return auction
+        return self.get_auction(task_id)
 
     def get_auction(self, task_id: str) -> Optional[Auction]:
-        return self._auctions.get(task_id)
+        """Retrieve an auction and its bids from the persistent store."""
+        conn = self._get_conn()
+        row = conn.execute("SELECT * FROM auctions WHERE task_id = ?", (task_id,)).fetchone()
+        if not row:
+            conn.close()
+            return None
+
+        bid_rows = conn.execute("SELECT agent_id, bid_sats FROM bids WHERE task_id = ?", (task_id,)).fetchall()
+        conn.close()
+
+        bids = [Bid(agent_id=r["agent_id"], bid_sats=r["bid_sats"], task_id=task_id) for r in bid_rows]
+        winner = None
+        if row["winner_agent_id"]:
+            winner = Bid(agent_id=row["winner_agent_id"], bid_sats=row["winner_bid_sats"], task_id=task_id)
+
+        return Auction(
+            task_id=task_id,
+            bids=bids,
+            closed=bool(row["closed"]),
+            winner=winner,
+        )
 
     def submit_bid(self, task_id: str, agent_id: str, bid_sats: int) -> bool:
-        auction = self._auctions.get(task_id)
-        if auction is None:
-            logger.warning("No auction found for task %s", task_id)
+        """Submit a bid to the persistent store."""
+        auction = self.get_auction(task_id)
+        if auction is None or auction.closed:
+            logger.warning("No open auction found for task %s", task_id)
             return False
-        return auction.submit(agent_id, bid_sats)
+
+        conn = self._get_conn()
+        conn.execute(
+            "INSERT INTO bids (task_id, agent_id, bid_sats) VALUES (?, ?, ?)",
+            (task_id, agent_id, bid_sats),
+        )
+        conn.commit()
+        conn.close()
+        return True
 
     def close_auction(self, task_id: str) -> Optional[Bid]:
-        auction = self._auctions.get(task_id)
+        """Close an auction in the persistent store and determine the winner."""
+        auction = self.get_auction(task_id)
         if auction is None:
             return None
-        return auction.close()
+
+        winner = auction.close()
+        conn = self._get_conn()
+        if winner:
+            conn.execute(
+                "UPDATE auctions SET closed = 1, winner_agent_id = ?, winner_bid_sats = ? WHERE task_id = ?",
+                (winner.agent_id, winner.bid_sats, task_id),
+            )
+        else:
+            conn.execute("UPDATE auctions SET closed = 1 WHERE task_id = ?", (task_id,))
+        conn.commit()
+        conn.close()
+        return winner
 
     async def run_auction(self, task_id: str) -> Optional[Bid]:
         """Open an auction, wait the bidding period, then close and return winner."""
@@ -84,5 +169,9 @@ class AuctionManager:
         return self.close_auction(task_id)
 
     @property
-    def active_auctions(self) -> list[str]:
-        return [tid for tid, a in self._auctions.items() if not a.closed]
+    def active_auctions(self) -> List[str]:
+        """List all currently open task IDs."""
+        conn = self._get_conn()
+        rows = conn.execute("SELECT task_id FROM auctions WHERE closed = 0").fetchall()
+        conn.close()
+        return [r["task_id"] for r in rows]

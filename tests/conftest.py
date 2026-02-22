@@ -22,12 +22,36 @@ for _mod in [
 
 
 @pytest.fixture(autouse=True)
-def reset_message_log():
-    """Clear the in-memory chat log before and after every test."""
+def reset_databases():
+    """Clear persistent stores before and after every test."""
+    # Reset MessageLog
     from dashboard.store import message_log
     message_log.clear()
+
+    # Reset Swarm Registry & Tasks
+    import sqlite3
+    from pathlib import Path
+    swarm_db = Path("data/swarm.db")
+    if swarm_db.exists():
+        conn = sqlite3.connect(str(swarm_db))
+        conn.execute("DELETE FROM agents")
+        conn.execute("DELETE FROM tasks")
+        conn.execute("DELETE FROM auctions")
+        conn.execute("DELETE FROM bids")
+        conn.commit()
+        conn.close()
+
     yield
+
     message_log.clear()
+    if swarm_db.exists():
+        conn = sqlite3.connect(str(swarm_db))
+        conn.execute("DELETE FROM agents")
+        conn.execute("DELETE FROM tasks")
+        conn.execute("DELETE FROM auctions")
+        conn.execute("DELETE FROM bids")
+        conn.commit()
+        conn.close()
 
 
 @pytest.fixture

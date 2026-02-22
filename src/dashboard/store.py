@@ -1,4 +1,16 @@
-from dataclasses import dataclass, field
+"""SQLite-backed chat history for the dashboard.
+
+The MessageLog provides a persistent record of all chat interactions,
+ensuring that the conversation history survives server restarts.
+"""
+
+import sqlite3
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import List
+
+DB_PATH = Path("timmy.db")
 
 
 @dataclass
@@ -9,22 +21,61 @@ class Message:
 
 
 class MessageLog:
-    """In-memory chat history for the lifetime of the server process."""
+    """Persistent chat history using SQLite."""
 
     def __init__(self) -> None:
-        self._entries: list[Message] = []
+        self._init_db()
+
+    def _init_db(self) -> None:
+        """Initialize the messages table if it doesn't exist."""
+        conn = self._get_conn()
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                role TEXT NOT NULL,
+                content TEXT NOT NULL,
+                timestamp TEXT NOT NULL
+            )
+            """
+        )
+        conn.commit()
+        conn.close()
+
+    def _get_conn(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        return conn
 
     def append(self, role: str, content: str, timestamp: str) -> None:
-        self._entries.append(Message(role=role, content=content, timestamp=timestamp))
+        """Add a new message to the persistent log."""
+        conn = self._get_conn()
+        conn.execute(
+            "INSERT INTO messages (role, content, timestamp) VALUES (?, ?, ?)",
+            (role, content, timestamp),
+        )
+        conn.commit()
+        conn.close()
 
-    def all(self) -> list[Message]:
-        return list(self._entries)
+    def all(self) -> List[Message]:
+        """Retrieve all messages from the log."""
+        conn = self._get_conn()
+        rows = conn.execute("SELECT role, content, timestamp FROM messages ORDER BY id ASC").fetchall()
+        conn.close()
+        return [Message(role=r["role"], content=r["content"], timestamp=r["timestamp"]) for r in rows]
 
     def clear(self) -> None:
-        self._entries.clear()
+        """Delete all messages from the log."""
+        conn = self._get_conn()
+        conn.execute("DELETE FROM messages")
+        conn.commit()
+        conn.close()
 
     def __len__(self) -> int:
-        return len(self._entries)
+        conn = self._get_conn()
+        count = conn.execute("SELECT COUNT(*) FROM messages").fetchone()[0]
+        conn.close()
+        return count
 
 
 # Module-level singleton shared across the app
