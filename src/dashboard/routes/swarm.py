@@ -12,6 +12,7 @@ from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from swarm import learner as swarm_learner
 from swarm import registry
 from swarm.coordinator import coordinator
 from swarm.tasks import TaskStatus, update_task
@@ -137,6 +138,55 @@ async def complete_task(task_id: str, result: str = Form(...)):
     if task is None:
         raise HTTPException(404, "Task not found")
     return {"task_id": task_id, "status": task.status.value}
+
+
+@router.post("/tasks/{task_id}/fail")
+async def fail_task(task_id: str, reason: str = Form("")):
+    """Mark a task failed — feeds failure data into the learner."""
+    task = coordinator.fail_task(task_id, reason)
+    if task is None:
+        raise HTTPException(404, "Task not found")
+    return {"task_id": task_id, "status": task.status.value}
+
+
+# ── Learning insights ────────────────────────────────────────────────────────
+
+@router.get("/insights")
+async def swarm_insights():
+    """Return learned performance metrics for all agents."""
+    all_metrics = swarm_learner.get_all_metrics()
+    return {
+        "agents": {
+            aid: {
+                "total_bids": m.total_bids,
+                "auctions_won": m.auctions_won,
+                "tasks_completed": m.tasks_completed,
+                "tasks_failed": m.tasks_failed,
+                "win_rate": round(m.win_rate, 3),
+                "success_rate": round(m.success_rate, 3),
+                "avg_winning_bid": round(m.avg_winning_bid, 1),
+                "top_keywords": swarm_learner.learned_keywords(aid)[:10],
+            }
+            for aid, m in all_metrics.items()
+        }
+    }
+
+
+@router.get("/insights/{agent_id}")
+async def agent_insights(agent_id: str):
+    """Return learned performance metrics for a specific agent."""
+    m = swarm_learner.get_metrics(agent_id)
+    return {
+        "agent_id": agent_id,
+        "total_bids": m.total_bids,
+        "auctions_won": m.auctions_won,
+        "tasks_completed": m.tasks_completed,
+        "tasks_failed": m.tasks_failed,
+        "win_rate": round(m.win_rate, 3),
+        "success_rate": round(m.success_rate, 3),
+        "avg_winning_bid": round(m.avg_winning_bid, 1),
+        "learned_keywords": swarm_learner.learned_keywords(agent_id),
+    }
 
 
 # ── UI endpoints (return HTML partials for HTMX) ─────────────────────────────
