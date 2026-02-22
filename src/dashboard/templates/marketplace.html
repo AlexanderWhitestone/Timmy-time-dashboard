@@ -5,37 +5,55 @@
 {% block content %}
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">🏪 Agent Marketplace</h2>
+        <h2 class="card-title">Agent Marketplace</h2>
         <p style="color: var(--text-secondary);">Hire agents with Bitcoin. Lowest bid wins.</p>
+        <div style="margin-top: 8px; font-size: 0.875rem; color: var(--text-muted);">
+            <span style="color: var(--success);">{{ active_count }}</span> active
+            &nbsp;&middot;&nbsp;
+            <span style="color: var(--text-muted);">{{ planned_count }}</span> planned
+        </div>
     </div>
-    
+
     {% if agents %}
         {% for agent in agents %}
         <div class="agent-card">
             <div class="agent-avatar">{{ agent.name[0] }}</div>
             <div class="agent-info">
-                <div class="agent-name">{{ agent.name }}</div>
+                <div class="agent-name">
+                    {{ agent.name }}
+                    <span style="font-size: 0.75rem; font-weight: 400;
+                                 color: var(--text-muted); margin-left: 8px;">
+                        {{ agent.role }}
+                    </span>
+                </div>
                 <div class="agent-meta">{{ agent.description or 'No description' }}</div>
-                <div class="agent-meta">
-                    <span class="badge badge-{{ 'success' if agent.status == 'active' else 'warning' if agent.status == 'busy' else 'danger' }}">
+                <div class="agent-meta" style="margin-top: 4px;">
+                    <span class="badge badge-{{ 'success' if agent.status == 'idle'
+                                                else 'warning' if agent.status == 'busy'
+                                                else 'danger' if agent.status == 'offline'
+                                                else 'secondary' }}">
                         {{ agent.status }}
                     </span>
                     {% if agent.capabilities %}
-                        {% for cap in agent.capabilities %}
-                        <span class="badge badge-secondary" style="margin-left: 4px;">{{ cap }}</span>
+                        {% for cap in agent.capabilities.split(',') %}
+                        <span class="badge badge-secondary" style="margin-left: 4px;">{{ cap.strip() }}</span>
                         {% endfor %}
                     {% endif %}
                 </div>
             </div>
-            <div style="text-align: right;">
+            <div style="text-align: right; min-width: 120px;">
                 <div style="font-size: 1.5rem; font-weight: bold; color: var(--accent);">
-                    {{ agent.min_bid }} sats
+                    {% if agent.rate_sats == 0 %}
+                        FREE
+                    {% else %}
+                        {{ agent.rate_sats }} sats
+                    {% endif %}
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted);">
                     min bid
                 </div>
                 <div style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 4px;">
-                    {{ agent.tasks_completed }} tasks completed
+                    {{ agent.tasks_completed }} tasks won
                 </div>
                 <div style="font-size: 0.875rem; color: var(--success);">
                     {{ agent.total_earned }} sats earned
@@ -57,20 +75,32 @@
     </div>
     <div class="grid grid-3">
         <div style="text-align: center; padding: 20px;">
-            <div style="font-size: 2rem; margin-bottom: 12px;">1️⃣</div>
-            <h3 style="margin-bottom: 8px;">Create a Task</h3>
-            <p style="color: var(--text-secondary); font-size: 0.875rem;">Describe what you need done</p>
+            <div style="font-size: 2rem; margin-bottom: 12px;">1</div>
+            <h3 style="margin-bottom: 8px;">Post a Task</h3>
+            <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                Describe what you need done at <a href="/swarm/live">/swarm/live</a>
+            </p>
         </div>
         <div style="text-align: center; padding: 20px;">
-            <div style="font-size: 2rem; margin-bottom: 12px;">2️⃣</div>
+            <div style="font-size: 2rem; margin-bottom: 12px;">2</div>
             <h3 style="margin-bottom: 8px;">Agents Bid</h3>
-            <p style="color: var(--text-secondary); font-size: 0.875rem;">15-second auction, lowest bid wins</p>
+            <p style="color: var(--text-secondary); font-size: 0.875rem;">15-second auction &mdash; lowest bid wins</p>
         </div>
         <div style="text-align: center; padding: 20px;">
-            <div style="font-size: 2rem; margin-bottom: 12px;">3️⃣</div>
+            <div style="font-size: 2rem; margin-bottom: 12px;">3</div>
             <h3 style="margin-bottom: 8px;">Pay in Sats</h3>
             <p style="color: var(--text-secondary); font-size: 0.875rem;">Lightning payment to winning agent</p>
         </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Spawn a Persona</h2>
+        <p style="color: var(--text-secondary); font-size: 0.875rem;">
+            Add a built-in persona agent to the live swarm from the
+            <a href="/swarm/live">Swarm Live</a> dashboard.
+        </p>
     </div>
 </div>
 {% endblock %}

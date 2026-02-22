@@ -1,8 +1,14 @@
-"""Agent marketplace route — /marketplace endpoint.
+"""Agent marketplace route — /marketplace endpoints.
 
-The marketplace is where agents advertise their capabilities and
-pricing.  Other agents (or the user) can browse available agents
-and hire them for tasks via Lightning payments.
+The marketplace is where agents advertise their capabilities and pricing.
+Other agents (or the user) can browse available agents and hire them for
+tasks via Lightning payments.
+
+Endpoints
+---------
+GET /marketplace        — JSON catalog (API)
+GET /marketplace/ui     — HTML page wired to real registry + stats
+GET /marketplace/{id}   — JSON details for a single agent
 """
 
 from pathlib import Path
@@ -11,97 +17,116 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from swarm import registry as swarm_registry
+from swarm import stats as swarm_stats
+from swarm.personas import list_personas
+
 router = APIRouter(tags=["marketplace"])
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
-# ── Agent catalog ────────────────────────────────────────────────────────────
-# These are the planned sub-agent personas from the roadmap.
-# Each will eventually be a real Agno agent with its own prompt and skills.
+# ── Static catalog ───────────────────────────────────────────────────────────
+# Timmy is listed first as the free sovereign agent; the six personas follow.
 
-AGENT_CATALOG = [
+# Timmy is always active — it IS the sovereign agent, not a planned persona.
+_TIMMY_ENTRY = {
+    "id": "timmy",
+    "name": "Timmy",
+    "role": "Sovereign Commander",
+    "description": (
+        "Primary AI companion. Coordinates the swarm, manages tasks, "
+        "and maintains sovereignty."
+    ),
+    "capabilities": "chat,reasoning,coordination",
+    "rate_sats": 0,
+    "default_status": "active",  # always active even if not in the swarm registry
+}
+
+AGENT_CATALOG: list[dict] = [_TIMMY_ENTRY] + [
     {
-        "id": "timmy",
-        "name": "Timmy",
-        "role": "Sovereign Commander",
-        "description": "Primary AI companion. Coordinates the swarm, manages tasks, and maintains sovereignty.",
-        "capabilities": ["chat", "reasoning", "coordination"],
-        "rate_sats": 0,  # Timmy is always free for the owner
-        "status": "active",
-    },
-    {
-        "id": "echo",
-        "name": "Echo",
-        "role": "Research Analyst",
-        "description": "Deep research and information synthesis. Reads, summarizes, and cross-references sources.",
-        "capabilities": ["research", "summarization", "fact-checking"],
-        "rate_sats": 50,
-        "status": "planned",
-    },
-    {
-        "id": "mace",
-        "name": "Mace",
-        "role": "Security Sentinel",
-        "description": "Network security, threat assessment, and system hardening recommendations.",
-        "capabilities": ["security", "monitoring", "threat-analysis"],
-        "rate_sats": 75,
-        "status": "planned",
-    },
-    {
-        "id": "helm",
-        "name": "Helm",
-        "role": "System Navigator",
-        "description": "Infrastructure management, deployment automation, and system configuration.",
-        "capabilities": ["devops", "automation", "configuration"],
-        "rate_sats": 60,
-        "status": "planned",
-    },
-    {
-        "id": "seer",
-        "name": "Seer",
-        "role": "Data Oracle",
-        "description": "Data analysis, pattern recognition, and predictive insights from local datasets.",
-        "capabilities": ["analytics", "visualization", "prediction"],
-        "rate_sats": 65,
-        "status": "planned",
-    },
-    {
-        "id": "forge",
-        "name": "Forge",
-        "role": "Code Smith",
-        "description": "Code generation, refactoring, debugging, and test writing.",
-        "capabilities": ["coding", "debugging", "testing"],
-        "rate_sats": 55,
-        "status": "planned",
-    },
-    {
-        "id": "quill",
-        "name": "Quill",
-        "role": "Content Scribe",
-        "description": "Long-form writing, editing, documentation, and content creation.",
-        "capabilities": ["writing", "editing", "documentation"],
-        "rate_sats": 45,
-        "status": "planned",
-    },
+        "id": p["id"],
+        "name": p["name"],
+        "role": p["role"],
+        "description": p["description"],
+        "capabilities": p["capabilities"],
+        "rate_sats": p["rate_sats"],
+        "default_status": "planned",  # persona is planned until spawned
+    }
+    for p in list_personas()
 ]
+
+
+def _build_enriched_catalog() -> list[dict]:
+    """Merge static catalog with live registry status and historical stats.
+
+    For each catalog entry:
+    - status: registry value (idle/busy/offline) when the agent is spawned,
+              or default_status ("active" for Timmy, "planned" for personas)
+    - tasks_completed / total_earned: pulled from bid_history stats
+    """
+    registry_agents = swarm_registry.list_agents()
+    by_name: dict[str, object] = {a.name.lower(): a for a in registry_agents}
+    all_stats = swarm_stats.get_all_agent_stats()
+
+    enriched = []
+    for entry in AGENT_CATALOG:
+        e = dict(entry)
+        reg = by_name.get(e["name"].lower())
+
+        if reg is not None:
+            e["status"] = reg.status       # idle | busy | offline
+            agent_stats = all_stats.get(reg.id, {})
+            e["tasks_completed"] = agent_stats.get("tasks_won", 0)
+            e["total_earned"] = agent_stats.get("total_earned", 0)
+        else:
+            e["status"] = e.pop("default_status", "planned")
+            e["tasks_completed"] = 0
+            e["total_earned"] = 0
+
+        # Remove internal field if it wasn't already popped
+        e.pop("default_status", None)
+        enriched.append(e)
+    return enriched
+
+
+# ── Routes ───────────────────────────────────────────────────────────────────
+
+@router.get("/marketplace/ui", response_class=HTMLResponse)
+async def marketplace_ui(request: Request):
+    """Render the marketplace HTML page with live registry data."""
+    agents = _build_enriched_catalog()
+    active = [a for a in agents if a["status"] in ("idle", "busy", "active")]
+    planned = [a for a in agents if a["status"] == "planned"]
+    return templates.TemplateResponse(
+        "marketplace.html",
+        {
+            "request": request,
+            "page_title": "Agent Marketplace",
+            "agents": agents,
+            "active_count": len(active),
+            "planned_count": len(planned),
+        },
+    )
 
 
 @router.get("/marketplace")
 async def marketplace():
-    """Return the agent marketplace catalog."""
-    active = [a for a in AGENT_CATALOG if a["status"] == "active"]
-    planned = [a for a in AGENT_CATALOG if a["status"] == "planned"]
+    """Return the agent marketplace catalog as JSON."""
+    agents = _build_enriched_catalog()
+    active = [a for a in agents if a["status"] in ("idle", "busy", "active")]
+    planned = [a for a in agents if a["status"] == "planned"]
     return {
-        "agents": AGENT_CATALOG,
+        "agents": agents,
         "active_count": len(active),
         "planned_count": len(planned),
-        "total": len(AGENT_CATALOG),
+        "total": len(agents),
     }
 
 
 @router.get("/marketplace/{agent_id}")
 async def marketplace_agent(agent_id: str):
     """Get details for a specific marketplace agent."""
-    agent = next((a for a in AGENT_CATALOG if a["id"] == agent_id), None)
+    agents = _build_enriched_catalog()
+    agent = next((a for a in agents if a["id"] == agent_id), None)
     if agent is None:
         return {"error": "Agent not found in marketplace"}
     return agent

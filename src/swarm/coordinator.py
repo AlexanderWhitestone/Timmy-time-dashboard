@@ -16,6 +16,7 @@ from swarm.comms import SwarmComms
 from swarm.manager import SwarmManager
 from swarm.registry import AgentRecord
 from swarm import registry
+from swarm import stats as swarm_stats
 from swarm.tasks import (
     Task,
     TaskStatus,
@@ -57,6 +58,57 @@ class SwarmCoordinator:
 
     def list_swarm_agents(self) -> list[AgentRecord]:
         return registry.list_agents()
+
+    def spawn_persona(self, persona_id: str, agent_id: Optional[str] = None) -> dict:
+        """Spawn one of the six built-in persona agents (Echo, Mace, etc.).
+
+        The persona is registered in the SQLite registry with its full
+        capabilities string and wired into the AuctionManager via the shared
+        comms layer — identical to spawn_in_process_agent but with
+        persona-aware bidding and a pre-defined capabilities tag.
+        """
+        from swarm.personas import PERSONAS
+        from swarm.persona_node import PersonaNode
+
+        if persona_id not in PERSONAS:
+            raise ValueError(f"Unknown persona: {persona_id!r}. "
+                             f"Choose from {list(PERSONAS)}")
+
+        aid = agent_id or str(__import__("uuid").uuid4())
+        node = PersonaNode(persona_id=persona_id, agent_id=aid, comms=self.comms)
+
+        def _bid_and_register(msg):
+            task_id = msg.data.get("task_id")
+            if not task_id:
+                return
+            description = msg.data.get("description", "")
+            # Use PersonaNode's smart bid computation
+            bid_sats = node._compute_bid(description)
+            self.auctions.submit_bid(task_id, aid, bid_sats)
+            # Persist every bid for stats
+            swarm_stats.record_bid(task_id, aid, bid_sats, won=False)
+            logger.info(
+                "Persona %s bid %d sats on task %s",
+                node.name, bid_sats, task_id,
+            )
+
+        self.comms.subscribe("swarm:tasks", _bid_and_register)
+
+        meta = PERSONAS[persona_id]
+        record = registry.register(
+            name=meta["name"],
+            capabilities=meta["capabilities"],
+            agent_id=aid,
+        )
+        self._in_process_nodes.append(node)
+        logger.info("Spawned persona %s (%s)", node.name, aid)
+        return {
+            "agent_id": aid,
+            "name": node.name,
+            "persona_id": persona_id,
+            "pid": None,
+            "status": record.status,
+        }
 
     def spawn_in_process_agent(
         self, name: str, agent_id: Optional[str] = None,
@@ -140,6 +192,8 @@ class SwarmCoordinator:
             )
             self.comms.assign_task(task_id, winner.agent_id)
             registry.update_status(winner.agent_id, "busy")
+            # Mark winning bid in persistent stats
+            swarm_stats.mark_winner(task_id, winner.agent_id)
             logger.info(
                 "Task %s assigned to %s at %d sats",
                 task_id, winner.agent_id, winner.bid_sats,

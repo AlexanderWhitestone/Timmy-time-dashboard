@@ -13,6 +13,7 @@ def tmp_swarm_db(tmp_path, monkeypatch):
     db_path = tmp_path / "swarm.db"
     monkeypatch.setattr("swarm.tasks.DB_PATH", db_path)
     monkeypatch.setattr("swarm.registry.DB_PATH", db_path)
+    monkeypatch.setattr("swarm.stats.DB_PATH", db_path)
     yield db_path
 
 
@@ -162,3 +163,59 @@ def test_shortcuts_setup(client):
     assert "title" in data
     assert "actions" in data
     assert len(data["actions"]) >= 4
+
+
+# ── Marketplace UI route ──────────────────────────────────────────────────────
+
+def test_marketplace_ui_renders_html(client):
+    response = client.get("/marketplace/ui")
+    assert response.status_code == 200
+    assert "text/html" in response.headers["content-type"]
+    assert "Agent Marketplace" in response.text
+
+
+def test_marketplace_ui_shows_all_agents(client):
+    response = client.get("/marketplace/ui")
+    assert response.status_code == 200
+    # All seven catalog entries should appear
+    for name in ["Timmy", "Echo", "Mace", "Helm", "Seer", "Forge", "Quill"]:
+        assert name in response.text, f"{name} not found in marketplace UI"
+
+
+def test_marketplace_ui_shows_timmy_free(client):
+    response = client.get("/marketplace/ui")
+    assert "FREE" in response.text
+
+
+def test_marketplace_ui_shows_planned_status(client):
+    response = client.get("/marketplace/ui")
+    # Personas not yet in registry show as "planned"
+    assert "planned" in response.text
+
+
+def test_marketplace_ui_shows_active_timmy(client):
+    response = client.get("/marketplace/ui")
+    # Timmy is always active even without registry entry
+    assert "active" in response.text
+
+
+# ── Marketplace enriched data ─────────────────────────────────────────────────
+
+def test_marketplace_enriched_includes_stats_fields(client):
+    response = client.get("/marketplace")
+    agents = response.json()["agents"]
+    for a in agents:
+        assert "tasks_completed" in a, f"Missing tasks_completed in {a['id']}"
+        assert "total_earned" in a, f"Missing total_earned in {a['id']}"
+
+
+def test_marketplace_persona_spawned_changes_status(client):
+    """Spawning a persona into the registry changes its marketplace status."""
+    # Spawn Echo via swarm route
+    spawn_resp = client.post("/swarm/spawn", data={"name": "Echo"})
+    assert spawn_resp.status_code == 200
+
+    # Echo should now show as idle in the marketplace
+    resp = client.get("/marketplace")
+    agents = {a["id"]: a for a in resp.json()["agents"]}
+    assert agents["echo"]["status"] == "idle"
