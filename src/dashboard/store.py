@@ -20,29 +20,31 @@ class Message:
     timestamp: str
 
 
+def init_db(db_path: Path) -> None:
+    """Initialize the messages table if it doesn't exist."""
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            timestamp TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+
+
 class MessageLog:
     """Persistent chat history using SQLite."""
 
     def __init__(self) -> None:
-        self._init_db()
-
-    def _init_db(self) -> None:
-        """Initialize the messages table if it doesn't exist."""
-        conn = self._get_conn()
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                role TEXT NOT NULL,
-                content TEXT NOT NULL,
-                timestamp TEXT NOT NULL
-            )
-            """
-        )
-        conn.commit()
-        conn.close()
+        pass
 
     def _get_conn(self) -> sqlite3.Connection:
+        init_db(DB_PATH)
         conn = sqlite3.connect(str(DB_PATH))
         conn.row_factory = sqlite3.Row
         return conn

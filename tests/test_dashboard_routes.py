@@ -7,13 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 
-@pytest.fixture(autouse=True)
-def tmp_swarm_db(tmp_path, monkeypatch):
-    """Point swarm SQLite to a temp directory for test isolation."""
-    db_path = tmp_path / "swarm.db"
-    monkeypatch.setattr("swarm.tasks.DB_PATH", db_path)
-    monkeypatch.setattr("swarm.registry.DB_PATH", db_path)
-    yield db_path
+# tmp_swarm_db is now provided by conftest.py globally
 
 
 @pytest.fixture

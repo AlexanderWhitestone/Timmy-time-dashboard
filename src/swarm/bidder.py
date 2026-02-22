@@ -53,41 +53,43 @@ class Auction:
         return self.winner
 
 
+def init_db(db_path: Path) -> None:
+    """Initialize the auctions and bids tables."""
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(db_path))
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS auctions (
+            task_id TEXT PRIMARY KEY,
+            closed INTEGER NOT NULL DEFAULT 0,
+            winner_agent_id TEXT,
+            winner_bid_sats INTEGER
+        )
+        """
+    )
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS bids (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_id TEXT NOT NULL,
+            agent_id TEXT NOT NULL,
+            bid_sats INTEGER NOT NULL,
+            FOREIGN KEY (task_id) REFERENCES auctions (task_id)
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+
+
 class AuctionManager:
     """Manages concurrent auctions for multiple tasks with persistence."""
 
     def __init__(self) -> None:
-        self._init_db()
-
-    def _init_db(self) -> None:
-        """Initialize the auctions and bids tables."""
-        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect(str(DB_PATH))
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS auctions (
-                task_id TEXT PRIMARY KEY,
-                closed INTEGER NOT NULL DEFAULT 0,
-                winner_agent_id TEXT,
-                winner_bid_sats INTEGER
-            )
-            """
-        )
-        conn.execute(
-            """
-            CREATE TABLE IF NOT EXISTS bids (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                task_id TEXT NOT NULL,
-                agent_id TEXT NOT NULL,
-                bid_sats INTEGER NOT NULL,
-                FOREIGN KEY (task_id) REFERENCES auctions (task_id)
-            )
-            """
-        )
-        conn.commit()
-        conn.close()
+        pass
 
     def _get_conn(self) -> sqlite3.Connection:
+        init_db(DB_PATH)
         conn = sqlite3.connect(str(DB_PATH))
         conn.row_factory = sqlite3.Row
         return conn
