@@ -2,274 +2,249 @@
 
 [![Tests](https://github.com/Alexspayne/Timmy-time-dashboard/actions/workflows/tests.yml/badge.svg)](https://github.com/Alexspayne/Timmy-time-dashboard/actions/workflows/tests.yml)
 
-A local-first dashboard for your sovereign AI agents. Talk to Timmy, watch his status, verify Ollama is running — all from a browser, no cloud required.
+A local-first, sovereign AI agent system.  Talk to Timmy, watch his swarm, gate API access with Bitcoin Lightning — all from a browser, no cloud required.
+
+**[Live Docs →](https://alexspayne.github.io/Timmy-time-dashboard/)**
+
+---
+
+## What's built
+
+| Subsystem | Description |
+|-----------|-------------|
+| **Timmy Agent** | Agno-powered agent (Ollama default, AirLLM optional for 70B/405B) |
+| **Mission Control** | FastAPI + HTMX dashboard — chat, health, swarm, marketplace |
+| **Swarm** | Multi-agent coordinator — spawn agents, post tasks, run Lightning auctions |
+| **L402 / Lightning** | Bitcoin Lightning payment gating for API access |
+| **Voice** | NLU intent detection + TTS (pyttsx3, no cloud) |
+| **WebSocket** | Real-time swarm live feed |
+| **Mobile** | Responsive layout with full iOS safe-area and touch support |
+| **CLI** | `timmy`, `timmy-serve`, `self-tdd` entry points |
+
+**228 tests, 100% passing.**
 
 ---
 
 ## Prerequisites
 
-You need three things on your Mac before anything else:
-
 **Python 3.11+**
 ```bash
-python3 --version   # should be 3.11 or higher
+python3 --version   # must be 3.11+
 ```
 If not: `brew install python@3.11`
 
-**Ollama** (runs the local LLM)
+**Ollama** — runs the local LLM
 ```bash
 brew install ollama
+# or download from https://ollama.com
 ```
-Or download from https://ollama.com
-
-**Git** — already on every Mac.
 
 ---
 
-## Quickstart (copy-paste friendly)
-
-### 1. Clone the branch
+## Quickstart
 
 ```bash
-git clone -b claude/run-tests-IYl0F https://github.com/Alexspayne/Timmy-time-dashboard.git
+# 1. Clone
+git clone https://github.com/Alexspayne/Timmy-time-dashboard.git
 cd Timmy-time-dashboard
-```
 
-### 2. Create a virtual environment and install
+# 2. Install
+make install
+# or manually: python3 -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-```
-
-### 3. Pull the model (one-time, ~2 GB download)
-
-Open a **new terminal tab** and run:
-
-```bash
+# 3. Start Ollama (separate terminal)
 ollama serve
-```
-
-Back in your first tab:
-
-```bash
 ollama pull llama3.2
-```
 
-### 4. Start the dashboard
-
-```bash
-uvicorn dashboard.app:app --reload
-```
-
-Open your browser to **http://localhost:8000**
-
----
-
-## Access from your phone
-
-The dashboard is mobile-optimized. To open it on your phone:
-
-**Step 1 — bind to your local network** (instead of just localhost):
-
-```bash
-uvicorn dashboard.app:app --host 0.0.0.0 --port 8000 --reload
-```
-
-**Step 2 — find your Mac's IP address:**
-
-```bash
-ipconfig getifaddr en0
-```
-
-This prints something like `192.168.1.42`. If you're on ethernet instead of Wi-Fi, try `en1`.
-
-**Step 3 — open on your phone:**
-
-Make sure your phone is on the **same Wi-Fi network** as your Mac, then open:
-
-```
-http://192.168.1.42:8000
-```
-
-(replace with your actual IP)
-
-On mobile the layout switches to a single column — status panels become a horizontal scroll strip at the top, chat fills the rest of the screen. The input field is sized to prevent iOS from zooming in when you tap it.
-
----
-
-## What you'll see
-
-The dashboard has two panels on the left and a chat window on the right:
-
-- **AGENTS** — Timmy's metadata (model, type, version)
-- **SYSTEM HEALTH** — live Ollama status, auto-refreshes every 30 seconds
-- **TIMMY INTERFACE** — type a message, hit SEND, get a response from the local LLM
-
-If Ollama isn't running when you send a message, the chat will show a "Timmy is offline" error instead of crashing.
-
----
-
-## Run the tests
-
-No Ollama needed — all external calls are mocked.
-
-```bash
-pytest
-```
-
-Expected output:
-```
-27 passed in 0.67s
+# 4. Launch dashboard
+make dev
+# opens at http://localhost:8000
 ```
 
 ---
 
-## Optional: CLI
+## Common commands
 
-With your venv active:
+```bash
+make test       # run all 228 tests (no Ollama needed)
+make test-cov   # test + coverage report
+make dev        # start dashboard (http://localhost:8000)
+make watch      # self-TDD watchdog (60s poll, alerts on regressions)
+```
+
+Or with the bootstrap script (creates venv, tests, watchdog, server in one shot):
+```bash
+bash activate_self_tdd.sh
+bash activate_self_tdd.sh --big-brain   # also installs AirLLM
+```
+
+---
+
+## CLI
 
 ```bash
 timmy chat "What is sovereignty?"
 timmy think "Bitcoin and self-custody"
 timmy status
+
+timmy-serve start          # L402-gated API server (port 8402)
+timmy-serve invoice        # generate a Lightning invoice
+timmy-serve status
 ```
 
 ---
 
-## Big Brain — AirLLM backend (Apple Silicon / large RAM)
+## Mobile access
 
-Run 70B or 405B models locally with no GPU required, using AirLLM's
-layer-by-layer loading strategy.  On M-series Macs the MLX backend is
-selected automatically for maximum throughput.  Everything stays local.
-No cloud.  No telemetry.  Sats are sovereignty, boss.
+The dashboard is fully mobile-optimized (iOS safe area, 44px touch targets, 16px
+input to prevent zoom, momentum scroll).
 
-### One-line install
+```bash
+# Bind to your local network
+uvicorn dashboard.app:app --host 0.0.0.0 --port 8000 --reload
+
+# Find your IP
+ipconfig getifaddr en0    # Wi-Fi on macOS
+```
+
+Open `http://<your-ip>:8000` on your phone (same Wi-Fi network).
+
+Mobile-specific routes:
+- `/mobile` — single-column optimized layout
+- `/mobile-test` — 21-scenario HITL test harness (layout, touch, scroll, notch)
+
+---
+
+## AirLLM — big brain backend
+
+Run 70B or 405B models locally with no GPU, using AirLLM's layer-by-layer loading.
+Apple Silicon uses MLX automatically.
 
 ```bash
 pip install ".[bigbrain]"
-# Apple Silicon only — adds the MLX-accelerated backend:
-pip install "airllm[mlx]"
+pip install "airllm[mlx]"   # Apple Silicon only
+
+timmy chat "Explain self-custody" --backend airllm --model-size 70b
 ```
 
-### Run with the big brain
+Or set once in `.env`:
+```bash
+TIMMY_MODEL_BACKEND=auto
+AIRLLM_MODEL_SIZE=70b
+```
+
+| Flag  | Parameters  | RAM needed |
+|-------|-------------|------------|
+| `8b`  | 8 billion   | ~16 GB     |
+| `70b` | 70 billion  | ~140 GB    |
+| `405b`| 405 billion | ~810 GB    |
+
+---
+
+## Configuration
 
 ```bash
-# Explicit flag — works anywhere airllm is installed:
-timmy chat "Explain self-custody" --backend airllm --model-size 70b
-
-# Or set it once in .env and forget about it:
-echo "TIMMY_MODEL_BACKEND=auto" >> .env
-echo "AIRLLM_MODEL_SIZE=70b"   >> .env
-timmy chat "What is sovereignty?"
+cp .env.example .env
+# edit .env
 ```
 
-`--backend auto` (or `TIMMY_MODEL_BACKEND=auto`) selects AirLLM automatically
-on Apple Silicon when the package is installed, and falls back to Ollama
-everywhere else — so the same `.env` works on any machine.
-
-### Model sizes
-
-| Flag | Parameters | Approx. RAM needed |
-|------|-----------|-------------------|
-| `8b`   | 8 billion   | ~16 GB  |
-| `70b`  | 70 billion  | ~140 GB |
-| `405b` | 405 billion | ~810 GB |
-
-Models are downloaded from HuggingFace on first run and cached locally.
-You need a HuggingFace account and `huggingface-cli login` for gated models
-(Llama 3.1 requires accepting Meta's license at hf.co/meta-llama).
-
-### Architecture with AirLLM
-
-```
-timmy chat --backend airllm
-    │
-    ▼
-TimmyAirLLMAgent          (src/timmy/backends.py)
-    │
-    ├─ Apple Silicon? ──► AirLLMMLX  (MLX tensors, Metal GPU)
-    └─ Everything else ──► AutoModel  (PyTorch, CPU/CUDA)
-         │
-         └─ Layers loaded on-demand from ~/.cache/huggingface/
-```
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `OLLAMA_URL` | `http://localhost:11434` | Ollama host |
+| `OLLAMA_MODEL` | `llama3.2` | Model served by Ollama |
+| `DEBUG` | `false` | Enable `/docs` and `/redoc` |
+| `TIMMY_MODEL_BACKEND` | `ollama` | `ollama` \| `airllm` \| `auto` |
+| `AIRLLM_MODEL_SIZE` | `70b` | `8b` \| `70b` \| `405b` |
+| `L402_HMAC_SECRET` | *(default — change in prod)* | HMAC signing key for macaroons |
+| `L402_MACAROON_SECRET` | *(default — change in prod)* | Macaroon secret |
+| `LIGHTNING_BACKEND` | `mock` | `mock` \| `lnd` |
 
 ---
 
 ## Architecture
 
-```mermaid
-graph TD
-    Phone["📱 Phone / Browser"]
-    Browser["💻 Browser"]
+```
+Browser / Phone
+      │ HTTP + HTMX + WebSocket
+      ▼
+┌─────────────────────────────────────────┐
+│             FastAPI (dashboard.app)      │
+│  routes: agents, health, swarm,          │
+│          marketplace, voice, mobile      │
+└───┬─────────────┬──────────┬────────────┘
+    │             │          │
+    ▼             ▼          ▼
+Jinja2        Timmy       Swarm
+Templates     Agent       Coordinator
+(HTMX)        │           ├─ Registry (SQLite)
+              ├─ Ollama   ├─ AuctionManager (L402 bids)
+              └─ AirLLM   ├─ SwarmComms (Redis / in-memory)
+                          └─ SwarmManager (subprocess)
+    │
+    ├── Voice NLU + TTS (pyttsx3, local)
+    ├── WebSocket live feed (ws_manager)
+    ├── L402 Lightning proxy (macaroon + invoice)
+    ├── Push notifications (local + macOS native)
+    └── Siri Shortcuts API endpoints
 
-    Phone  -->|HTTP + HTMX| FastAPI
-    Browser -->|HTTP + HTMX| FastAPI
-
-    subgraph "Local Machine"
-        FastAPI["FastAPI\n(dashboard.app)"]
-        Jinja["Jinja2 Templates\n+ static CSS"]
-        Timmy["Timmy Agent\n(Agno wrapper)"]
-        Ollama["Ollama\n:11434"]
-        SQLite[("SQLite\ntimmy.db")]
-
-        FastAPI -->|renders| Jinja
-        FastAPI -->|/agents/timmy/chat| Timmy
-        FastAPI -->|/health/status ping| Ollama
-        Timmy   -->|LLM call| Ollama
-        Timmy   -->|conversation memory| SQLite
-    end
+Persistence: timmy.db (Agno memory), data/swarm.db (registry + tasks)
+External:    Ollama :11434, optional Redis, optional LND gRPC
 ```
 
-All traffic stays on your local network. No cloud, no telemetry.
-
-## Configuration
-
-Override defaults without touching code — create a `.env` file (see `.env.example`):
-
-```bash
-cp .env.example .env
-# then edit .env
-```
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `OLLAMA_URL` | `http://localhost:11434` | Ollama host (useful if Ollama runs on another machine) |
-| `OLLAMA_MODEL` | `llama3.2` | LLM model served by Ollama |
-| `DEBUG` | `false` | Set `true` to enable `/docs` and `/redoc` |
+---
 
 ## Project layout
 
 ```
 src/
-  config.py       # pydantic-settings (reads .env)
-  timmy/          # Timmy agent — wraps Agno (soul = prompt, body = Agno)
-  dashboard/      # FastAPI app + routes + Jinja2 templates
-static/           # CSS (dark mission-control theme)
-tests/            # pytest suite (27 tests, no Ollama required)
-.env.example      # environment variable reference
-pyproject.toml    # dependencies and build config
+  config.py           # pydantic-settings — all env vars live here
+  timmy/              # Core agent (agent.py, backends.py, cli.py, prompts.py)
+  dashboard/          # FastAPI app, routes, Jinja2 templates
+  swarm/              # Multi-agent: coordinator, registry, bidder, tasks, comms
+  timmy_serve/        # L402 proxy, payment handler, TTS, serve CLI
+  voice/              # NLU intent detection
+  websocket/          # WebSocket connection manager
+  notifications/      # Push notification store
+  shortcuts/          # Siri Shortcuts endpoints
+  self_tdd/           # Continuous test watchdog
+tests/                # 228 tests — one file per module, all mocked
+static/style.css      # Dark mission-control theme (JetBrains Mono)
+docs/                 # GitHub Pages landing page
+AGENTS.md             # AI agent development standards ← read this
+.env.example          # Environment variable reference
+Makefile              # Common dev commands
 ```
 
 ---
 
 ## Troubleshooting
 
-**`ollama: command not found`** — Ollama isn't installed or isn't on your PATH. Install via Homebrew or the .dmg from ollama.com.
+**`ollama: command not found`** — install from `brew install ollama` or ollama.com
 
-**`connection refused` in the chat** — Ollama isn't running. Open a terminal and run `ollama serve`, then try again.
+**`connection refused` in chat** — run `ollama serve` in a separate terminal
 
-**`ModuleNotFoundError: No module named 'dashboard'`** — You're not in the venv or forgot `pip install -e .`. Run `source .venv/bin/activate` then `pip install -e ".[dev]"`.
+**`ModuleNotFoundError: No module named 'dashboard'`** — activate the venv:
+`source .venv/bin/activate && pip install -e ".[dev]"`
 
-**Health panel shows DOWN** — Ollama isn't running. The chat still works for testing but will return the offline error message.
+**Health panel shows DOWN** — Ollama isn't running; chat still works but returns
+the offline error message
+
+**L402 startup warnings** — set `L402_HMAC_SECRET` and `L402_MACAROON_SECRET` in
+`.env` to silence them (required for production)
+
+---
+
+## For AI agents contributing to this repo
+
+Read [`AGENTS.md`](AGENTS.md).  It covers per-agent assignments, architecture
+patterns, coding conventions, and the v2→v3 roadmap.
 
 ---
 
 ## Roadmap
 
-| Version | Name       | Milestone                                  |
-|---------|------------|--------------------------------------------|
-| 1.0.0   | Genesis    | Agno + Ollama + SQLite + Dashboard         |
-| 2.0.0   | Exodus     | MCP tools + multi-agent                    |
-| 3.0.0   | Revelation | Bitcoin Lightning treasury + single `.app` |
+| Version | Name       | Status      | Milestone |
+|---------|------------|-------------|-----------|
+| 1.0.0   | Genesis    | ✅ Complete | Agno + Ollama + SQLite + Dashboard |
+| 2.0.0   | Exodus     | 🔄 In progress | Swarm + L402 + Voice + Marketplace |
+| 3.0.0   | Revelation | 📋 Planned  | Lightning treasury + single `.app` bundle |
