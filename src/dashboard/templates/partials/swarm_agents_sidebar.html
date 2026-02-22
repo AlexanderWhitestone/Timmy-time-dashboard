@@ -1,0 +1,50 @@
+<div class="card-header mc-panel-header">// SWARM AGENTS</div>
+<div class="card-body p-2 d-flex flex-column gap-2">
+
+{% if not agents %}
+  <div style="font-size:11px; color:var(--text-dim); padding:8px 4px; letter-spacing:.08em;">
+    NO AGENTS REGISTERED
+  </div>
+{% endif %}
+
+{% for agent in agents %}
+{% set dot = "green" if agent.status == "idle" else ("amber" if agent.status == "busy" else "red") %}
+<div class="mc-agent-card">
+
+  <div class="d-flex align-items-center gap-2 mb-1">
+    <span class="status-dot {{ dot }}"></span>
+    <span class="agent-name" style="font-size:13px;">{{ agent.name | upper }}</span>
+  </div>
+
+  <div class="agent-meta" style="margin-bottom:8px;">
+    <span class="meta-key">STATUS</span>
+    <span class="meta-val">{{ agent.status }}</span><br>
+    {% if agent.capabilities %}
+    <span class="meta-key">CAPS</span>
+    <span class="meta-val" style="font-size:10px;">{{ agent.capabilities }}</span><br>
+    {% endif %}
+    <span class="meta-key">SEEN</span>
+    <span class="meta-val" style="font-size:10px;">{{ agent.last_seen[:19].replace("T"," ") if agent.last_seen else "—" }}</span>
+  </div>
+
+  <div class="d-flex gap-1">
+    <button class="mc-btn-clear flex-fill"
+            style="font-size:9px; padding:4px 6px;"
+            hx-get="/swarm/agents/{{ agent.id }}/panel"
+            hx-target="#main-panel"
+            hx-swap="outerHTML">
+      CHAT
+    </button>
+    <button class="mc-btn-clear flex-fill"
+            style="font-size:9px; padding:4px 6px;"
+            hx-get="/swarm/tasks/panel?agent_id={{ agent.id }}"
+            hx-target="#main-panel"
+            hx-swap="outerHTML">
+      TASK
+    </button>
+  </div>
+
+</div>
+{% endfor %}
+
+</div>

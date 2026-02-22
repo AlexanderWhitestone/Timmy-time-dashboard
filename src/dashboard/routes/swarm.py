@@ -4,15 +4,17 @@ Provides REST endpoints for managing the swarm: listing agents,
 spawning sub-agents, posting tasks, and viewing auction results.
 """
 
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from swarm import registry
 from swarm.coordinator import coordinator
-from swarm.tasks import TaskStatus
+from swarm.tasks import TaskStatus, update_task
 
 router = APIRouter(prefix="/swarm", tags=["swarm"])
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
@@ -28,8 +30,7 @@ async def swarm_status():
 async def swarm_live_page(request: Request):
     """Render the live swarm dashboard page."""
     return templates.TemplateResponse(
-        "swarm_live.html",
-        {"request": request, "page_title": "Swarm Live"},
+        request, "swarm_live.html", {"page_title": "Swarm Live"}
     )
 
 
@@ -127,3 +128,137 @@ async def get_task(task_id: str):
         "created_at": task.created_at,
         "completed_at": task.completed_at,
     }
+
+
+@router.post("/tasks/{task_id}/complete")
+async def complete_task(task_id: str, result: str = Form(...)):
+    """Mark a task completed — called by agent containers."""
+    task = coordinator.complete_task(task_id, result)
+    if task is None:
+        raise HTTPException(404, "Task not found")
+    return {"task_id": task_id, "status": task.status.value}
+
+
+# ── UI endpoints (return HTML partials for HTMX) ─────────────────────────────
+
+@router.get("/agents/sidebar", response_class=HTMLResponse)
+async def agents_sidebar(request: Request):
+    """Sidebar partial: all registered agents."""
+    agents = coordinator.list_swarm_agents()
+    return templates.TemplateResponse(
+        request, "partials/swarm_agents_sidebar.html", {"agents": agents}
+    )
+
+
+@router.get("/agents/{agent_id}/panel", response_class=HTMLResponse)
+async def agent_panel(agent_id: str, request: Request):
+    """Main-panel partial: agent detail + chat + task history."""
+    agent = registry.get_agent(agent_id)
+    if agent is None:
+        raise HTTPException(404, "Agent not found")
+    all_tasks = coordinator.list_tasks()
+    agent_tasks = [t for t in all_tasks if t.assigned_agent == agent_id][-10:]
+    return templates.TemplateResponse(
+        request,
+        "partials/agent_panel.html",
+        {"agent": agent, "tasks": agent_tasks},
+    )
+
+
+@router.post("/agents/{agent_id}/message", response_class=HTMLResponse)
+async def message_agent(agent_id: str, request: Request, message: str = Form(...)):
+    """Send a direct message to an agent (creates + assigns a task)."""
+    agent = registry.get_agent(agent_id)
+    if agent is None:
+        raise HTTPException(404, "Agent not found")
+
+    timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
+
+    # Timmy: route through his AI backend
+    if agent_id == "timmy":
+        result_text = error_text = None
+        try:
+            from timmy.agent import create_timmy
+            run = create_timmy().run(message, stream=False)
+            result_text = run.content if hasattr(run, "content") else str(run)
+        except Exception as exc:
+            error_text = f"Timmy is offline: {exc}"
+        return templates.TemplateResponse(
+            request,
+            "partials/agent_chat_msg.html",
+            {
+                "message": message,
+                "agent": agent,
+                "response": result_text,
+                "error": error_text,
+                "timestamp": timestamp,
+                "task_id": None,
+            },
+        )
+
+    # Other agents: create a task and assign directly
+    task = coordinator.post_task(message)
+    coordinator.auctions.open_auction(task.id)
+    coordinator.auctions.submit_bid(task.id, agent_id, 1)
+    coordinator.auctions.close_auction(task.id)
+    update_task(task.id, status=TaskStatus.ASSIGNED, assigned_agent=agent_id)
+    registry.update_status(agent_id, "busy")
+
+    return templates.TemplateResponse(
+        request,
+        "partials/agent_chat_msg.html",
+        {
+            "message": message,
+            "agent": agent,
+            "response": None,
+            "error": None,
+            "timestamp": timestamp,
+            "task_id": task.id,
+        },
+    )
+
+
+@router.get("/tasks/panel", response_class=HTMLResponse)
+async def task_create_panel(request: Request, agent_id: Optional[str] = None):
+    """Task creation panel, optionally pre-selecting an agent."""
+    agents = coordinator.list_swarm_agents()
+    return templates.TemplateResponse(
+        request,
+        "partials/task_assign_panel.html",
+        {"agents": agents, "preselected_agent_id": agent_id},
+    )
+
+
+@router.post("/tasks/direct", response_class=HTMLResponse)
+async def direct_assign_task(
+    request: Request,
+    description: str = Form(...),
+    agent_id: Optional[str] = Form(None),
+):
+    """Create a task: assign directly if agent_id given, else open auction."""
+    timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
+
+    if agent_id:
+        agent = registry.get_agent(agent_id)
+        task = coordinator.post_task(description)
+        coordinator.auctions.open_auction(task.id)
+        coordinator.auctions.submit_bid(task.id, agent_id, 1)
+        coordinator.auctions.close_auction(task.id)
+        update_task(task.id, status=TaskStatus.ASSIGNED, assigned_agent=agent_id)
+        registry.update_status(agent_id, "busy")
+        agent_name = agent.name if agent else agent_id
+    else:
+        task = coordinator.post_task(description)
+        winner = await coordinator.run_auction_and_assign(task.id)
+        task = coordinator.get_task(task.id)
+        agent_name = winner.agent_id if winner else "unassigned"
+
+    return templates.TemplateResponse(
+        request,
+        "partials/task_result.html",
+        {
+            "task": task,
+            "agent_name": agent_name,
+            "timestamp": timestamp,
+        },
+    )

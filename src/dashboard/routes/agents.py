@@ -11,21 +11,42 @@ from dashboard.store import message_log
 router = APIRouter(prefix="/agents", tags=["agents"])
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
-AGENT_REGISTRY = {
+# Static metadata for known agents — enriched onto live registry entries.
+_AGENT_METADATA: dict[str, dict] = {
     "timmy": {
-        "id": "timmy",
-        "name": "Timmy",
         "type": "sovereign",
         "model": "llama3.2",
         "backend": "ollama",
         "version": "1.0.0",
-    }
+    },
 }
 
 
 @router.get("")
 async def list_agents():
-    return {"agents": list(AGENT_REGISTRY.values())}
+    """Return all registered agents with live status from the swarm registry."""
+    from swarm import registry as swarm_registry
+    agents = swarm_registry.list_agents()
+    return {
+        "agents": [
+            {
+                "id": a.id,
+                "name": a.name,
+                "status": a.status,
+                "capabilities": a.capabilities,
+                **_AGENT_METADATA.get(a.id, {}),
+            }
+            for a in agents
+        ]
+    }
+
+
+@router.get("/timmy/panel", response_class=HTMLResponse)
+async def timmy_panel(request: Request):
+    """Timmy chat panel — for HTMX main-panel swaps."""
+    from swarm import registry as swarm_registry
+    agent = swarm_registry.get_agent("timmy")
+    return templates.TemplateResponse(request, "partials/timmy_panel.html", {"agent": agent})
 
 
 @router.get("/timmy/history", response_class=HTMLResponse)

@@ -1,0 +1,82 @@
+{% set dot = "green" if agent.status == "idle" else ("amber" if agent.status == "busy" else "red") %}
+
+<div id="main-panel" class="col-12 col-md-9 d-flex flex-column mc-chat-panel">
+  <div class="card mc-panel flex-grow-1 d-flex flex-column min-h-0">
+
+    <!-- Header -->
+    <div class="card-header mc-panel-header d-flex justify-content-between align-items-center">
+      <span>
+        <span class="status-dot {{ dot }}" style="margin-right:6px;"></span>
+        // {{ agent.name | upper }}
+        <span style="font-size:10px; color:var(--text-dim); margin-left:10px; letter-spacing:.1em;">
+          {{ agent.capabilities or "no capabilities listed" }}
+        </span>
+      </span>
+      <button class="mc-btn-clear"
+              hx-get="/agents/timmy/panel"
+              hx-target="#main-panel"
+              hx-swap="outerHTML">← TIMMY</button>
+    </div>
+
+    <!-- Message log -->
+    <div class="chat-log flex-grow-1 overflow-auto p-3" id="agent-log-{{ agent.id }}">
+
+      {% if tasks %}
+      <div style="font-size:10px; color:var(--text-dim); letter-spacing:.1em; margin-bottom:12px;">
+        RECENT TASKS
+      </div>
+      {% for task in tasks %}
+      <div class="chat-message" style="margin-bottom:10px;">
+        <div class="msg-meta">
+          TASK · {{ task.status.value | upper }} · {{ task.created_at[:19].replace("T"," ") }}
+        </div>
+        <div class="msg-body" style="border-left: 3px solid var(--{% if task.status.value == 'completed' %}green{% elif task.status.value == 'failed' %}red{% else %}orange{% endif %});">
+          <div style="color:var(--text-dim); font-size:11px; margin-bottom:4px;">{{ task.description }}</div>
+          {% if task.result %}
+          <div style="color:var(--text-bright);">{{ task.result }}</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      <hr style="border-color:var(--border); margin:12px 0;">
+      {% endif %}
+
+      <div id="agent-messages-{{ agent.id }}"></div>
+
+    </div>
+
+    <!-- Input -->
+    <div class="card-footer mc-chat-footer">
+      <form hx-post="/swarm/agents/{{ agent.id }}/message"
+            hx-target="#agent-messages-{{ agent.id }}"
+            hx-swap="beforeend"
+            hx-indicator="#agent-send-indicator"
+            hx-disabled-elt="find button"
+            hx-on::after-settle="this.reset(); scrollAgentLog('{{ agent.id }}')"
+            class="d-flex gap-2">
+        <input type="text"
+               name="message"
+               class="form-control mc-input"
+               placeholder="send a message to {{ agent.name | lower }}..."
+               autocomplete="off"
+               autocorrect="off"
+               autocapitalize="none"
+               spellcheck="false"
+               enterkeyhint="send"
+               required />
+        <button type="submit" class="btn mc-btn-send">
+          SEND
+          <span id="agent-send-indicator" class="htmx-indicator">▋</span>
+        </button>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function scrollAgentLog(id) {
+    const log = document.getElementById('agent-log-' + id);
+    if (log) log.scrollTop = log.scrollHeight;
+  }
+</script>

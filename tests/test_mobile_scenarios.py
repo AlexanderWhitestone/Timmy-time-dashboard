@@ -30,6 +30,11 @@ def _index_html(client) -> str:
     return client.get("/").text
 
 
+def _timmy_panel_html(client) -> str:
+    """Fetch the Timmy chat panel (loaded dynamically from index via HTMX)."""
+    return client.get("/agents/timmy/panel").text
+
+
 # ── M1xx — Viewport & meta tags ───────────────────────────────────────────────
 
 def test_M101_viewport_meta_present(client):
@@ -120,25 +125,25 @@ def test_M301_input_font_size_16px_in_mobile_query():
 
 def test_M302_input_autocapitalize_none(client):
     """autocapitalize=none prevents iOS from capitalising chat commands."""
-    html = _index_html(client)
+    html = _timmy_panel_html(client)
     assert 'autocapitalize="none"' in html
 
 
 def test_M303_input_autocorrect_off(client):
     """autocorrect=off prevents iOS from mangling technical / proper-noun input."""
-    html = _index_html(client)
+    html = _timmy_panel_html(client)
     assert 'autocorrect="off"' in html
 
 
 def test_M304_input_enterkeyhint_send(client):
     """enterkeyhint=send labels the iOS return key 'Send' for clearer UX."""
-    html = _index_html(client)
+    html = _timmy_panel_html(client)
     assert 'enterkeyhint="send"' in html
 
 
 def test_M305_input_spellcheck_false(client):
     """spellcheck=false prevents red squiggles on technical terms."""
-    html = _index_html(client)
+    html = _timmy_panel_html(client)
     assert 'spellcheck="false"' in html
 
 
@@ -146,19 +151,19 @@ def test_M305_input_spellcheck_false(client):
 
 def test_M401_form_hx_sync_drop(client):
     """hx-sync=this:drop discards duplicate submissions (fast double-tap)."""
-    html = _index_html(client)
+    html = _timmy_panel_html(client)
     assert 'hx-sync="this:drop"' in html
 
 
 def test_M402_form_hx_disabled_elt(client):
     """hx-disabled-elt disables the SEND button while a request is in-flight."""
-    html = _index_html(client)
+    html = _timmy_panel_html(client)
     assert "hx-disabled-elt" in html
 
 
 def test_M403_form_hx_indicator(client):
     """hx-indicator wires up the loading spinner to the in-flight state."""
-    html = _index_html(client)
+    html = _timmy_panel_html(client)
     assert "hx-indicator" in html
 
 
