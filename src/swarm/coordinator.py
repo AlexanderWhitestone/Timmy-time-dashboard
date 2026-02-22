@@ -13,6 +13,7 @@ from typing import Optional
 
 from swarm.bidder import AuctionManager, Bid
 from swarm.comms import SwarmComms
+from swarm import learner as swarm_learner
 from swarm.manager import SwarmManager
 from swarm.recovery import reconcile_on_startup
 from swarm.registry import AgentRecord
@@ -183,9 +184,33 @@ class SwarmCoordinator:
 
         The auction should already be open (via post_task).  This method
         waits the remaining bidding window and then closes it.
+
+        All bids are recorded in the learner so agents accumulate outcome
+        history that later feeds back into adaptive bidding.
         """
         await asyncio.sleep(0)  # yield to let any pending callbacks fire
+
+        # Snapshot the auction bids before closing (for learner recording)
+        auction = self.auctions.get_auction(task_id)
+        all_bids = list(auction.bids) if auction else []
+
         winner = self.auctions.close_auction(task_id)
+
+        # Retrieve description for learner context
+        task = get_task(task_id)
+        description = task.description if task else ""
+
+        # Record every bid outcome in the learner
+        winner_id = winner.agent_id if winner else None
+        for bid in all_bids:
+            swarm_learner.record_outcome(
+                task_id=task_id,
+                agent_id=bid.agent_id,
+                description=description,
+                bid_sats=bid.bid_sats,
+                won_auction=(bid.agent_id == winner_id),
+            )
+
         if winner:
             update_task(
                 task_id,
@@ -220,6 +245,26 @@ class SwarmCoordinator:
         if task.assigned_agent:
             registry.update_status(task.assigned_agent, "idle")
             self.comms.complete_task(task_id, task.assigned_agent, result)
+            # Record success in learner
+            swarm_learner.record_task_result(task_id, task.assigned_agent, succeeded=True)
+        return updated
+
+    def fail_task(self, task_id: str, reason: str = "") -> Optional[Task]:
+        """Mark a task as failed — feeds failure data into the learner."""
+        task = get_task(task_id)
+        if task is None:
+            return None
+        now = datetime.now(timezone.utc).isoformat()
+        updated = update_task(
+            task_id,
+            status=TaskStatus.FAILED,
+            result=reason,
+            completed_at=now,
+        )
+        if task.assigned_agent:
+            registry.update_status(task.assigned_agent, "idle")
+            # Record failure in learner
+            swarm_learner.record_task_result(task_id, task.assigned_agent, succeeded=False)
         return updated
 
     def get_task(self, task_id: str) -> Optional[Task]:

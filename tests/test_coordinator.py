@@ -14,6 +14,8 @@ def tmp_swarm_db(tmp_path, monkeypatch):
     db_path = tmp_path / "swarm.db"
     monkeypatch.setattr("swarm.tasks.DB_PATH", db_path)
     monkeypatch.setattr("swarm.registry.DB_PATH", db_path)
+    monkeypatch.setattr("swarm.stats.DB_PATH", db_path)
+    monkeypatch.setattr("swarm.learner.DB_PATH", db_path)
     yield db_path
 
 
@@ -190,3 +192,58 @@ async def test_coordinator_run_auction_with_bid():
 
     assert winner is not None
     assert winner.bid_sats == 35
+
+
+# ── Coordinator: fail_task ──────────────────────────────────────────────────
+
+def test_coordinator_fail_task():
+    from swarm.coordinator import SwarmCoordinator
+    from swarm.tasks import TaskStatus
+    coord = SwarmCoordinator()
+    task = coord.post_task("Fail me")
+    failed = coord.fail_task(task.id, "Something went wrong")
+    assert failed is not None
+    assert failed.status == TaskStatus.FAILED
+    assert failed.result == "Something went wrong"
+
+
+def test_coordinator_fail_task_not_found():
+    from swarm.coordinator import SwarmCoordinator
+    coord = SwarmCoordinator()
+    assert coord.fail_task("nonexistent", "reason") is None
+
+
+def test_coordinator_fail_task_records_in_learner():
+    from swarm.coordinator import SwarmCoordinator
+    from swarm import learner as swarm_learner
+    coord = SwarmCoordinator()
+    task = coord.post_task("Learner fail test")
+    # Simulate assignment
+    from swarm.tasks import update_task, TaskStatus
+    from swarm import registry
+    registry.register(name="test-agent", agent_id="fail-learner-agent")
+    update_task(task.id, status=TaskStatus.ASSIGNED, assigned_agent="fail-learner-agent")
+    # Record an outcome so there's something to update
+    swarm_learner.record_outcome(
+        task.id, "fail-learner-agent", "Learner fail test", 30, won_auction=True,
+    )
+    coord.fail_task(task.id, "broke")
+    m = swarm_learner.get_metrics("fail-learner-agent")
+    assert m.tasks_failed == 1
+
+
+def test_coordinator_complete_task_records_in_learner():
+    from swarm.coordinator import SwarmCoordinator
+    from swarm import learner as swarm_learner
+    coord = SwarmCoordinator()
+    task = coord.post_task("Learner success test")
+    from swarm.tasks import update_task, TaskStatus
+    from swarm import registry
+    registry.register(name="test-agent", agent_id="success-learner-agent")
+    update_task(task.id, status=TaskStatus.ASSIGNED, assigned_agent="success-learner-agent")
+    swarm_learner.record_outcome(
+        task.id, "success-learner-agent", "Learner success test", 25, won_auction=True,
+    )
+    coord.complete_task(task.id, "All done")
+    m = swarm_learner.get_metrics("success-learner-agent")
+    assert m.tasks_completed == 1

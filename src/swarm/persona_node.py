@@ -6,6 +6,8 @@ PersonaNode extends the base SwarmNode to:
    persona's preferred_keywords the node bids aggressively (bid_base ± jitter).
    Otherwise it bids at a higher, less-competitive rate.
 3. Register with the swarm registry under its persona's capabilities string.
+4. (Adaptive) Consult the swarm learner to adjust bids based on historical
+   win/loss and success/failure data when available.
 
 Usage (via coordinator):
     coordinator.spawn_persona("echo")
@@ -35,6 +37,7 @@ class PersonaNode(SwarmNode):
         persona_id: str,
         agent_id: str,
         comms: Optional[SwarmComms] = None,
+        use_learner: bool = True,
     ) -> None:
         meta: PersonaMeta = PERSONAS[persona_id]
         super().__init__(
@@ -45,6 +48,7 @@ class PersonaNode(SwarmNode):
         )
         self._meta = meta
         self._persona_id = persona_id
+        self._use_learner = use_learner
         logger.debug("PersonaNode %s (%s) initialised", meta["name"], agent_id)
 
     # ── Bid strategy ─────────────────────────────────────────────────────────
@@ -54,6 +58,9 @@ class PersonaNode(SwarmNode):
 
         Bids lower (more aggressively) when the description contains at least
         one of our preferred_keywords.  Bids higher for off-spec tasks.
+
+        When the learner is enabled and the agent has enough history, the
+        base bid is adjusted by learned performance metrics before jitter.
         """
         desc_lower = task_description.lower()
         is_preferred = any(
@@ -62,9 +69,19 @@ class PersonaNode(SwarmNode):
         base = self._meta["bid_base"]
         jitter = random.randint(0, self._meta["bid_jitter"])
         if is_preferred:
-            return max(1, base - jitter)
-        # Off-spec: inflate bid so we lose to the specialist
-        return min(200, int(base * _OFF_SPEC_MULTIPLIER) + jitter)
+            raw = max(1, base - jitter)
+        else:
+            # Off-spec: inflate bid so we lose to the specialist
+            raw = min(200, int(base * _OFF_SPEC_MULTIPLIER) + jitter)
+
+        # Consult learner for adaptive adjustment
+        if self._use_learner:
+            try:
+                from swarm.learner import suggest_bid
+                return suggest_bid(self.agent_id, task_description, raw)
+            except Exception:
+                logger.debug("Learner unavailable, using static bid")
+        return raw
 
     def _on_task_posted(self, msg: SwarmMessage) -> None:
         """Handle task announcement with persona-aware bidding."""
