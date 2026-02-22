@@ -19,6 +19,7 @@ from dashboard.routes.voice_enhanced import router as voice_enhanced_router
 from dashboard.routes.mobile import router as mobile_router
 from dashboard.routes.swarm_ws import router as swarm_ws_router
 from dashboard.routes.briefing import router as briefing_router
+from dashboard.routes.telegram import router as telegram_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -62,7 +63,14 @@ async def _briefing_scheduler() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     task = asyncio.create_task(_briefing_scheduler())
+
+    # Auto-start Telegram bot if a token is configured
+    from telegram_bot.bot import telegram_bot
+    await telegram_bot.start()
+
     yield
+
+    await telegram_bot.stop()
     task.cancel()
     try:
         await task
@@ -92,6 +100,7 @@ app.include_router(voice_enhanced_router)
 app.include_router(mobile_router)
 app.include_router(swarm_ws_router)
 app.include_router(briefing_router)
+app.include_router(telegram_router)
 
 
 @app.get("/", response_class=HTMLResponse)
