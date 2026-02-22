@@ -1,0 +1,9 @@
+{% if items %}
+  {% for item in items %}
+    {% include "partials/approval_card_single.html" %}
+  {% endfor %}
+{% else %}
+<div class="no-approvals">
+  No pending approvals. Timmy is standing by.
+</div>
+{% endif %}

@@ -1,4 +1,6 @@
+import asyncio
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -16,6 +18,7 @@ from dashboard.routes.voice import router as voice_router
 from dashboard.routes.voice_enhanced import router as voice_enhanced_router
 from dashboard.routes.mobile import router as mobile_router
 from dashboard.routes.swarm_ws import router as swarm_ws_router
+from dashboard.routes.briefing import router as briefing_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,9 +30,50 @@ logger = logging.getLogger(__name__)
 BASE_DIR = Path(__file__).parent
 PROJECT_ROOT = BASE_DIR.parent.parent
 
+_BRIEFING_INTERVAL_HOURS = 6
+
+
+async def _briefing_scheduler() -> None:
+    """Background task: regenerate Timmy's briefing every 6 hours.
+
+    Runs once at startup (after a short delay to let the server settle),
+    then on a 6-hour cadence.  Skips generation if a fresh briefing already
+    exists (< 30 min old).
+    """
+    from timmy.briefing import engine as briefing_engine
+    from notifications.push import notify_briefing_ready
+
+    await asyncio.sleep(2)  # Let server finish starting before first run
+
+    while True:
+        try:
+            if briefing_engine.needs_refresh():
+                logger.info("Generating morning briefing…")
+                briefing = briefing_engine.generate()
+                await notify_briefing_ready(briefing)
+            else:
+                logger.info("Briefing is fresh; skipping generation.")
+        except Exception as exc:
+            logger.error("Briefing scheduler error: %s", exc)
+
+        await asyncio.sleep(_BRIEFING_INTERVAL_HOURS * 3600)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(_briefing_scheduler())
+    yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
+
+
 app = FastAPI(
     title="Timmy Time — Mission Control",
     version="1.0.0",
+    lifespan=lifespan,
     # Docs disabled unless DEBUG=true in env / .env
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
@@ -47,6 +91,7 @@ app.include_router(voice_router)
 app.include_router(voice_enhanced_router)
 app.include_router(mobile_router)
 app.include_router(swarm_ws_router)
+app.include_router(briefing_router)
 
 
 @app.get("/", response_class=HTMLResponse)
