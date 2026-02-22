@@ -223,6 +223,9 @@ Makefile              # Common dev commands
 
 **`connection refused` in chat** — run `ollama serve` in a separate terminal
 
+**`ModuleNotFoundError: No module named 'sqlalchemy'`** — re-run install to pick up the updated `agno[sqlite]` dependency:
+`make install`
+
 **`ModuleNotFoundError: No module named 'dashboard'`** — activate the venv:
 `source .venv/bin/activate && pip install -e ".[dev]"`
 
