@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     # Set DEBUG=true to enable /docs and /redoc (disabled by default)
     debug: bool = False
 
+    # Telegram bot token — set via TELEGRAM_TOKEN env var or the /telegram/setup endpoint
+    telegram_token: str = ""
+
     # ── AirLLM / backend selection ───────────────────────────────────────────
     # "ollama"  — always use Ollama (default, safe everywhere)
     # "airllm"  — always use AirLLM (requires pip install ".[bigbrain]")

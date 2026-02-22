@@ -47,6 +47,11 @@ swarm = [
 voice = [
     "pyttsx3>=2.90",
 ]
+# Telegram: bridge Telegram messages to Timmy via python-telegram-bot.
+# pip install ".[telegram]"
+telegram = [
+    "python-telegram-bot>=21.0",
+]
 
 [project.scripts]
 timmy = "timmy.cli:main"
@@ -66,6 +71,7 @@ include = [
     "src/voice",
     "src/notifications",
     "src/shortcuts",
+    "src/telegram_bot",
 ]
 
 [tool.pytest.ini_options]

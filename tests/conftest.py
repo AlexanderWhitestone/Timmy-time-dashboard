@@ -17,6 +17,10 @@ for _mod in [
     # AirLLM is optional (bigbrain extra) — stub it so backend tests can
     # import timmy.backends and instantiate TimmyAirLLMAgent without a GPU.
     "airllm",
+    # python-telegram-bot is optional (telegram extra) — stub so tests run
+    # without the package installed.
+    "telegram",
+    "telegram.ext",
 ]:
     sys.modules.setdefault(_mod, MagicMock())
 

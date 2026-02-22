@@ -21,6 +21,9 @@ env/
 # SQLite memory — never commit agent memory
 *.db
 
+# Telegram bot state (contains bot token)
+telegram_state.json
+
 # Testing
 .pytest_cache/
 .coverage
