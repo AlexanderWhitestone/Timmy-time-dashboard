@@ -73,7 +73,9 @@ def _build_enriched_catalog() -> list[dict]:
         reg = by_name.get(e["name"].lower())
 
         if reg is not None:
-            e["status"] = reg.status       # idle | busy | offline
+            # Timmy is always "active" in the marketplace — it's the sovereign
+            # agent, not just a task worker.  Registry idle/busy is internal state.
+            e["status"] = "active" if e["id"] == "timmy" else reg.status
             agent_stats = all_stats.get(reg.id, {})
             e["tasks_completed"] = agent_stats.get("tasks_won", 0)
             e["total_earned"] = agent_stats.get("total_earned", 0)
@@ -97,9 +99,9 @@ async def marketplace_ui(request: Request):
     active = [a for a in agents if a["status"] in ("idle", "busy", "active")]
     planned = [a for a in agents if a["status"] == "planned"]
     return templates.TemplateResponse(
+        request,
         "marketplace.html",
         {
-            "request": request,
             "page_title": "Agent Marketplace",
             "agents": agents,
             "active_count": len(active),

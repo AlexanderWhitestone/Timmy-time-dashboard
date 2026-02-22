@@ -34,6 +34,23 @@ def reset_message_log():
     message_log.clear()
 
 
+@pytest.fixture(autouse=True)
+def reset_coordinator_state():
+    """Clear the coordinator's in-memory state between tests.
+
+    The coordinator singleton is created at import time and persists across
+    the test session.  Without this fixture, agents spawned in one test bleed
+    into the next through the auctions dict, comms listeners, and the
+    in-process node list.
+    """
+    yield
+    from swarm.coordinator import coordinator
+    coordinator.auctions._auctions.clear()
+    coordinator.comms._listeners.clear()
+    coordinator._in_process_nodes.clear()
+    coordinator.manager.stop_all()
+
+
 @pytest.fixture
 def client():
     from dashboard.app import app

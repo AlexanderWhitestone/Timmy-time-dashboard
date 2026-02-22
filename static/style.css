@@ -1,20 +1,22 @@
-/* ── Mission Control palette ──────────────────────── */
+/* ── Arcane palette ────────────────────────────────── */
 :root {
-  --bg-deep:     #060d14;
-  --bg-panel:    #0c1824;
-  --bg-card:     #0f2030;
-  --border:      #1a3a55;
-  --border-glow: #1e4d72;
-  --text:        #b8d0e8;
-  --text-dim:    #4a7a9a;
-  --text-bright: #ddeeff;
+  --bg-deep:     #080412;
+  --bg-panel:    #110820;
+  --bg-card:     #180d2e;
+  --border:      #3b1a5c;
+  --border-glow: #7c3aed;
+  --text:        #c8b0e0;
+  --text-dim:    #6b4a8a;
+  --text-bright: #ede0ff;
   --green:       #00e87a;
   --green-dim:   #00704a;
   --amber:       #ffb800;
   --amber-dim:   #7a5800;
   --red:         #ff4455;
   --red-dim:     #7a1a22;
-  --blue:        #00aaff;
+  --blue:        #ff7a2a;   /* orange replaces blue as the primary accent */
+  --orange:      #ff7a2a;
+  --purple:      #a855f7;
   --font:        'JetBrains Mono', 'Courier New', monospace;
   --header-h:    52px;
 
@@ -36,7 +38,10 @@
 
 body {
   font-family: var(--font);
-  background: var(--bg-deep);
+  background-color: var(--bg-deep);
+  background-image: url('/static/bg.svg');
+  background-size: cover;
+  background-position: center top;
   color: var(--text);
   font-size: 13px;
   min-height: 100dvh;
@@ -51,7 +56,9 @@ body {
   align-items: center;
   padding: 12px 24px;
   padding-top: max(12px, env(safe-area-inset-top));
-  background: var(--bg-panel);
+  background: rgba(17, 8, 32, 0.86);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -64,6 +71,7 @@ body {
   font-weight: 700;
   color: var(--text-bright);
   letter-spacing: 0.15em;
+  text-shadow: 0 0 18px rgba(168, 85, 247, 0.55), 0 0 40px rgba(168, 85, 247, 0.25);
 }
 .mc-subtitle {
   font-size: 11px;
@@ -73,8 +81,9 @@ body {
 }
 .mc-time {
   font-size: 14px;
-  color: var(--blue);
+  color: var(--orange);
   letter-spacing: 0.1em;
+  text-shadow: 0 0 10px rgba(249, 115, 22, 0.4);
 }
 .mc-test-link {
   font-size: 9px;
@@ -88,13 +97,13 @@ body {
   transition: border-color 0.15s, color 0.15s;
   touch-action: manipulation;
 }
-.mc-test-link:hover { border-color: var(--blue); color: var(--blue); }
+.mc-test-link:hover { border-color: var(--purple); color: var(--purple); }
 
 /* ── Main layout ─────────────────────────────────── */
 .mc-main {
   padding: 16px;
   height: calc(100dvh - var(--header-h));
-  overflow: clip; /* clip = visual clipping only, no scroll container; lets trackpad events reach scrollable children */
+  overflow: clip;
 }
 .mc-content {
   height: 100%;
@@ -106,7 +115,7 @@ body {
 /* ── Sidebar ─────────────────────────────────────── */
 .mc-sidebar {
   overflow-y: auto;
-  min-height: 0; /* allow flex item to shrink so overflow-y: auto actually triggers */
+  min-height: 0;
 }
 
 /* ── Chat column ─────────────────────────────────── */
@@ -115,17 +124,19 @@ body {
 }
 .mc-chat-panel > .card {
   height: 100%;
-  overflow: clip; /* visual clip only, preserves scroll events to .chat-log child */
+  overflow: clip;
 }
 
 /* ── Panel / Card overrides ──────────────────────── */
 .mc-panel {
-  background: var(--bg-panel);
+  background: rgba(17, 8, 32, 0.78);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border);
   border-radius: 4px;
 }
 .mc-panel-header {
-  background: var(--bg-card);
+  background: rgba(24, 10, 45, 0.90);
   border-bottom: 1px solid var(--border);
   font-size: 10px;
   font-weight: 700;
@@ -140,7 +151,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 3px;
   padding: 12px;
-  background: var(--bg-card);
+  background: rgba(24, 10, 45, 0.82);
 }
 .status-dot {
   width: 8px;
@@ -175,7 +186,7 @@ body {
 .health-row:last-child { border-bottom: none; }
 .health-label { color: var(--text-dim); letter-spacing: 0.08em; }
 
-/* Status badges (use Bootstrap .badge base + mc-badge-* modifier) */
+/* Status badges */
 .mc-badge-up    { background: var(--green-dim) !important; color: var(--green) !important; font-size: 10px; letter-spacing: 0.12em; border-radius: 2px; }
 .mc-badge-down  { background: var(--red-dim)   !important; color: var(--red)   !important; font-size: 10px; letter-spacing: 0.12em; border-radius: 2px; }
 .mc-badge-ready { background: var(--amber-dim) !important; color: var(--amber) !important; font-size: 10px; letter-spacing: 0.12em; border-radius: 2px; }
@@ -193,12 +204,12 @@ body {
   margin-bottom: 4px;
   letter-spacing: 0.12em;
 }
-.chat-message.user      .msg-meta { color: var(--blue); }
-.chat-message.agent     .msg-meta { color: var(--green); }
+.chat-message.user      .msg-meta { color: var(--orange); }
+.chat-message.agent     .msg-meta { color: var(--purple); }
 .chat-message.error-msg .msg-meta { color: var(--red); }
 
 .msg-body {
-  background: var(--bg-card);
+  background: rgba(24, 10, 45, 0.80);
   border: 1px solid var(--border);
   border-radius: 3px;
   padding: 10px 12px;
@@ -207,14 +218,14 @@ body {
   word-break: break-word;
 }
 .chat-message.user      .msg-body { border-color: var(--border-glow); }
-.chat-message.agent     .msg-body { border-left: 3px solid var(--green); }
+.chat-message.agent     .msg-body { border-left: 3px solid var(--purple); }
 .chat-message.error-msg .msg-body { border-left: 3px solid var(--red); color: var(--red); }
 
 /* ── Chat input footer ───────────────────────────── */
 .mc-chat-footer {
   padding: 12px 14px;
   padding-bottom: max(12px, env(safe-area-inset-bottom));
-  background: var(--bg-card);
+  background: rgba(24, 10, 45, 0.90);
   border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -237,7 +248,7 @@ body {
 
 /* Bootstrap form-control overrides */
 .mc-input {
-  background: var(--bg-deep) !important;
+  background: rgba(8, 4, 18, 0.75) !important;
   border: 1px solid var(--border) !important;
   border-radius: 3px !important;
   color: var(--text-bright) !important;
@@ -246,7 +257,7 @@ body {
 }
 .mc-input:focus {
   border-color: var(--border-glow) !important;
-  box-shadow: 0 0 0 1px var(--border-glow) !important;
+  box-shadow: 0 0 0 1px var(--border-glow), 0 0 10px rgba(124, 58, 237, 0.25) !important;
 }
 .mc-input::placeholder { color: var(--text-dim) !important; }
 
@@ -260,11 +271,15 @@ body {
   font-weight: 700;
   padding: 8px 18px;
   letter-spacing: 0.12em;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
   touch-action: manipulation;
   white-space: nowrap;
 }
-.mc-btn-send:hover { background: var(--blue); color: var(--bg-deep); }
+.mc-btn-send:hover {
+  background: var(--orange);
+  color: #080412;
+  box-shadow: 0 0 14px rgba(249, 115, 22, 0.45);
+}
 
 /* ── HTMX Loading ────────────────────────────────── */
 .htmx-indicator { display: none; }
@@ -274,7 +289,7 @@ body {
 
 /* ── Scrollbar ───────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--border-glow); }
 

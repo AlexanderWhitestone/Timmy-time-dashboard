@@ -1,0 +1,58 @@
+<div id="main-panel" class="col-12 col-md-9 d-flex flex-column mc-chat-panel">
+  <div class="card mc-panel flex-grow-1 d-flex flex-column min-h-0">
+
+    <div class="card-header mc-panel-header d-flex justify-content-between align-items-center">
+      <span>
+        {% if agent %}
+          <span class="status-dot {{ 'green' if agent.status == 'idle' else 'amber' }}" style="margin-right:6px;"></span>
+        {% endif %}
+        // TIMMY INTERFACE
+      </span>
+      <button class="mc-btn-clear"
+              hx-delete="/agents/timmy/history"
+              hx-target="#chat-log"
+              hx-swap="innerHTML"
+              hx-confirm="Clear conversation history?">CLEAR</button>
+    </div>
+
+    <div class="chat-log flex-grow-1 overflow-auto p-3" id="chat-log"
+         hx-get="/agents/timmy/history"
+         hx-trigger="load"
+         hx-swap="innerHTML"></div>
+
+    <div class="card-footer mc-chat-footer">
+      <form hx-post="/agents/timmy/chat"
+            hx-target="#chat-log"
+            hx-swap="beforeend"
+            hx-indicator="#send-indicator"
+            hx-sync="this:drop"
+            hx-disabled-elt="find button"
+            hx-on::after-settle="this.reset(); scrollChat()"
+            class="d-flex gap-2">
+        <input type="text"
+               name="message"
+               class="form-control mc-input"
+               placeholder="send a message to timmy..."
+               autocomplete="off"
+               autocorrect="off"
+               autocapitalize="none"
+               spellcheck="false"
+               enterkeyhint="send"
+               required />
+        <button type="submit" class="btn mc-btn-send">
+          SEND
+          <span id="send-indicator" class="htmx-indicator">▋</span>
+        </button>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function scrollChat() {
+    const log = document.getElementById('chat-log');
+    if (log) log.scrollTop = log.scrollHeight;
+  }
+  scrollChat();
+</script>

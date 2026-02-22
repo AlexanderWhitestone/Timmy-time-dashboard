@@ -14,6 +14,7 @@ from typing import Optional
 from swarm.bidder import AuctionManager, Bid
 from swarm.comms import SwarmComms
 from swarm.manager import SwarmManager
+from swarm.recovery import reconcile_on_startup
 from swarm.registry import AgentRecord
 from swarm import registry
 from swarm import stats as swarm_stats
@@ -37,6 +38,7 @@ class SwarmCoordinator:
         self.auctions = AuctionManager()
         self.comms = SwarmComms()
         self._in_process_nodes: list = []
+        self._recovery_summary = reconcile_on_startup()
 
     # ── Agent lifecycle ─────────────────────────────────────────────────────
 

@@ -1,4 +1,5 @@
-.PHONY: install install-bigbrain dev test test-cov watch lint clean help
+.PHONY: install install-bigbrain dev test test-cov watch lint clean help \
+        docker-build docker-up docker-down docker-agent docker-logs docker-shell
 
 VENV        := .venv
 PYTHON      := $(VENV)/bin/python
@@ -65,6 +66,33 @@ lint:
 
 # ── Housekeeping ──────────────────────────────────────────────────────────────
 
+# ── Docker ────────────────────────────────────────────────────────────────────
+
+docker-build:
+	docker build -t timmy-time:latest .
+
+docker-up:
+	mkdir -p data
+	docker compose up -d dashboard
+
+docker-down:
+	docker compose down
+
+# Spawn one agent worker connected to the running dashboard.
+# Override name/capabilities: make docker-agent AGENT_NAME=Echo AGENT_CAPABILITIES=summarise
+docker-agent:
+	AGENT_NAME=$${AGENT_NAME:-Worker} \
+	AGENT_CAPABILITIES=$${AGENT_CAPABILITIES:-general} \
+	docker compose --profile agents up -d --scale agent=1 agent
+
+docker-logs:
+	docker compose logs -f
+
+docker-shell:
+	docker compose exec dashboard bash
+
+# ── Housekeeping ──────────────────────────────────────────────────────────────
+
 clean:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
@@ -82,4 +110,11 @@ help:
 	@echo "  make watch            self-TDD watchdog (60s poll)"
 	@echo "  make lint             run ruff or flake8"
 	@echo "  make clean            remove build artefacts and caches"
+	@echo ""
+	@echo "  make docker-build     build the timmy-time:latest image"
+	@echo "  make docker-up        start dashboard container"
+	@echo "  make docker-agent     add one agent worker (AGENT_NAME=Echo)"
+	@echo "  make docker-down      stop all containers"
+	@echo "  make docker-logs      tail container logs"
+	@echo "  make docker-shell     open a bash shell in the dashboard container"
 	@echo ""

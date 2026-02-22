@@ -1,0 +1,28 @@
+{% set status_color = "green" if task.status.value == "completed" else ("red" if task.status.value == "failed" else "amber") %}
+<div class="mc-agent-card" style="border-left: 3px solid var(--{{ status_color }});">
+  <div style="font-size:10px; color:var(--text-dim); letter-spacing:.12em; margin-bottom:6px;">
+    TASK POSTED · {{ timestamp }}
+  </div>
+  <div style="font-size:12px; color:var(--text-bright); margin-bottom:8px;">
+    {{ task.description }}
+  </div>
+  <div class="d-flex gap-3" style="font-size:11px;">
+    <span>
+      <span style="color:var(--text-dim);">STATUS </span>
+      <span style="color:var(--{{ status_color }});">{{ task.status.value | upper }}</span>
+    </span>
+    <span>
+      <span style="color:var(--text-dim);">AGENT </span>
+      <span style="color:var(--purple);">{{ agent_name | upper }}</span>
+    </span>
+    <span>
+      <span style="color:var(--text-dim);">ID </span>
+      <span style="color:var(--text-dim);">{{ task.id[:8] }}…</span>
+    </span>
+  </div>
+  {% if task.result %}
+  <div style="margin-top:8px; font-size:12px; color:var(--text); border-top:1px solid var(--border); padding-top:8px;">
+    {{ task.result }}
+  </div>
+  {% endif %}
+</div>

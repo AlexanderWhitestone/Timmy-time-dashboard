@@ -1,0 +1,109 @@
+# ── Timmy Time — docker-compose ─────────────────────────────────────────────
+#
+# Services
+#   dashboard   FastAPI app + swarm coordinator (always on)
+#   agent       Swarm worker template — scale with:
+#                 docker compose up --scale agent=N --profile agents
+#
+# Volumes
+#   timmy-data  Shared SQLite (data/swarm.db + data/timmy.db)
+#
+# Usage
+#   make docker-build    build the image
+#   make docker-up       start dashboard only
+#   make docker-agent    add one agent worker
+#   make docker-down     stop everything
+#   make docker-logs     tail logs
+
+version: "3.9"
+
+services:
+
+  # ── Dashboard (coordinator + FastAPI) ──────────────────────────────────────
+  dashboard:
+    build: .
+    image: timmy-time:latest
+    container_name: timmy-dashboard
+    ports:
+      - "8000:8000"
+    volumes:
+      - timmy-data:/app/data
+      - ./src:/app/src        # live-reload: source changes reflect immediately
+      - ./static:/app/static  # live-reload: CSS/asset changes reflect immediately
+    environment:
+      DEBUG: "true"
+      # Point to host Ollama (Mac default).  Override in .env if different.
+      OLLAMA_URL: "${OLLAMA_URL:-http://host.docker.internal:11434}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Linux compatibility
+    networks:
+      - swarm-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ── Timmy — sovereign AI agent (separate container) ───────────────────────
+  timmy:
+    build: .
+    image: timmy-time:latest
+    container_name: timmy-agent
+    volumes:
+      - timmy-data:/app/data
+      - ./src:/app/src
+    environment:
+      COORDINATOR_URL: "http://dashboard:8000"
+      OLLAMA_URL: "${OLLAMA_URL:-http://host.docker.internal:11434}"
+      TIMMY_AGENT_ID: "timmy"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["python", "-m", "timmy.docker_agent"]
+    networks:
+      - swarm-net
+    depends_on:
+      dashboard:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Agent worker template ───────────────────────────────────────────────────
+  # Scale horizontally:  docker compose up --scale agent=4 --profile agents
+  # Each container gets a unique AGENT_ID via the replica index.
+  agent:
+    build: .
+    image: timmy-time:latest
+    profiles:
+      - agents
+    volumes:
+      - timmy-data:/app/data
+      - ./src:/app/src
+    environment:
+      COORDINATOR_URL: "http://dashboard:8000"
+      OLLAMA_URL: "${OLLAMA_URL:-http://host.docker.internal:11434}"
+      AGENT_NAME: "${AGENT_NAME:-Worker}"
+      AGENT_CAPABILITIES: "${AGENT_CAPABILITIES:-general}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["sh", "-c", "python -m swarm.agent_runner --agent-id agent-$(hostname) --name $${AGENT_NAME:-Worker}"]
+    networks:
+      - swarm-net
+    depends_on:
+      dashboard:
+        condition: service_healthy
+    restart: unless-stopped
+
+# ── Shared volume ─────────────────────────────────────────────────────────────
+volumes:
+  timmy-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "${PWD}/data"
+
+# ── Internal network ──────────────────────────────────────────────────────────
+networks:
+  swarm-net:
+    driver: bridge

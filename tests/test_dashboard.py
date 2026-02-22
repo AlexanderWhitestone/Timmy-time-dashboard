@@ -15,7 +15,8 @@ def test_index_contains_title(client):
 
 def test_index_contains_chat_interface(client):
     response = client.get("/")
-    assert "TIMMY INTERFACE" in response.text
+    # Timmy panel loads dynamically via HTMX; verify the trigger attribute is present
+    assert "hx-get=\"/agents/timmy/panel\"" in response.text
 
 
 # ── Health ────────────────────────────────────────────────────────────────────

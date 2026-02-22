@@ -20,6 +20,7 @@ from dashboard.routes.mobile import router as mobile_router
 from dashboard.routes.swarm_ws import router as swarm_ws_router
 from dashboard.routes.briefing import router as briefing_router
 from dashboard.routes.telegram import router as telegram_router
+from dashboard.routes.swarm_internal import router as swarm_internal_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -64,6 +65,24 @@ async def _briefing_scheduler() -> None:
 async def lifespan(app: FastAPI):
     task = asyncio.create_task(_briefing_scheduler())
 
+    # Register Timmy in the swarm registry so it shows up alongside other agents
+    from swarm import registry as swarm_registry
+    swarm_registry.register(
+        name="Timmy",
+        capabilities="chat,reasoning,research,planning",
+        agent_id="timmy",
+    )
+
+    # Log swarm recovery summary (reconciliation ran during coordinator init)
+    from swarm.coordinator import coordinator as swarm_coordinator
+    rec = swarm_coordinator._recovery_summary
+    if rec["tasks_failed"] or rec["agents_offlined"]:
+        logger.info(
+            "Swarm recovery on startup: %d task(s) → FAILED, %d agent(s) → offline",
+            rec["tasks_failed"],
+            rec["agents_offlined"],
+        )
+
     # Auto-start Telegram bot if a token is configured
     from telegram_bot.bot import telegram_bot
     await telegram_bot.start()
@@ -101,6 +120,7 @@ app.include_router(mobile_router)
 app.include_router(swarm_ws_router)
 app.include_router(briefing_router)
 app.include_router(telegram_router)
+app.include_router(swarm_internal_router)
 
 
 @app.get("/", response_class=HTMLResponse)

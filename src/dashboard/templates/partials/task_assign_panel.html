@@ -1,0 +1,60 @@
+<div id="main-panel" class="col-12 col-md-9 d-flex flex-column mc-chat-panel">
+  <div class="card mc-panel flex-grow-1 d-flex flex-column min-h-0">
+
+    <div class="card-header mc-panel-header d-flex justify-content-between align-items-center">
+      <span>// CREATE TASK</span>
+      <button class="mc-btn-clear"
+              hx-get="/agents/timmy/panel"
+              hx-target="#main-panel"
+              hx-swap="outerHTML">← TIMMY</button>
+    </div>
+
+    <div class="flex-grow-1 overflow-auto p-3">
+
+      <form hx-post="/swarm/tasks/direct"
+            hx-target="#task-result"
+            hx-swap="innerHTML"
+            hx-disabled-elt="find button"
+            class="d-flex flex-column gap-3">
+
+        <div>
+          <div style="font-size:10px; color:var(--text-dim); letter-spacing:.15em; margin-bottom:6px;">
+            DESCRIPTION
+          </div>
+          <textarea name="description"
+                    class="form-control mc-input"
+                    rows="4"
+                    placeholder="describe what you need done..."
+                    required
+                    style="resize:vertical;"></textarea>
+        </div>
+
+        <div>
+          <div style="font-size:10px; color:var(--text-dim); letter-spacing:.15em; margin-bottom:6px;">
+            ASSIGN TO
+          </div>
+          <select name="agent_id" class="form-control mc-input">
+            <option value="">— open auction (lowest bid wins) —</option>
+            {% for agent in agents %}
+            {% set selected = "selected" if agent.id == preselected_agent_id else "" %}
+            <option value="{{ agent.id }}" {{ selected }}>
+              {{ agent.name | upper }}
+              {% if agent.capabilities %} · {{ agent.capabilities }}{% endif %}
+              · {{ agent.status }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button type="submit" class="btn mc-btn-send" style="align-self:flex-end; padding:10px 28px;">
+          POST TASK ▶
+        </button>
+
+      </form>
+
+      <div id="task-result" style="margin-top:20px;"></div>
+
+    </div>
+
+  </div>
+</div>
