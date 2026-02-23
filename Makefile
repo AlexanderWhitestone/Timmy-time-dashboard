@@ -1,4 +1,4 @@
-.PHONY: install install-bigbrain dev test test-cov watch lint clean help \
+.PHONY: install install-bigbrain dev test test-cov test-cov-html watch lint clean help \
         docker-build docker-up docker-down docker-agent docker-logs docker-shell
 
 VENV        := .venv
@@ -57,6 +57,10 @@ test:
 test-cov:
 	$(PYTEST) tests/ --cov=src --cov-report=term-missing --cov-report=xml -q
 
+test-cov-html:
+	$(PYTEST) tests/ --cov=src --cov-report=term-missing --cov-report=html -q
+	@echo "✓ HTML coverage report: open htmlcov/index.html"
+
 # ── Code quality ──────────────────────────────────────────────────────────────
 
 lint:
@@ -105,8 +109,9 @@ help:
 	@echo "  make install-bigbrain install with AirLLM (big-model backend)"
 	@echo "  make dev              start dashboard at http://localhost:8000"
 	@echo "  make ip               print local IP addresses for phone testing"
-	@echo "  make test             run all 228 tests"
-	@echo "  make test-cov         tests + coverage report"
+	@echo "  make test             run all tests"
+	@echo "  make test-cov         tests + coverage report (terminal + XML)"
+	@echo "  make test-cov-html    tests + HTML coverage report"
 	@echo "  make watch            self-TDD watchdog (60s poll)"
 	@echo "  make lint             run ruff or flake8"
 	@echo "  make clean            remove build artefacts and caches"

@@ -2,6 +2,8 @@
 
 import json
 
+import pytest
+
 from websocket.handler import WebSocketManager, WSEvent
 
 
@@ -18,13 +20,12 @@ def test_ws_manager_initial_state():
     assert mgr.event_history == []
 
 
-def test_ws_manager_event_history_limit():
+@pytest.mark.asyncio
+async def test_ws_manager_event_history_limit():
+    """History is trimmed to max_history after broadcasts."""
     mgr = WebSocketManager()
     mgr._max_history = 5
     for i in range(10):
-        event = WSEvent(event=f"e{i}", data={}, timestamp="t")
-        mgr._event_history.append(event)
-    # Simulate the trim that happens in broadcast
-    if len(mgr._event_history) > mgr._max_history:
-        mgr._event_history = mgr._event_history[-mgr._max_history:]
-    assert len(mgr._event_history) == 5
+        await mgr.broadcast(f"e{i}", {})
+    assert len(mgr.event_history) == 5
+    assert mgr.event_history[0].event == "e5"

@@ -27,6 +27,7 @@ telegram_state.json
 # Testing
 .pytest_cache/
 .coverage
+coverage.xml
 htmlcov/
 reports/
 
