@@ -83,4 +83,27 @@ addopts = "-v --tb=short"
 
 [tool.coverage.run]
 source = ["src"]
-omit = ["*/tests/*"]
+omit = [
+    "*/tests/*",
+    "src/dashboard/routes/mobile_test.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+precision = 1
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@abstractmethod",
+]
+# Fail CI if coverage drops below this threshold
+fail_under = 60
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"

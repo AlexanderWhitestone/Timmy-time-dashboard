@@ -18,6 +18,7 @@ from swarm.manager import SwarmManager
 from swarm.recovery import reconcile_on_startup
 from swarm.registry import AgentRecord
 from swarm import registry
+from swarm import routing as swarm_routing
 from swarm import stats as swarm_stats
 from swarm.tasks import (
     Task,
@@ -69,6 +70,9 @@ class SwarmCoordinator:
         capabilities string and wired into the AuctionManager via the shared
         comms layer — identical to spawn_in_process_agent but with
         persona-aware bidding and a pre-defined capabilities tag.
+        
+        Also registers the persona's capability manifest with the routing engine
+        for intelligent task routing.
         """
         from swarm.personas import PERSONAS
         from swarm.persona_node import PersonaNode
@@ -105,6 +109,10 @@ class SwarmCoordinator:
             capabilities=meta["capabilities"],
             agent_id=aid,
         )
+        
+        # Register capability manifest with routing engine
+        swarm_routing.routing_engine.register_persona(persona_id, aid)
+        
         self._in_process_nodes.append(node)
         logger.info("Spawned persona %s (%s)", node.name, aid)
         
@@ -201,8 +209,24 @@ class SwarmCoordinator:
         # Snapshot the auction bids before closing (for learner recording)
         auction = self.auctions.get_auction(task_id)
         all_bids = list(auction.bids) if auction else []
-
+        
+        # Build bids dict for routing engine
+        bids_dict = {bid.agent_id: bid.bid_sats for bid in all_bids}
+        
+        # Get routing recommendation (logs decision for audit)
+        task = get_task(task_id)
+        description = task.description if task else ""
+        recommended, decision = swarm_routing.routing_engine.recommend_agent(
+            task_id, description, bids_dict
+        )
+        
+        # Log if auction winner differs from routing recommendation
         winner = self.auctions.close_auction(task_id)
+        if winner and recommended and winner.agent_id != recommended:
+            logger.warning(
+                "Auction winner %s differs from routing recommendation %s",
+                winner.agent_id[:8], recommended[:8]
+            )
 
         # Retrieve description for learner context
         task = get_task(task_id)
@@ -362,7 +386,17 @@ class SwarmCoordinator:
             "tasks_running": sum(1 for t in tasks if t.status == TaskStatus.RUNNING),
             "tasks_completed": sum(1 for t in tasks if t.status == TaskStatus.COMPLETED),
             "active_auctions": len(self.auctions.active_auctions),
+            "routing_manifests": len(swarm_routing.routing_engine._manifests),
         }
+    
+    def get_routing_decisions(self, task_id: Optional[str] = None, limit: int = 100) -> list:
+        """Get routing decision history for audit.
+        
+        Args:
+            task_id: Filter to specific task (optional)
+            limit: Maximum number of decisions to return
+        """
+        return swarm_routing.routing_engine.get_routing_history(task_id, limit=limit)
 
 
 # Module-level singleton for use by dashboard routes
