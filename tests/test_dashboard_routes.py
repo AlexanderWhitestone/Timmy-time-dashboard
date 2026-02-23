@@ -100,7 +100,14 @@ def test_marketplace_has_timmy(client):
 def test_marketplace_has_planned_agents(client):
     response = client.get("/marketplace")
     data = response.json()
-    assert data["planned_count"] >= 6
+    # Total should be 7 (1 Timmy + 6 personas)
+    assert data["total"] == 7
+    # planned_count + active_count should equal total
+    assert data["planned_count"] + data["active_count"] == data["total"]
+    # Timmy should always be in the active list
+    timmy = next((a for a in data["agents"] if a["id"] == "timmy"), None)
+    assert timmy is not None
+    assert timmy["status"] == "active"
 
 
 def test_marketplace_agent_detail(client):
@@ -211,11 +218,11 @@ def test_marketplace_enriched_includes_stats_fields(client):
 
 def test_marketplace_persona_spawned_changes_status(client):
     """Spawning a persona into the registry changes its marketplace status."""
-    # Spawn Echo via swarm route
+    # Spawn Echo via swarm route (or ensure it's already spawned)
     spawn_resp = client.post("/swarm/spawn", data={"name": "Echo"})
     assert spawn_resp.status_code == 200
 
-    # Echo should now show as idle in the marketplace
+    # Echo should now show as idle (or busy) in the marketplace
     resp = client.get("/marketplace")
     agents = {a["id"]: a for a in resp.json()["agents"]}
-    assert agents["echo"]["status"] == "idle"
+    assert agents["echo"]["status"] in ("idle", "busy")

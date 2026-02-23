@@ -6,6 +6,7 @@ from agno.models.ollama import Ollama
 
 from config import settings
 from timmy.prompts import TIMMY_SYSTEM_PROMPT
+from timmy.tools import create_full_toolkit
 
 if TYPE_CHECKING:
     from timmy.backends import TimmyAirLLMAgent
@@ -62,6 +63,9 @@ def create_timmy(
         return TimmyAirLLMAgent(model_size=size)
 
     # Default: Ollama via Agno.
+    # Add tools for sovereign agent capabilities
+    tools = create_full_toolkit()
+    
     return Agent(
         name="Timmy",
         model=Ollama(id=settings.ollama_model),
@@ -70,4 +74,5 @@ def create_timmy(
         add_history_to_context=True,
         num_history_runs=10,
         markdown=True,
+        tools=tools,
     )
