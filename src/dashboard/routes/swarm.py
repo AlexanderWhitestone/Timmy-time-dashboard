@@ -35,6 +35,14 @@ async def swarm_live_page(request: Request):
     )
 
 
+@router.get("/mission-control", response_class=HTMLResponse)
+async def mission_control_page(request: Request):
+    """Render the Mission Control dashboard."""
+    return templates.TemplateResponse(
+        request, "mission_control.html", {"page_title": "Mission Control"}
+    )
+
+
 @router.get("/agents")
 async def list_swarm_agents():
     """List all registered swarm agents."""
