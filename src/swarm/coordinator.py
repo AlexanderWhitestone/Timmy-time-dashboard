@@ -94,6 +94,8 @@ class SwarmCoordinator:
                 "Persona %s bid %d sats on task %s",
                 node.name, bid_sats, task_id,
             )
+            # Broadcast bid via WebSocket
+            self._broadcast(self._broadcast_bid, task_id, aid, bid_sats)
 
         self.comms.subscribe("swarm:tasks", _bid_and_register)
 
@@ -105,6 +107,10 @@ class SwarmCoordinator:
         )
         self._in_process_nodes.append(node)
         logger.info("Spawned persona %s (%s)", node.name, aid)
+        
+        # Broadcast agent join via WebSocket
+        self._broadcast(self._broadcast_agent_joined, aid, node.name)
+        
         return {
             "agent_id": aid,
             "name": node.name,
@@ -177,6 +183,8 @@ class SwarmCoordinator:
         self.auctions.open_auction(task.id)
         self.comms.post_task(task.id, description)
         logger.info("Task posted: %s (%s)", task.id, description[:50])
+        # Broadcast task posted via WebSocket
+        self._broadcast(self._broadcast_task_posted, task.id, description)
         return task
 
     async def run_auction_and_assign(self, task_id: str) -> Optional[Bid]:
@@ -225,6 +233,8 @@ class SwarmCoordinator:
                 "Task %s assigned to %s at %d sats",
                 task_id, winner.agent_id, winner.bid_sats,
             )
+            # Broadcast task assigned via WebSocket
+            self._broadcast(self._broadcast_task_assigned, task_id, winner.agent_id)
         else:
             update_task(task_id, status=TaskStatus.FAILED)
             logger.warning("Task %s: no bids received, marked as failed", task_id)
@@ -247,6 +257,11 @@ class SwarmCoordinator:
             self.comms.complete_task(task_id, task.assigned_agent, result)
             # Record success in learner
             swarm_learner.record_task_result(task_id, task.assigned_agent, succeeded=True)
+            # Broadcast task completed via WebSocket
+            self._broadcast(
+                self._broadcast_task_completed,
+                task_id, task.assigned_agent, result
+            )
         return updated
 
     def fail_task(self, task_id: str, reason: str = "") -> Optional[Task]:
@@ -272,6 +287,65 @@ class SwarmCoordinator:
 
     def list_tasks(self, status: Optional[TaskStatus] = None) -> list[Task]:
         return list_tasks(status)
+
+    # ── WebSocket broadcasts ────────────────────────────────────────────────
+
+    def _broadcast(self, broadcast_fn, *args) -> None:
+        """Safely schedule a broadcast, handling sync/async contexts.
+        
+        Only creates the coroutine and schedules it if an event loop is running.
+        This prevents 'coroutine was never awaited' warnings in tests.
+        """
+        try:
+            loop = asyncio.get_running_loop()
+            # Create coroutine only when we have an event loop
+            coro = broadcast_fn(*args)
+            asyncio.create_task(coro)
+        except RuntimeError:
+            # No event loop running - skip broadcast silently
+            pass
+
+    async def _broadcast_agent_joined(self, agent_id: str, name: str) -> None:
+        """Broadcast agent joined event via WebSocket."""
+        try:
+            from websocket.handler import ws_manager
+            await ws_manager.broadcast_agent_joined(agent_id, name)
+        except Exception as exc:
+            logger.debug("WebSocket broadcast failed (agent_joined): %s", exc)
+
+    async def _broadcast_bid(self, task_id: str, agent_id: str, bid_sats: int) -> None:
+        """Broadcast bid submitted event via WebSocket."""
+        try:
+            from websocket.handler import ws_manager
+            await ws_manager.broadcast_bid_submitted(task_id, agent_id, bid_sats)
+        except Exception as exc:
+            logger.debug("WebSocket broadcast failed (bid): %s", exc)
+
+    async def _broadcast_task_posted(self, task_id: str, description: str) -> None:
+        """Broadcast task posted event via WebSocket."""
+        try:
+            from websocket.handler import ws_manager
+            await ws_manager.broadcast_task_posted(task_id, description)
+        except Exception as exc:
+            logger.debug("WebSocket broadcast failed (task_posted): %s", exc)
+
+    async def _broadcast_task_assigned(self, task_id: str, agent_id: str) -> None:
+        """Broadcast task assigned event via WebSocket."""
+        try:
+            from websocket.handler import ws_manager
+            await ws_manager.broadcast_task_assigned(task_id, agent_id)
+        except Exception as exc:
+            logger.debug("WebSocket broadcast failed (task_assigned): %s", exc)
+
+    async def _broadcast_task_completed(
+        self, task_id: str, agent_id: str, result: str
+    ) -> None:
+        """Broadcast task completed event via WebSocket."""
+        try:
+            from websocket.handler import ws_manager
+            await ws_manager.broadcast_task_completed(task_id, agent_id, result)
+        except Exception as exc:
+            logger.debug("WebSocket broadcast failed (task_completed): %s", exc)
 
     # ── Convenience ─────────────────────────────────────────────────────────
 

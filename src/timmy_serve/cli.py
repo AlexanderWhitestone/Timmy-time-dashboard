@@ -19,18 +19,30 @@ app = typer.Typer(help="Timmy Serve — sovereign AI agent with Lightning paymen
 def start(
     port: int = typer.Option(8402, "--port", "-p", help="Port for the serve API"),
     host: str = typer.Option("0.0.0.0", "--host", "-h", help="Host to bind to"),
+    price: int = typer.Option(100, "--price", help="Price per request in sats"),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print config and exit (for testing)"),
 ):
     """Start Timmy in serve mode with L402 payment gating."""
     typer.echo(f"Starting Timmy Serve on {host}:{port}")
-    typer.echo("L402 payment proxy active — agents pay in sats")
+    typer.echo(f"L402 payment proxy active — {price} sats per request")
     typer.echo("Press Ctrl-C to stop")
-
-    # TODO: Start a FastAPI app with L402 middleware
-    # For now, print the configuration
+    
     typer.echo(f"\nEndpoints:")
     typer.echo(f"  POST /serve/chat    — L402-gated chat (pay per request)")
     typer.echo(f"  GET  /serve/invoice — Request a Lightning invoice")
     typer.echo(f"  GET  /serve/status  — Service status")
+    typer.echo(f"  GET  /health        — Health check")
+    
+    if dry_run:
+        typer.echo("\n(Dry run mode - not starting server)")
+        return
+    
+    import uvicorn
+    from timmy_serve.app import create_timmy_serve_app
+    
+    # Create and run the FastAPI app
+    serve_app = create_timmy_serve_app(price_sats=price)
+    uvicorn.run(serve_app, host=host, port=port)
 
 
 @app.command()

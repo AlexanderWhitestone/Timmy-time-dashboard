@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -21,6 +22,7 @@ from dashboard.routes.swarm_ws import router as swarm_ws_router
 from dashboard.routes.briefing import router as briefing_router
 from dashboard.routes.telegram import router as telegram_router
 from dashboard.routes.swarm_internal import router as swarm_internal_router
+from dashboard.routes.tools import router as tools_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -83,6 +85,18 @@ async def lifespan(app: FastAPI):
             rec["agents_offlined"],
         )
 
+    # Auto-spawn persona agents for a functional swarm (Echo, Forge, Seer)
+    # Skip auto-spawning in test mode to avoid test isolation issues
+    if os.environ.get("TIMMY_TEST_MODE") != "1":
+        logger.info("Auto-spawning persona agents: Echo, Forge, Seer...")
+        try:
+            swarm_coordinator.spawn_persona("echo", agent_id="persona-echo")
+            swarm_coordinator.spawn_persona("forge", agent_id="persona-forge")
+            swarm_coordinator.spawn_persona("seer", agent_id="persona-seer")
+            logger.info("Persona agents spawned successfully")
+        except Exception as exc:
+            logger.error("Failed to spawn persona agents: %s", exc)
+
     # Auto-start Telegram bot if a token is configured
     from telegram_bot.bot import telegram_bot
     await telegram_bot.start()
@@ -121,6 +135,7 @@ app.include_router(swarm_ws_router)
 app.include_router(briefing_router)
 app.include_router(telegram_router)
 app.include_router(swarm_internal_router)
+app.include_router(tools_router)
 
 
 @app.get("/", response_class=HTMLResponse)

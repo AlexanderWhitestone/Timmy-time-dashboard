@@ -9,26 +9,31 @@ runner = CliRunner()
 
 class TestStartCommand:
     def test_start_default_port(self):
-        result = runner.invoke(app, ["start"])
+        result = runner.invoke(app, ["start", "--dry-run"])
         assert result.exit_code == 0
         assert "8402" in result.output
         assert "L402 payment proxy active" in result.output
 
     def test_start_custom_port(self):
-        result = runner.invoke(app, ["start", "--port", "9000"])
+        result = runner.invoke(app, ["start", "--port", "9000", "--dry-run"])
         assert result.exit_code == 0
         assert "9000" in result.output
 
     def test_start_custom_host(self):
-        result = runner.invoke(app, ["start", "--host", "127.0.0.1"])
+        result = runner.invoke(app, ["start", "--host", "127.0.0.1", "--dry-run"])
         assert result.exit_code == 0
         assert "127.0.0.1" in result.output
 
     def test_start_shows_endpoints(self):
-        result = runner.invoke(app, ["start"])
+        result = runner.invoke(app, ["start", "--dry-run"])
         assert "/serve/chat" in result.output
         assert "/serve/invoice" in result.output
         assert "/serve/status" in result.output
+
+    def test_start_custom_price(self):
+        result = runner.invoke(app, ["start", "--price", "50", "--dry-run"])
+        assert result.exit_code == 0
+        assert "50 sats" in result.output
 
 
 class TestInvoiceCommand:

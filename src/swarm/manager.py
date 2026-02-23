@@ -68,6 +68,11 @@ class SwarmManager:
                 managed.process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 managed.process.kill()
+            # Close pipes to avoid ResourceWarning
+            if managed.process.stdout:
+                managed.process.stdout.close()
+            if managed.process.stderr:
+                managed.process.stderr.close()
             logger.info("Stopped agent %s (%s)", managed.name, agent_id)
         del self._agents[agent_id]
         return True
