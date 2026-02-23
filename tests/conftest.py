@@ -57,6 +57,13 @@ def reset_coordinator_state():
     coordinator.comms._listeners.clear()
     coordinator._in_process_nodes.clear()
     coordinator.manager.stop_all()
+    
+    # Clear routing engine manifests
+    try:
+        from swarm import routing
+        routing.routing_engine._manifests.clear()
+    except Exception:
+        pass
 
 
 @pytest.fixture(autouse=True)
