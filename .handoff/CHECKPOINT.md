@@ -1,9 +1,9 @@
-# Kimi Checkpoint - Updated 2026-02-22 21:37 EST
+# Kimi Checkpoint - Updated 2026-02-22 22:45 EST
 
 ## Session Info
-- **Duration:** ~2 hours
-- **Commits:** Ready to commit
-- **Assignment:** Architect Sprint (Lightning, Routing, Sovereignty, Embodiment)
+- **Duration:** ~2.5 hours
+- **Commits:** 1 (c5df954 + this session)
+- **Assignment:** Option A - MCP Tools Integration
 
 ## Current State
 
@@ -14,177 +14,165 @@ kimi/sprint-v2-swarm-tools-serve → origin/kimi/sprint-v2-swarm-tools-serve
 
 ### Test Status
 ```
-472 passed, 0 warnings
+491 passed, 0 warnings
 ```
 
 ## What Was Done
 
-### 1. Lightning Interface Layer ✅
-Created pluggable Lightning backend system:
+### Option A: MCP Tools Integration ✅ COMPLETE
 
-```
-src/lightning/
-├── __init__.py         # Public API
-├── base.py             # Abstract LightningBackend interface
-├── mock_backend.py     # Development/testing backend
-├── lnd_backend.py      # Real LND gRPC backend (stubbed)
-└── factory.py          # Backend selection
-```
+**Problem:** Tools existed (`src/timmy/tools.py`) but weren't wired into the agent execution loop. Agents could bid on tasks but not actually execute them.
 
-- **Mock Backend:** Full implementation with auto-settle for dev
-- **LND Backend:** Complete interface, needs gRPC protobuf generation
-- **Configuration:** `LIGHTNING_BACKEND=mock|lnd`
-- **Docs:** Inline documentation for LND setup steps
+**Solution:** Built tool execution layer connecting personas to their specialized tools.
 
-Updated `timmy_serve/payment_handler.py` to use new interface.
+### 1. ToolExecutor (`src/swarm/tool_executor.py`)
 
-### 2. Intelligent Swarm Routing ✅
-Implemented capability-based task dispatch:
+Manages tool execution for persona agents:
 
-```
-src/swarm/routing.py    # 475 lines
+```python
+executor = ToolExecutor.for_persona("forge", "forge-001")
+result = executor.execute_task("Write a fibonacci function")
+# Returns: {success, result, tools_used, persona_id, agent_id}
 ```
 
 **Features:**
-- CapabilityManifest for each agent (keywords, capabilities, rates)
-- Task scoring: keyword (0.3) + capability (0.2) + related words (0.1)
-- RoutingDecision audit logging to SQLite
-- RoutingEngine singleton integrated with coordinator
-- Agent stats tracking (wins, consideration rate)
+- Persona-specific toolkit selection
+- Tool inference from task keywords
+- LLM-powered reasoning about tool use
+- Graceful degradation when Agno unavailable
 
-**Audit Trail:**
-- Every routing decision logged with scores, bids, reason
-- Queryable history by task_id or agent_id
-- Exportable for analysis
+**Tool Mapping:**
+| Persona | Tools |
+|---------|-------|
+| Echo | web_search, read_file, list_files |
+| Forge | shell, python, read_file, write_file, list_files |
+| Seer | python, read_file, list_files, web_search |
+| Quill | read_file, write_file, list_files |
+| Mace | shell, web_search, read_file, list_files |
+| Helm | shell, read_file, write_file, list_files |
 
-### 3. Sovereignty Audit ✅
-Created comprehensive audit report:
+### 2. PersonaNode Task Execution
 
+Updated `src/swarm/persona_node.py`:
+
+- Subscribes to `swarm:events` channel
+- When `task_assigned` event received → executes task
+- Uses `ToolExecutor` to process task with appropriate tools
+- Calls `comms.complete_task()` with result
+- Tracks `current_task` for status monitoring
+
+**Execution Flow:**
 ```
-docs/SOVEREIGNTY_AUDIT.md
-```
-
-**Overall Score:** 9.2/10
-
-**Findings:**
-- ✅ AI Models: Local Ollama/AirLLM only
-- ✅ Database: SQLite local
-- ✅ Voice: Local TTS
-- ✅ Web: Self-hosted FastAPI
-- ⚠️ Lightning: Configurable (local LND or remote)
-- ⚠️ Telegram: Optional external dependency
-
-**Graceful Degradation Verified:**
-- Ollama down → Error message
-- Redis down → In-memory fallback
-- LND unreachable → Health check fails, mock available
-
-### 4. Deeper Test Coverage ✅
-Added 36 new tests:
-
-```
-tests/test_lightning_interface.py   # 36 tests - backend interface
-tests/test_swarm_routing.py         # 23 tests - routing engine
-```
-
-**Coverage:**
-- Invoice lifecycle (create, settle, check, list)
-- Backend factory selection
-- Capability scoring
-- Routing recommendations
-- Audit log persistence
-
-### 5. Substrate-Agnostic Interface ✅
-Created embodiment foundation:
-
-```
-src/agent_core/
-├── __init__.py          # Public exports
-├── interface.py         # TimAgent abstract base class
-└── ollama_adapter.py    # Ollama implementation
+Task Assigned → PersonaNode._handle_task_assignment()
+    ↓
+Fetch task description
+    ↓
+ToolExecutor.execute_task()
+    ↓
+Infer tools from keywords
+    ↓
+LLM reasoning (when available)
+    ↓
+Return formatted result
+    ↓
+Mark task complete
 ```
 
-**Interface Contract:**
-```python
-class TimAgent(ABC):
-    def perceive(self, perception: Perception) -> Memory
-    def reason(self, query: str, context: list[Memory]) -> Action
-    def act(self, action: Action) -> Any
-    def remember(self, memory: Memory) -> None
-    def recall(self, query: str, limit: int = 5) -> list[Memory]
-    def communicate(self, message: Communication) -> bool
-```
+### 3. Tests (`tests/test_tool_executor.py`)
 
-**PerceptionTypes:** TEXT, IMAGE, AUDIO, SENSOR, MOTION, NETWORK, INTERNAL
-**ActionTypes:** TEXT, SPEAK, MOVE, GRIP, CALL, EMIT, SLEEP
-
-This enables future embodiments (robot, VR) without architectural changes.
+19 new tests covering:
+- ToolExecutor initialization for all personas
+- Tool inference from task descriptions
+- Task execution with/without tools available
+- PersonaNode integration
+- Edge cases (unknown tasks, no toolkit, etc.)
 
 ## Files Changed
 
 ```
-src/lightning/*                          (new, 4 files)
-src/agent_core/*                         (new, 3 files)
-src/timmy_serve/payment_handler.py       (refactored)
-src/swarm/routing.py                     (new)
-src/swarm/coordinator.py                 (modified)
-docs/SOVEREIGNTY_AUDIT.md                (new)
-tests/test_lightning_interface.py        (new)
-tests/test_swarm_routing.py              (new)
-tests/conftest.py                        (modified)
+src/swarm/tool_executor.py        (new, 282 lines)
+src/swarm/persona_node.py         (modified)
+tests/test_tool_executor.py       (new, 19 tests)
 ```
 
-## Environment Variables
+## How It Works Now
 
-New configuration options:
+1. **Task Posted** → Coordinator creates task, opens auction
+2. **Bidding** → PersonaNodes bid based on keyword matching
+3. **Auction Close** → Winner selected
+4. **Assignment** → Coordinator publishes `task_assigned` event
+5. **Execution** → Winning PersonaNode:
+   - Receives assignment via comms
+   - Fetches task description
+   - Uses ToolExecutor to process
+   - Returns result via `complete_task()`
+6. **Completion** → Task marked complete, agent returns to idle
+
+## Graceful Degradation
+
+When Agno tools unavailable (tests, missing deps):
+- ToolExecutor initializes with `toolkit=None`
+- Task execution still works (simulated mode)
+- Tool inference works for logging/analysis
+- No crashes, clear logging
+
+## Integration with Previous Work
+
+This builds on:
+- ✅ Lightning interface (c5df954)
+- ✅ Swarm routing with capability manifests
+- ✅ Persona definitions with preferred_keywords
+- ✅ Auction and bidding system
+
+## Test Results
 
 ```bash
-# Lightning Backend
-LIGHTNING_BACKEND=mock           # or 'lnd'
-LND_GRPC_HOST=localhost:10009
-LND_TLS_CERT_PATH=/path/to/tls.cert
-LND_MACAROON_PATH=/path/to/admin.macaroon
-LND_VERIFY_SSL=true
+$ make test
+491 passed in 1.10s
 
-# Mock Settings
-MOCK_AUTO_SETTLE=true            # Auto-settle invoices in dev
+$ pytest tests/test_tool_executor.py -v
+19 passed
 ```
 
-## Integration Notes
+## Next Steps
 
-1. **Lightning:** Works with existing L402 middleware. Set `LIGHTNING_BACKEND=lnd` when ready.
-2. **Routing:** Automatically logs decisions when personas bid on tasks.
-3. **Agent Core:** Not yet wired into main app — future work to migrate existing agent.
+From the 7-hour task list, remaining items:
 
-## Next Tasks
+**Hour 4** — Scary path tests:
+- Concurrent swarm load test (10 simultaneous tasks)
+- Memory persistence under restart
+- L402 macaroon expiry
+- WebSocket reconnection
+- Voice NLU edge cases
 
-From assignment:
-- [x] Lightning interface layer with LND path
-- [x] Swarm routing with capability manifests
-- [x] Sovereignty audit report
-- [x] Expanded test coverage
-- [x] TimAgent abstract interface
+**Hour 6** — Mission Control UX:
+- Real-time swarm feed via WebSocket
+- Heartbeat daemon visible in UI
+- Chat history persistence
 
-**Remaining:**
-- [ ] Generate LND protobuf stubs for real backend
-- [ ] Wire AgentCore into main Timmy flow
-- [ ] Add concurrency stress tests
-- [ ] Implement degradation circuit breakers
+**Hour 7** — Handoff & docs:
+- QUALITY_ANALYSIS.md update
+- Revelation planning
 
 ## Quick Commands
 
 ```bash
-# Test new modules
-pytest tests/test_lightning_interface.py -v
-pytest tests/test_swarm_routing.py -v
+# Test tool execution
+pytest tests/test_tool_executor.py -v
 
-# Check backend status
-python -c "from lightning import get_backend; b = get_backend(); print(b.health_check())"
+# Check tool mapping for a persona
+python -c "from swarm.tool_executor import ToolExecutor; e = ToolExecutor.for_persona('forge', 'test'); print(e.get_capabilities())"
 
-# View routing history
-python -c "from swarm.routing import routing_engine; print(routing_engine.get_routing_history(limit=5))"
+# Simulate task execution
+python -c "
+from swarm.tool_executor import ToolExecutor
+e = ToolExecutor.for_persona('echo', 'echo-001')
+r = e.execute_task('Search for Python tutorials')
+print(f'Tools: {r[\"tools_used\"]}')
+print(f'Result: {r[\"result\"][:100]}...')
+"
 ```
 
 ---
 
-*All 472 tests passing. Ready for commit.*
+*491 tests passing. MCP Tools Option A complete.*
