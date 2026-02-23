@@ -11,7 +11,7 @@
 ## 🔄 Next Up (Priority Order)
 
 ### P0 - Critical
-- [ ] Review PR #18 feedback and merge
+- [x] Review PR #19 feedback and merge
 - [ ] Deploy to staging and verify
 
 ### P1 - Features
@@ -20,7 +20,11 @@
 - [x] Intelligent swarm routing with audit logging
 - [x] Sovereignty audit report
 - [x] TimAgent substrate-agnostic interface
+- [x] MCP Tools integration (Option A)
+- [x] Scary path tests (Hour 4)
+- [x] Mission Control UX (Hours 5-6)
 - [ ] Generate LND protobuf stubs for real backend
+- [ ] Revelation planning (Hour 7)
 - [ ] Add more persona agents (Mace, Helm, Quill)
 - [ ] Task result caching
 - [ ] Agent-to-agent messaging
@@ -31,17 +35,21 @@
 - [ ] Performance metrics dashboard
 - [ ] Circuit breakers for graceful degradation
 
-## ✅ Completed (This Session)
+## ✅ Completed (All Sessions)
 
 - Lightning backend interface with mock + LND stubs
 - Capability-based swarm routing with audit logging
 - Sovereignty audit report (9.2/10 score)
-- 36 new tests for Lightning and routing
-- Substrate-agnostic TimAgent interface (embodiment foundation)
+- TimAgent substrate-agnostic interface (embodiment foundation)
+- MCP Tools integration for swarm agents
+- **Scary path tests** - 23 tests for production edge cases
+- **Mission Control dashboard** - Real-time system status UI
+- **525 total tests** - All passing, TDD approach
 
 ## 📝 Notes
 
-- 472 tests passing (36 new)
+- 525 tests passing (11 new Mission Control, 23 scary path)
 - SQLite pooling reverted - premature optimization
 - Docker swarm mode working - test with `make docker-up`
 - LND integration needs protobuf generation (documented)
+- TDD approach from now on - tests first, then implementation
