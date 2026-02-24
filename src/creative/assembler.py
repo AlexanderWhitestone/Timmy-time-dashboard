@@ -23,9 +23,13 @@ try:
         CompositeVideoClip,
         ImageClip,
         concatenate_videoclips,
+        vfx,
     )
 except ImportError:
     _MOVIEPY_AVAILABLE = False
+
+# Resolve a font that actually exists on this system.
+_DEFAULT_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
 
 def _require_moviepy() -> None:
@@ -68,7 +72,7 @@ def stitch_clips(
         for clip in clips[1:]:
             clip = clip.with_start(
                 processed[-1].end - transition_duration
-            ).crossfadein(transition_duration)
+            ).with_effects([vfx.CrossFadeIn(transition_duration)])
             processed.append(clip)
         final = CompositeVideoClip(processed)
     else:
@@ -163,7 +167,7 @@ def add_title_card(
         color="white",
         size=(w, h),
         method="caption",
-        font="Arial",
+        font=_DEFAULT_FONT,
     ).with_duration(duration)
 
     clips = [txt, video] if position == "start" else [video, txt]
@@ -213,7 +217,7 @@ def add_subtitles(
                 stroke_width=2,
                 size=(w - 40, None),
                 method="caption",
-                font="Arial",
+                font=_DEFAULT_FONT,
             )
             .with_start(cap["start"])
             .with_end(cap["end"])
