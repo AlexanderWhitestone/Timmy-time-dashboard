@@ -2,7 +2,7 @@
 
 [![Tests](https://github.com/AlexanderWhitestone/Timmy-time-dashboard/actions/workflows/tests.yml/badge.svg)](https://github.com/AlexanderWhitestone/Timmy-time-dashboard/actions/workflows/tests.yml)
 
-A local-first, sovereign AI agent system.  Talk to Timmy, watch his swarm, gate API access with Bitcoin Lightning — all from a browser, no cloud required.
+A local-first, sovereign AI agent system.  Talk to Timmy, watch his swarm, gate API access with Bitcoin Lightning — all from a browser, no cloud AI required.
 
 **[Live Docs →](https://alexanderwhitestone.github.io/Timmy-time-dashboard/)**
 
@@ -15,7 +15,7 @@ A local-first, sovereign AI agent system.  Talk to Timmy, watch his swarm, gate 
 | **Timmy Agent** | Agno-powered agent (Ollama default, AirLLM optional for 70B/405B) |
 | **Mission Control** | FastAPI + HTMX dashboard — chat, health, swarm, marketplace |
 | **Swarm** | Multi-agent coordinator — spawn agents, post tasks, run Lightning auctions |
-| **L402 / Lightning** | Bitcoin Lightning payment gating for API access |
+| **L402 / Lightning** | Bitcoin Lightning payment gating for API access (mock backend; LND scaffolded) |
 | **Spark Intelligence** | Event capture, predictions, memory consolidation, advisory engine |
 | **Creative Studio** | Multi-persona creative pipeline — image, music, video generation |
 | **Tools** | Git, image, music, and video tools accessible by persona agents |
@@ -25,7 +25,7 @@ A local-first, sovereign AI agent system.  Talk to Timmy, watch his swarm, gate 
 | **Telegram** | Bridge Telegram messages to Timmy |
 | **CLI** | `timmy`, `timmy-serve`, `self-tdd` entry points |
 
-**600+ tests, 100% passing.**
+**Full test suite, 100% passing.**
 
 ---
 
@@ -161,7 +161,7 @@ cp .env.example .env
 | `AIRLLM_MODEL_SIZE` | `70b` | `8b` \| `70b` \| `405b` |
 | `L402_HMAC_SECRET` | *(default — change in prod)* | HMAC signing key for macaroons |
 | `L402_MACAROON_SECRET` | *(default — change in prod)* | Macaroon secret |
-| `LIGHTNING_BACKEND` | `mock` | `mock` \| `lnd` |
+| `LIGHTNING_BACKEND` | `mock` | `mock` (production-ready) \| `lnd` (scaffolded, not yet functional) |
 
 ---
 
@@ -217,7 +217,7 @@ src/
   shortcuts/          # Siri Shortcuts endpoints
   telegram_bot/       # Telegram bridge
   self_tdd/           # Continuous test watchdog
-tests/                # 600+ tests — one file per module, all mocked
+tests/                # one test file per module, all mocked
 static/style.css      # Dark mission-control theme (JetBrains Mono)
 docs/                 # GitHub Pages landing page
 AGENTS.md             # AI agent development standards ← read this

@@ -172,18 +172,19 @@ Respond naturally and helpfully."""
         return result
     
     def remember(self, memory: Memory) -> None:
-        """Store memory persistently.
-        
-        For now, working memory is sufficient. In the future,
-        this would write to SQLite or vector DB for long-term
-        memory across sessions.
+        """Store memory in working memory.
+
+        Adds the memory to the sliding window and bumps its importance.
         """
-        # Mark as accessed to update importance
         memory.touch()
-        
-        # TODO: Persist to SQLite for long-term memory
-        # This would integrate with the existing briefing system
-        pass
+
+        # Deduplicate by id
+        self._working_memory = [m for m in self._working_memory if m.id != memory.id]
+        self._working_memory.append(memory)
+
+        # Evict oldest if over capacity
+        if len(self._working_memory) > self._max_working_memory:
+            self._working_memory.pop(0)
     
     def recall(self, query: str, limit: int = 5) -> list[Memory]:
         """Retrieve relevant memories.
@@ -215,13 +216,22 @@ Respond naturally and helpfully."""
         return [m for _, m in scored[:limit]]
     
     def communicate(self, message: Communication) -> bool:
-        """Send message to another agent.
-        
-        This would use the swarm comms layer for inter-agent
-        messaging. For now, it's a stub.
-        """
-        # TODO: Integrate with swarm.comms
-        return True
+        """Send message to another agent via swarm comms."""
+        try:
+            from swarm.comms import SwarmComms
+            comms = SwarmComms()
+            comms.publish(
+                "agent:messages",
+                "agent_message",
+                {
+                    "from": self._identity.name,
+                    "to": message.recipient,
+                    "content": message.content,
+                },
+            )
+            return True
+        except Exception:
+            return False
     
     def _extract_tags(self, perception: Perception) -> list[str]:
         """Extract searchable tags from perception."""
