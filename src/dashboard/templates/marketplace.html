@@ -20,13 +20,13 @@
             <div class="agent-avatar">{{ agent.name[0] }}</div>
             <div class="agent-info">
                 <div class="agent-name">
-                    {{ agent.name }}
+                    {{ agent.name | e }}
                     <span style="font-size: 0.75rem; font-weight: 400;
                                  color: var(--text-muted); margin-left: 8px;">
-                        {{ agent.role }}
+                        {{ agent.role | e }}
                     </span>
                 </div>
-                <div class="agent-meta">{{ agent.description or 'No description' }}</div>
+                <div class="agent-meta">{{ (agent.description or 'No description') | e }}</div>
                 <div class="agent-meta" style="margin-top: 4px;">
                     <span class="badge badge-{{ 'success' if agent.status == 'idle'
                                                 else 'warning' if agent.status == 'busy'
@@ -36,7 +36,7 @@
                     </span>
                     {% if agent.capabilities %}
                         {% for cap in agent.capabilities.split(',') %}
-                        <span class="badge badge-secondary" style="margin-left: 4px;">{{ cap.strip() }}</span>
+                        <span class="badge badge-secondary" style="margin-left: 4px;">{{ cap.strip() | e }}</span>
                         {% endfor %}
                     {% endif %}
                 </div>

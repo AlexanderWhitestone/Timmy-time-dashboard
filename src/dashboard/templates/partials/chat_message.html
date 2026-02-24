@@ -1,15 +1,15 @@
 <div class="chat-message user">
   <div class="msg-meta">YOU // {{ timestamp }}</div>
-  <div class="msg-body">{{ user_message }}</div>
+  <div class="msg-body">{{ user_message | e }}</div>
 </div>
 {% if response %}
 <div class="chat-message agent">
   <div class="msg-meta">TIMMY // {{ timestamp }}</div>
-  <div class="msg-body">{{ response }}</div>
+  <div class="msg-body">{{ response | e }}</div>
 </div>
 {% elif error %}
 <div class="chat-message error-msg">
   <div class="msg-meta">SYSTEM // {{ timestamp }}</div>
-  <div class="msg-body">{{ error }}</div>
+  <div class="msg-body">{{ error | e }}</div>
 </div>
 {% endif %}
