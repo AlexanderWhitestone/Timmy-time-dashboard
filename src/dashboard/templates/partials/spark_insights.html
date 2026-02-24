@@ -1,0 +1,32 @@
+{% if advisories %}
+  {% for adv in advisories %}
+  <div class="spark-advisory priority-{{ 'high' if adv.priority >= 0.7 else ('medium' if adv.priority >= 0.4 else 'low') }}">
+    <div class="spark-advisory-header">
+      <span class="spark-advisory-cat">{{ adv.category | replace("_", " ") | upper }}</span>
+      <span class="spark-advisory-priority">{{ "%.0f"|format(adv.priority * 100) }}%</span>
+    </div>
+    <div class="spark-advisory-title">{{ adv.title }}</div>
+    <div class="spark-advisory-detail">{{ adv.detail }}</div>
+    <div class="spark-advisory-action">{{ adv.suggested_action }}</div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="text-center text-muted py-3">No advisories yet. Run more tasks to build intelligence.</div>
+{% endif %}
+
+{% if memories %}
+  <hr class="border-secondary my-3">
+  <div class="small text-muted mb-2" style="letter-spacing:.08em">CONSOLIDATED MEMORIES</div>
+  {% for mem in memories %}
+  <div class="spark-memory-card mem-{{ mem.memory_type }}">
+    <div class="spark-mem-header">
+      <span class="spark-mem-type">{{ mem.memory_type | upper }}</span>
+      <span class="spark-mem-confidence">{{ "%.0f"|format(mem.confidence * 100) }}% conf</span>
+    </div>
+    <div class="spark-mem-content">{{ mem.content }}</div>
+    <div class="spark-mem-meta">
+      {{ mem.source_events }} events &bull; {{ mem.created_at[:10] }}
+    </div>
+  </div>
+  {% endfor %}
+{% endif %}

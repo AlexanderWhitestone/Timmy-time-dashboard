@@ -100,8 +100,8 @@ def test_marketplace_has_timmy(client):
 def test_marketplace_has_planned_agents(client):
     response = client.get("/marketplace")
     data = response.json()
-    # Total should be 7 (1 Timmy + 6 personas)
-    assert data["total"] == 7
+    # Total should be 10 (1 Timmy + 9 personas)
+    assert data["total"] == 10
     # planned_count + active_count should equal total
     assert data["planned_count"] + data["active_count"] == data["total"]
     # Timmy should always be in the active list

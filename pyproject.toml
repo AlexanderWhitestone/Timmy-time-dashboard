@@ -23,6 +23,8 @@ dependencies = [
     "rich>=13.0.0",
     "pydantic-settings>=2.0.0",
     "websockets>=12.0",
+    "GitPython>=3.1.40",
+    "moviepy>=2.0.0",
 ]
 
 [project.optional-dependencies]
@@ -52,6 +54,16 @@ voice = [
 telegram = [
     "python-telegram-bot>=21.0",
 ]
+# Creative: GPU-accelerated image, music, and video generation.
+# pip install ".[creative]"
+creative = [
+    "diffusers>=0.30.0",
+    "transformers>=4.40.0",
+    "accelerate>=0.30.0",
+    "torch>=2.2.0",
+    "safetensors>=0.4.0",
+    "ace-step>=1.5.0",
+]
 
 [project.scripts]
 timmy = "timmy.cli:main"
@@ -72,11 +84,14 @@ include = [
     "src/notifications",
     "src/shortcuts",
     "src/telegram_bot",
+    "src/spark",
+    "src/tools",
+    "src/creative",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 addopts = "-v --tb=short"

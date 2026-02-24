@@ -1,0 +1,556 @@
+{% extends "base.html" %}
+
+{% block title %}Timmy Time — Spark Intelligence{% endblock %}
+
+{% block content %}
+<div class="container-fluid spark-container py-4">
+
+  <!-- Header -->
+  <div class="spark-header mb-4">
+    <div class="spark-title">SPARK INTELLIGENCE</div>
+    <div class="spark-subtitle">
+      Self-evolving cognitive layer &mdash;
+      <span class="spark-status-val">{{ status.events_captured }}</span> events captured,
+      <span class="spark-status-val">{{ status.memories_stored }}</span> memories,
+      <span class="spark-status-val">{{ status.predictions.evaluated }}</span> predictions evaluated
+    </div>
+  </div>
+
+  <div class="row g-3">
+
+    <!-- Left column: Status + Advisories -->
+    <div class="col-12 col-lg-4 d-flex flex-column gap-3">
+
+      <!-- EIDOS Status -->
+      <div class="card mc-panel">
+        <div class="card-header mc-panel-header">// EIDOS LOOP</div>
+        <div class="card-body p-3">
+          <div class="spark-stat-grid">
+            <div class="spark-stat">
+              <span class="spark-stat-label">PREDICTIONS</span>
+              <span class="spark-stat-value">{{ status.predictions.total_predictions }}</span>
+            </div>
+            <div class="spark-stat">
+              <span class="spark-stat-label">EVALUATED</span>
+              <span class="spark-stat-value">{{ status.predictions.evaluated }}</span>
+            </div>
+            <div class="spark-stat">
+              <span class="spark-stat-label">PENDING</span>
+              <span class="spark-stat-value">{{ status.predictions.pending }}</span>
+            </div>
+            <div class="spark-stat">
+              <span class="spark-stat-label">ACCURACY</span>
+              <span class="spark-stat-value {% if status.predictions.avg_accuracy >= 0.7 %}text-success{% elif status.predictions.avg_accuracy < 0.4 %}text-danger{% else %}text-warning{% endif %}">
+                {{ "%.0f"|format(status.predictions.avg_accuracy * 100) }}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Event Counts -->
+      <div class="card mc-panel">
+        <div class="card-header mc-panel-header">// EVENT PIPELINE</div>
+        <div class="card-body p-3">
+          {% for event_type, count in status.event_types.items() %}
+          <div class="spark-event-row">
+            <span class="spark-event-type-badge spark-type-{{ event_type }}">{{ event_type | replace("_", " ") | upper }}</span>
+            <span class="spark-event-count">{{ count }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Advisories -->
+      <div class="card mc-panel"
+           hx-get="/spark/insights"
+           hx-trigger="load, every 30s"
+           hx-target="#spark-insights-body"
+           hx-swap="innerHTML">
+        <div class="card-header mc-panel-header d-flex justify-content-between align-items-center">
+          <span>// ADVISORIES</span>
+          <span class="badge bg-info">{{ advisories | length }}</span>
+        </div>
+        <div class="card-body p-3" id="spark-insights-body">
+          {% if advisories %}
+            {% for adv in advisories %}
+            <div class="spark-advisory priority-{{ 'high' if adv.priority >= 0.7 else ('medium' if adv.priority >= 0.4 else 'low') }}">
+              <div class="spark-advisory-header">
+                <span class="spark-advisory-cat">{{ adv.category | replace("_", " ") | upper }}</span>
+                <span class="spark-advisory-priority">{{ "%.0f"|format(adv.priority * 100) }}%</span>
+              </div>
+              <div class="spark-advisory-title">{{ adv.title }}</div>
+              <div class="spark-advisory-detail">{{ adv.detail }}</div>
+              <div class="spark-advisory-action">{{ adv.suggested_action }}</div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center text-muted py-3">No advisories yet. Run more tasks to build intelligence.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Middle column: Predictions -->
+    <div class="col-12 col-lg-4 d-flex flex-column gap-3">
+
+      <!-- EIDOS Predictions -->
+      <div class="card mc-panel">
+        <div class="card-header mc-panel-header">// EIDOS PREDICTIONS</div>
+        <div class="card-body p-3">
+          {% if predictions %}
+            {% for pred in predictions %}
+            <div class="spark-prediction {% if pred.evaluated_at %}evaluated{% else %}pending{% endif %}">
+              <div class="spark-pred-header">
+                <span class="spark-pred-task">{{ pred.task_id[:8] }}...</span>
+                {% if pred.accuracy is not none %}
+                  <span class="spark-pred-accuracy {% if pred.accuracy >= 0.7 %}text-success{% elif pred.accuracy < 0.4 %}text-danger{% else %}text-warning{% endif %}">
+                    {{ "%.0f"|format(pred.accuracy * 100) }}%
+                  </span>
+                {% else %}
+                  <span class="spark-pred-pending-badge">PENDING</span>
+                {% endif %}
+              </div>
+              <div class="spark-pred-detail">
+                {% if pred.predicted %}
+                  <div class="spark-pred-item">
+                    <span class="spark-pred-label">Winner:</span>
+                    {{ (pred.predicted.likely_winner or "?")[:8] }}
+                  </div>
+                  <div class="spark-pred-item">
+                    <span class="spark-pred-label">Success:</span>
+                    {{ "%.0f"|format((pred.predicted.success_probability or 0) * 100) }}%
+                  </div>
+                  <div class="spark-pred-item">
+                    <span class="spark-pred-label">Bid range:</span>
+                    {{ pred.predicted.estimated_bid_range | join("–") }} sats
+                  </div>
+                {% endif %}
+                {% if pred.actual %}
+                  <div class="spark-pred-actual">
+                    <span class="spark-pred-label">Actual:</span>
+                    {% if pred.actual.succeeded %}completed{% else %}failed{% endif %}
+                    by {{ (pred.actual.winner or "?")[:8] }}
+                    {% if pred.actual.winning_bid %} at {{ pred.actual.winning_bid }} sats{% endif %}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="spark-pred-time">{{ pred.created_at[:19] }}</div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center text-muted py-3">No predictions yet. Post tasks to activate the EIDOS loop.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Consolidated Memories -->
+      <div class="card mc-panel">
+        <div class="card-header mc-panel-header">// MEMORIES</div>
+        <div class="card-body p-3">
+          {% if memories %}
+            {% for mem in memories %}
+            <div class="spark-memory-card mem-{{ mem.memory_type }}">
+              <div class="spark-mem-header">
+                <span class="spark-mem-type">{{ mem.memory_type | upper }}</span>
+                <span class="spark-mem-confidence">{{ "%.0f"|format(mem.confidence * 100) }}% conf</span>
+              </div>
+              <div class="spark-mem-content">{{ mem.content }}</div>
+              <div class="spark-mem-meta">
+                {{ mem.source_events }} events &bull; {{ mem.created_at[:10] }}
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center text-muted py-3">Memories will form as patterns emerge.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column: Event Timeline -->
+    <div class="col-12 col-lg-4 d-flex flex-column gap-3">
+
+      <div class="card mc-panel"
+           hx-get="/spark/timeline"
+           hx-trigger="load, every 15s"
+           hx-target="#spark-timeline-body"
+           hx-swap="innerHTML">
+        <div class="card-header mc-panel-header d-flex justify-content-between align-items-center">
+          <span>// EVENT TIMELINE</span>
+          <span class="badge bg-secondary">{{ status.events_captured }} total</span>
+        </div>
+        <div class="card-body p-3 spark-timeline-scroll" id="spark-timeline-body">
+          {% if timeline %}
+            {% for ev in timeline %}
+            <div class="spark-event spark-type-{{ ev.event_type }}">
+              <div class="spark-event-header">
+                <span class="spark-event-type-badge">{{ ev.event_type | replace("_", " ") | upper }}</span>
+                <span class="spark-event-importance" title="Importance: {{ ev.importance }}">
+                  {% if ev.importance >= 0.8 %}&#9679;&#9679;&#9679;{% elif ev.importance >= 0.5 %}&#9679;&#9679;{% else %}&#9679;{% endif %}
+                </span>
+              </div>
+              <div class="spark-event-desc">{{ ev.description }}</div>
+              {% if ev.task_id %}
+                <div class="spark-event-meta">task: {{ ev.task_id[:8] }}{% if ev.agent_id %} &bull; agent: {{ ev.agent_id[:8] }}{% endif %}</div>
+              {% endif %}
+              <div class="spark-event-time">{{ ev.created_at[:19] }}</div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="text-center text-muted py-3">No events captured yet.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+/* ------------------------------------------------------------------ */
+/* Spark Intelligence — Mission Control theme                          */
+/* ------------------------------------------------------------------ */
+
+.spark-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.spark-header {
+  border-left: 3px solid #00d4ff;
+  padding-left: 1rem;
+}
+
+.spark-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #00d4ff;
+  letter-spacing: 0.08em;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.spark-subtitle {
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-top: 0.25rem;
+}
+
+.spark-status-val {
+  color: #00d4ff;
+  font-weight: 600;
+}
+
+/* Stat grid */
+.spark-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.spark-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  border: 1px solid #1a2a3a;
+  border-radius: 4px;
+  background: #0a1520;
+}
+
+.spark-stat-label {
+  font-size: 0.65rem;
+  color: #6c757d;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.spark-stat-value {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #f8f9fa;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Event pipeline rows */
+.spark-event-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid #1a2a3a;
+}
+
+.spark-event-row:last-child {
+  border-bottom: none;
+}
+
+.spark-event-count {
+  font-weight: 600;
+  color: #adb5bd;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Event type badges */
+.spark-event-type-badge {
+  font-size: 0.65rem;
+  padding: 0.15em 0.5em;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.spark-type-task_posted .spark-event-type-badge,
+.spark-event-type-badge.spark-type-task_posted { background: #1a3a5a; color: #5baaff; }
+.spark-type-bid_submitted .spark-event-type-badge,
+.spark-event-type-badge.spark-type-bid_submitted { background: #3a2a1a; color: #ffaa5b; }
+.spark-type-task_assigned .spark-event-type-badge,
+.spark-event-type-badge.spark-type-task_assigned { background: #1a3a2a; color: #5bffaa; }
+.spark-type-task_completed .spark-event-type-badge,
+.spark-event-type-badge.spark-type-task_completed { background: #1a3a1a; color: #5bff5b; }
+.spark-type-task_failed .spark-event-type-badge,
+.spark-event-type-badge.spark-type-task_failed { background: #3a1a1a; color: #ff5b5b; }
+.spark-type-agent_joined .spark-event-type-badge,
+.spark-event-type-badge.spark-type-agent_joined { background: #2a1a3a; color: #aa5bff; }
+.spark-type-prediction_result .spark-event-type-badge,
+.spark-event-type-badge.spark-type-prediction_result { background: #1a2a3a; color: #00d4ff; }
+
+/* Advisories */
+.spark-advisory {
+  border: 1px solid #2a3a4a;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: #0d1b2a;
+}
+
+.spark-advisory.priority-high {
+  border-left: 3px solid #dc3545;
+}
+
+.spark-advisory.priority-medium {
+  border-left: 3px solid #fd7e14;
+}
+
+.spark-advisory.priority-low {
+  border-left: 3px solid #198754;
+}
+
+.spark-advisory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.spark-advisory-cat {
+  font-size: 0.6rem;
+  color: #6c757d;
+  letter-spacing: 0.08em;
+}
+
+.spark-advisory-priority {
+  font-size: 0.65rem;
+  color: #adb5bd;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.spark-advisory-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #f8f9fa;
+  margin-bottom: 0.25rem;
+}
+
+.spark-advisory-detail {
+  font-size: 0.8rem;
+  color: #adb5bd;
+  margin-bottom: 0.4rem;
+  line-height: 1.4;
+}
+
+.spark-advisory-action {
+  font-size: 0.75rem;
+  color: #00d4ff;
+  font-style: italic;
+  border-left: 2px solid #00d4ff;
+  padding-left: 0.5rem;
+}
+
+/* Predictions */
+.spark-prediction {
+  border: 1px solid #1a2a3a;
+  border-radius: 6px;
+  padding: 0.6rem;
+  margin-bottom: 0.6rem;
+  background: #0a1520;
+}
+
+.spark-prediction.evaluated {
+  border-left: 3px solid #198754;
+}
+
+.spark-prediction.pending {
+  border-left: 3px solid #fd7e14;
+}
+
+.spark-pred-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+
+.spark-pred-task {
+  font-size: 0.75rem;
+  color: #adb5bd;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.spark-pred-accuracy {
+  font-weight: 700;
+  font-size: 0.85rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.spark-pred-pending-badge {
+  font-size: 0.6rem;
+  background: #fd7e14;
+  color: #fff;
+  padding: 0.1em 0.4em;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.spark-pred-detail {
+  font-size: 0.75rem;
+  color: #adb5bd;
+}
+
+.spark-pred-item {
+  padding: 0.1rem 0;
+}
+
+.spark-pred-label {
+  color: #6c757d;
+  font-weight: 600;
+}
+
+.spark-pred-actual {
+  margin-top: 0.3rem;
+  padding-top: 0.3rem;
+  border-top: 1px dashed #1a2a3a;
+  color: #dee2e6;
+}
+
+.spark-pred-time {
+  font-size: 0.6rem;
+  color: #495057;
+  margin-top: 0.3rem;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Memories */
+.spark-memory-card {
+  border: 1px solid #1a2a3a;
+  border-radius: 6px;
+  padding: 0.6rem;
+  margin-bottom: 0.6rem;
+  background: #0a1520;
+}
+
+.spark-memory-card.mem-pattern {
+  border-left: 3px solid #198754;
+}
+
+.spark-memory-card.mem-anomaly {
+  border-left: 3px solid #dc3545;
+}
+
+.spark-memory-card.mem-insight {
+  border-left: 3px solid #00d4ff;
+}
+
+.spark-mem-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.spark-mem-type {
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  color: #6c757d;
+  font-weight: 600;
+}
+
+.spark-mem-confidence {
+  font-size: 0.65rem;
+  color: #adb5bd;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.spark-mem-content {
+  font-size: 0.8rem;
+  color: #dee2e6;
+  line-height: 1.4;
+}
+
+.spark-mem-meta {
+  font-size: 0.6rem;
+  color: #495057;
+  margin-top: 0.3rem;
+}
+
+/* Timeline */
+.spark-timeline-scroll {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.spark-event {
+  border: 1px solid #1a2a3a;
+  border-radius: 4px;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  background: #0a1520;
+}
+
+.spark-event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.2rem;
+}
+
+.spark-event-importance {
+  font-size: 0.5rem;
+  color: #00d4ff;
+}
+
+.spark-event-desc {
+  font-size: 0.8rem;
+  color: #dee2e6;
+}
+
+.spark-event-meta {
+  font-size: 0.65rem;
+  color: #6c757d;
+  font-family: 'JetBrains Mono', monospace;
+  margin-top: 0.15rem;
+}
+
+.spark-event-time {
+  font-size: 0.6rem;
+  color: #495057;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .spark-title { font-size: 1.2rem; }
+  .spark-stat-value { font-size: 1.1rem; }
+}
+</style>
+{% endblock %}

@@ -23,6 +23,8 @@ from dashboard.routes.briefing import router as briefing_router
 from dashboard.routes.telegram import router as telegram_router
 from dashboard.routes.swarm_internal import router as swarm_internal_router
 from dashboard.routes.tools import router as tools_router
+from dashboard.routes.spark import router as spark_router
+from dashboard.routes.creative import router as creative_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -97,6 +99,11 @@ async def lifespan(app: FastAPI):
         except Exception as exc:
             logger.error("Failed to spawn persona agents: %s", exc)
 
+    # Initialise Spark Intelligence engine
+    from spark.engine import spark_engine
+    if spark_engine.enabled:
+        logger.info("Spark Intelligence active — event capture enabled")
+
     # Auto-start Telegram bot if a token is configured
     from telegram_bot.bot import telegram_bot
     await telegram_bot.start()
@@ -136,6 +143,8 @@ app.include_router(briefing_router)
 app.include_router(telegram_router)
 app.include_router(swarm_internal_router)
 app.include_router(tools_router)
+app.include_router(spark_router)
+app.include_router(creative_router)
 
 
 @app.get("/", response_class=HTMLResponse)

@@ -23,11 +23,14 @@ class ToolExecutor:
     
     Each persona gets a different set of tools based on their specialty:
     - Echo: web search, file reading
-    - Forge: shell, python, file read/write
+    - Forge: shell, python, file read/write, git
     - Seer: python, file reading
     - Quill: file read/write
     - Mace: shell, web search
-    - Helm: shell, file operations
+    - Helm: shell, file operations, git
+    - Pixel: image generation, storyboards
+    - Lyra: music/song generation
+    - Reel: video generation, assembly
     
     The executor combines:
     1. MCP tools (file, shell, python, search)
@@ -214,6 +217,39 @@ Response:"""
             "run": "shell",
             "list": "list_files",
             "directory": "list_files",
+            # Git operations
+            "commit": "git_commit",
+            "branch": "git_branch",
+            "push": "git_push",
+            "pull": "git_pull",
+            "diff": "git_diff",
+            "clone": "git_clone",
+            "merge": "git_branch",
+            "stash": "git_stash",
+            "blame": "git_blame",
+            "git status": "git_status",
+            "git log": "git_log",
+            # Image generation
+            "image": "generate_image",
+            "picture": "generate_image",
+            "storyboard": "generate_storyboard",
+            "illustration": "generate_image",
+            # Music generation
+            "music": "generate_song",
+            "song": "generate_song",
+            "vocal": "generate_vocals",
+            "instrumental": "generate_instrumental",
+            "lyrics": "generate_song",
+            # Video generation
+            "video": "generate_video_clip",
+            "clip": "generate_video_clip",
+            "animate": "image_to_video",
+            "film": "generate_video_clip",
+            # Assembly
+            "stitch": "stitch_clips",
+            "assemble": "run_assembly",
+            "title card": "add_title_card",
+            "subtitle": "add_subtitles",
         }
         
         for keyword, tool in keyword_tool_map.items():

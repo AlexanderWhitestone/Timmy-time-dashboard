@@ -18,9 +18,9 @@ def tmp_swarm_db(tmp_path, monkeypatch):
 
 # ── personas.py ───────────────────────────────────────────────────────────────
 
-def test_all_six_personas_defined():
+def test_all_nine_personas_defined():
     from swarm.personas import PERSONAS
-    expected = {"echo", "mace", "helm", "seer", "forge", "quill"}
+    expected = {"echo", "mace", "helm", "seer", "forge", "quill", "pixel", "lyra", "reel"}
     assert expected == set(PERSONAS.keys())
 
 
@@ -46,10 +46,10 @@ def test_get_persona_returns_none_for_unknown():
     assert get_persona("bogus") is None
 
 
-def test_list_personas_returns_all_six():
+def test_list_personas_returns_all_nine():
     from swarm.personas import list_personas
     personas = list_personas()
-    assert len(personas) == 6
+    assert len(personas) == 9
 
 
 def test_persona_capabilities_are_comma_strings():
@@ -179,7 +179,7 @@ def test_coordinator_spawn_all_personas():
     from swarm import registry
     coord = SwarmCoordinator()
     names = []
-    for pid in ["echo", "mace", "helm", "seer", "forge", "quill"]:
+    for pid in ["echo", "mace", "helm", "seer", "forge", "quill", "pixel", "lyra", "reel"]:
         result = coord.spawn_persona(pid)
         names.append(result["name"])
     agents = registry.list_agents()

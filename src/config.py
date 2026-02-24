@@ -28,6 +28,34 @@ class Settings(BaseSettings):
     # 8b  ~16 GB  |  70b  ~140 GB  |  405b  ~810 GB
     airllm_model_size: Literal["8b", "70b", "405b"] = "70b"
 
+    # ── Spark Intelligence ────────────────────────────────────────────────
+    # Enable/disable the Spark cognitive layer.
+    # When enabled, Spark captures swarm events, runs EIDOS predictions,
+    # consolidates memories, and generates advisory recommendations.
+    spark_enabled: bool = True
+
+    # ── Git / DevOps ──────────────────────────────────────────────────────
+    git_default_repo_dir: str = "~/repos"
+
+    # ── Creative — Image Generation (Pixel) ───────────────────────────────
+    flux_model_id: str = "black-forest-labs/FLUX.1-schnell"
+    image_output_dir: str = "data/images"
+    image_default_steps: int = 4
+
+    # ── Creative — Music Generation (Lyra) ────────────────────────────────
+    music_output_dir: str = "data/music"
+    ace_step_model: str = "ace-step/ACE-Step-v1.5"
+
+    # ── Creative — Video Generation (Reel) ────────────────────────────────
+    video_output_dir: str = "data/video"
+    wan_model_id: str = "Wan-AI/Wan2.1-T2V-1.3B"
+    video_default_resolution: str = "480p"
+
+    # ── Creative — Pipeline / Assembly ────────────────────────────────────
+    creative_output_dir: str = "data/creative"
+    video_transition_duration: float = 1.0
+    default_video_codec: str = "libx264"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
