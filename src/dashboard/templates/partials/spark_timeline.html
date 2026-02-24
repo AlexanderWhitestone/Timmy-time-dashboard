@@ -1,0 +1,19 @@
+{% if timeline %}
+  {% for ev in timeline %}
+  <div class="spark-event spark-type-{{ ev.event_type }}">
+    <div class="spark-event-header">
+      <span class="spark-event-type-badge">{{ ev.event_type | replace("_", " ") | upper }}</span>
+      <span class="spark-event-importance" title="Importance: {{ ev.importance }}">
+        {% if ev.importance >= 0.8 %}&#9679;&#9679;&#9679;{% elif ev.importance >= 0.5 %}&#9679;&#9679;{% else %}&#9679;{% endif %}
+      </span>
+    </div>
+    <div class="spark-event-desc">{{ ev.description }}</div>
+    {% if ev.task_id %}
+      <div class="spark-event-meta">task: {{ ev.task_id[:8] }}{% if ev.agent_id %} &bull; agent: {{ ev.agent_id[:8] }}{% endif %}</div>
+    {% endif %}
+    <div class="spark-event-time">{{ ev.created_at[:19] }}</div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="text-center text-muted py-3">No events captured yet.</div>
+{% endif %}

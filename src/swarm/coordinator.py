@@ -29,6 +29,15 @@ from swarm.tasks import (
     update_task,
 )
 
+# Spark Intelligence integration — lazy import to avoid circular deps
+def _get_spark():
+    """Lazily import the Spark engine singleton."""
+    try:
+        from spark.engine import spark_engine
+        return spark_engine
+    except Exception:
+        return None
+
 logger = logging.getLogger(__name__)
 
 
@@ -100,6 +109,10 @@ class SwarmCoordinator:
             )
             # Broadcast bid via WebSocket
             self._broadcast(self._broadcast_bid, task_id, aid, bid_sats)
+            # Spark: capture bid event
+            spark = _get_spark()
+            if spark:
+                spark.on_bid_submitted(task_id, aid, bid_sats)
 
         self.comms.subscribe("swarm:tasks", _bid_and_register)
 
@@ -109,15 +122,20 @@ class SwarmCoordinator:
             capabilities=meta["capabilities"],
             agent_id=aid,
         )
-        
+
         # Register capability manifest with routing engine
         swarm_routing.routing_engine.register_persona(persona_id, aid)
-        
+
         self._in_process_nodes.append(node)
         logger.info("Spawned persona %s (%s)", node.name, aid)
-        
+
         # Broadcast agent join via WebSocket
         self._broadcast(self._broadcast_agent_joined, aid, node.name)
+
+        # Spark: capture agent join
+        spark = _get_spark()
+        if spark:
+            spark.on_agent_joined(aid, node.name)
         
         return {
             "agent_id": aid,
@@ -193,6 +211,11 @@ class SwarmCoordinator:
         logger.info("Task posted: %s (%s)", task.id, description[:50])
         # Broadcast task posted via WebSocket
         self._broadcast(self._broadcast_task_posted, task.id, description)
+        # Spark: capture task-posted event with candidate agents
+        spark = _get_spark()
+        if spark:
+            candidates = [a.id for a in registry.list_agents()]
+            spark.on_task_posted(task.id, description, candidates)
         return task
 
     async def run_auction_and_assign(self, task_id: str) -> Optional[Bid]:
@@ -259,6 +282,10 @@ class SwarmCoordinator:
             )
             # Broadcast task assigned via WebSocket
             self._broadcast(self._broadcast_task_assigned, task_id, winner.agent_id)
+            # Spark: capture assignment
+            spark = _get_spark()
+            if spark:
+                spark.on_task_assigned(task_id, winner.agent_id)
         else:
             update_task(task_id, status=TaskStatus.FAILED)
             logger.warning("Task %s: no bids received, marked as failed", task_id)
@@ -286,6 +313,10 @@ class SwarmCoordinator:
                 self._broadcast_task_completed,
                 task_id, task.assigned_agent, result
             )
+            # Spark: capture completion
+            spark = _get_spark()
+            if spark:
+                spark.on_task_completed(task_id, task.assigned_agent, result)
         return updated
 
     def fail_task(self, task_id: str, reason: str = "") -> Optional[Task]:
@@ -304,6 +335,10 @@ class SwarmCoordinator:
             registry.update_status(task.assigned_agent, "idle")
             # Record failure in learner
             swarm_learner.record_task_result(task_id, task.assigned_agent, succeeded=False)
+            # Spark: capture failure
+            spark = _get_spark()
+            if spark:
+                spark.on_task_failed(task_id, task.assigned_agent, reason)
         return updated
 
     def get_task(self, task_id: str) -> Optional[Task]:
@@ -377,7 +412,7 @@ class SwarmCoordinator:
         """Return a summary of the swarm state."""
         agents = registry.list_agents()
         tasks = list_tasks()
-        return {
+        status = {
             "agents": len(agents),
             "agents_idle": sum(1 for a in agents if a.status == "idle"),
             "agents_busy": sum(1 for a in agents if a.status == "busy"),
@@ -388,6 +423,16 @@ class SwarmCoordinator:
             "active_auctions": len(self.auctions.active_auctions),
             "routing_manifests": len(swarm_routing.routing_engine._manifests),
         }
+        # Include Spark Intelligence summary if available
+        spark = _get_spark()
+        if spark and spark.enabled:
+            spark_status = spark.status()
+            status["spark"] = {
+                "events_captured": spark_status["events_captured"],
+                "memories_stored": spark_status["memories_stored"],
+                "prediction_accuracy": spark_status["predictions"]["avg_accuracy"],
+            }
+        return status
     
     def get_routing_decisions(self, task_id: Optional[str] = None, limit: int = 100) -> list:
         """Get routing decision history for audit.

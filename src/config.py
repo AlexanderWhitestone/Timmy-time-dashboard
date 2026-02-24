@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     # 8b  ~16 GB  |  70b  ~140 GB  |  405b  ~810 GB
     airllm_model_size: Literal["8b", "70b", "405b"] = "70b"
 
+    # ── Spark Intelligence ────────────────────────────────────────────────
+    # Enable/disable the Spark cognitive layer.
+    # When enabled, Spark captures swarm events, runs EIDOS predictions,
+    # consolidates memories, and generates advisory recommendations.
+    spark_enabled: bool = True
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

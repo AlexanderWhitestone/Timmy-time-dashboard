@@ -72,6 +72,7 @@ include = [
     "src/notifications",
     "src/shortcuts",
     "src/telegram_bot",
+    "src/spark",
 ]
 
 [tool.pytest.ini_options]
