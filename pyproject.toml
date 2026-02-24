@@ -87,6 +87,8 @@ include = [
     "src/spark",
     "src/tools",
     "src/creative",
+    "src/agent_core",
+    "src/lightning",
 ]
 
 [tool.pytest.ini_options]

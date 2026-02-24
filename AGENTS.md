@@ -35,10 +35,16 @@ src/
   swarm/                # Multi-agent coordinator, registry, bidder, tasks, comms
     docker_runner.py    # Spawn agents as Docker containers
   timmy_serve/          # L402 Lightning proxy, payment handler, TTS, CLI
+  spark/                # Intelligence engine — events, predictions, advisory
+  creative/             # Creative director + video assembler pipeline
+  tools/                # Git, image, music, video tools for persona agents
+  lightning/            # Lightning backend abstraction (mock + LND)
+  agent_core/           # Substrate-agnostic agent interface
   voice/                # NLU intent detection (regex-based, no cloud)
   websocket/            # WebSocket manager (ws_manager singleton)
   notifications/        # Push notification store (notifier singleton)
   shortcuts/            # Siri Shortcuts API endpoints
+  telegram_bot/         # Telegram bridge
   self_tdd/             # Continuous test watchdog
 tests/                  # One test_*.py per module, all mocked
 static/                 # style.css + bg.svg (arcane theme)
@@ -309,9 +315,9 @@ make docker-agent   # add a Local agent worker
 **v2.0.0 — Exodus (in progress)**
 - [x] Persistent swarm state across restarts
 - [x] Docker infrastructure for agent containers
-- [ ] Implement Echo, Mace, Helm, Seer, Forge, Quill persona agents (Dockerised)
+- [x] Implement Echo, Mace, Helm, Seer, Forge, Quill persona agents (+ Pixel, Lyra, Reel)
+- [x] MCP tool integration for Timmy
 - [ ] Real LND gRPC backend for `PaymentHandler` (replace mock)
-- [ ] MCP tool integration for Timmy
 - [ ] Marketplace frontend — wire `/marketplace` route to real data
 
 **v3.0.0 — Revelation (planned)**
