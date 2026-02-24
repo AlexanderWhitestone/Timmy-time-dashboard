@@ -1,0 +1,117 @@
+#cloud-config
+# ── Timmy Time — Cloud-Init Bootstrap ────────────────────────────────────────
+#
+# Paste this as "User Data" when creating a DigitalOcean Droplet, AWS EC2
+# instance, Hetzner server, Vultr instance, or any cloud VM.
+#
+# What it does:
+#   1. Installs Docker + Docker Compose
+#   2. Configures firewall (SSH + HTTP + HTTPS only)
+#   3. Clones the Timmy repo to /opt/timmy
+#   4. Pulls the default LLM model
+#   5. Starts the full production stack
+#   6. Enables auto-start on reboot via systemd
+#
+# After boot (~3-5 min), access: https://<your-ip> or https://<your-domain>
+#
+# Prerequisites:
+#   - Point your domain's A record to this server's IP (for auto-HTTPS)
+#   - Or access via IP (Caddy will serve HTTP only)
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - git
+  - ufw
+  - fail2ban
+  - unattended-upgrades
+
+write_files:
+  # Timmy environment config — edit after first boot if needed
+  - path: /opt/timmy/.env
+    permissions: "0600"
+    content: |
+      # ── Timmy Time — Production Environment ──────────────────────────
+      # Edit this file, then: systemctl restart timmy
+
+      # Your domain (required for auto-HTTPS). Use IP for HTTP-only.
+      DOMAIN=localhost
+
+      # LLM model (pulled automatically on first boot)
+      OLLAMA_MODEL=llama3.2
+
+      # Generate secrets:
+      #   python3 -c "import secrets; print(secrets.token_hex(32))"
+      L402_HMAC_SECRET=
+      L402_MACAROON_SECRET=
+
+      # Telegram bot token (optional)
+      TELEGRAM_TOKEN=
+
+  # Systemd service file
+  - path: /etc/systemd/system/timmy.service
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Timmy Time — Mission Control
+      After=docker.service network-online.target
+      Requires=docker.service
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      WorkingDirectory=/opt/timmy
+      EnvironmentFile=-/opt/timmy/.env
+      ExecStart=/usr/bin/docker compose -f docker-compose.prod.yml up -d
+      ExecStop=/usr/bin/docker compose -f docker-compose.prod.yml down
+      ExecReload=/usr/bin/docker compose -f docker-compose.prod.yml restart
+      Restart=on-failure
+      RestartSec=30
+
+      [Install]
+      WantedBy=multi-user.target
+
+runcmd:
+  # ── Install Docker ─────────────────────────────────────────────────────────
+  - curl -fsSL https://get.docker.com | sh
+  - systemctl enable docker
+  - systemctl start docker
+
+  # ── Firewall ───────────────────────────────────────────────────────────────
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp    # SSH
+  - ufw allow 80/tcp    # HTTP
+  - ufw allow 443/tcp   # HTTPS
+  - ufw allow 443/udp   # HTTP/3
+  - ufw --force enable
+
+  # ── Fail2ban ───────────────────────────────────────────────────────────────
+  - systemctl enable fail2ban
+  - systemctl start fail2ban
+
+  # ── Clone and deploy ───────────────────────────────────────────────────────
+  - git clone https://github.com/AlexanderWhitestone/Timmy-time-dashboard.git /opt/timmy
+  - cd /opt/timmy && mkdir -p data
+
+  # ── Build and start ────────────────────────────────────────────────────────
+  - cd /opt/timmy && docker compose -f docker-compose.prod.yml build
+  - cd /opt/timmy && docker compose -f docker-compose.prod.yml up -d
+
+  # ── Pull default LLM model ────────────────────────────────────────────────
+  - |
+    echo "Waiting for Ollama to be ready..."
+    for i in $(seq 1 30); do
+      if curl -sf http://localhost:11434/api/tags > /dev/null 2>&1; then
+        break
+      fi
+      sleep 5
+    done
+    docker exec timmy-ollama ollama pull llama3.2
+
+  # ── Enable auto-start on boot ──────────────────────────────────────────────
+  - systemctl daemon-reload
+  - systemctl enable timmy

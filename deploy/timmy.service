@@ -1,0 +1,29 @@
+[Unit]
+Description=Timmy Time — Mission Control
+Documentation=https://github.com/AlexanderWhitestone/Timmy-time-dashboard
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/timmy
+EnvironmentFile=-/opt/timmy/.env
+
+# Start the full production stack
+ExecStart=/usr/bin/docker compose -f docker-compose.prod.yml up -d
+ExecStop=/usr/bin/docker compose -f docker-compose.prod.yml down
+ExecReload=/usr/bin/docker compose -f docker-compose.prod.yml restart
+
+# Restart policy
+Restart=on-failure
+RestartSec=30
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/timmy /var/run/docker.sock
+
+[Install]
+WantedBy=multi-user.target
