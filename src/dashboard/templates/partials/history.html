@@ -3,17 +3,17 @@
     {% if msg.role == "user" %}
     <div class="chat-message user">
       <div class="msg-meta">YOU // {{ msg.timestamp }}</div>
-      <div class="msg-body">{{ msg.content }}</div>
+      <div class="msg-body">{{ msg.content | e }}</div>
     </div>
     {% elif msg.role == "agent" %}
     <div class="chat-message agent">
       <div class="msg-meta">TIMMY // {{ msg.timestamp }}</div>
-      <div class="msg-body">{{ msg.content }}</div>
+      <div class="msg-body">{{ msg.content | e }}</div>
     </div>
     {% else %}
     <div class="chat-message error-msg">
       <div class="msg-meta">SYSTEM // {{ msg.timestamp }}</div>
-      <div class="msg-body">{{ msg.content }}</div>
+      <div class="msg-body">{{ msg.content | e }}</div>
     </div>
     {% endif %}
   {% endfor %}
