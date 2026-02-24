@@ -1,4 +1,4 @@
-"""Persona definitions for the six built-in swarm agents.
+"""Persona definitions for the nine built-in swarm agents.
 
 Each persona entry describes a specialised SwarmNode that can be spawned
 into the coordinator.  Personas have:
@@ -76,6 +76,7 @@ PERSONAS: dict[str, PersonaMeta] = {
         "preferred_keywords": [
             "deploy", "infrastructure", "config", "docker", "kubernetes",
             "server", "automation", "pipeline", "ci", "cd",
+            "git", "push", "pull", "clone", "devops",
         ],
     },
     "seer": {
@@ -109,6 +110,7 @@ PERSONAS: dict[str, PersonaMeta] = {
         "preferred_keywords": [
             "code", "function", "bug", "fix", "refactor", "test",
             "implement", "class", "api", "script",
+            "commit", "branch", "merge", "git", "pull request",
         ],
     },
     "quill": {
@@ -125,6 +127,60 @@ PERSONAS: dict[str, PersonaMeta] = {
         "preferred_keywords": [
             "write", "draft", "document", "readme", "blog", "copy",
             "edit", "proofread", "content", "article",
+        ],
+    },
+    # ── Creative & DevOps personas ────────────────────────────────────────────
+    "pixel": {
+        "id": "pixel",
+        "name": "Pixel",
+        "role": "Visual Architect",
+        "description": (
+            "Image generation, storyboard frames, and visual design "
+            "using FLUX models."
+        ),
+        "capabilities": "image-generation,storyboard,design",
+        "rate_sats": 80,
+        "bid_base": 60,
+        "bid_jitter": 20,
+        "preferred_keywords": [
+            "image", "picture", "photo", "draw", "illustration",
+            "storyboard", "frame", "visual", "design", "generate image",
+            "portrait", "landscape", "scene", "artwork",
+        ],
+    },
+    "lyra": {
+        "id": "lyra",
+        "name": "Lyra",
+        "role": "Sound Weaver",
+        "description": (
+            "Music and song generation with vocals, instrumentals, "
+            "and lyrics using ACE-Step."
+        ),
+        "capabilities": "music-generation,vocals,composition",
+        "rate_sats": 90,
+        "bid_base": 70,
+        "bid_jitter": 20,
+        "preferred_keywords": [
+            "music", "song", "sing", "vocal", "instrumental",
+            "melody", "beat", "track", "compose", "lyrics",
+            "audio", "sound", "album", "remix",
+        ],
+    },
+    "reel": {
+        "id": "reel",
+        "name": "Reel",
+        "role": "Motion Director",
+        "description": (
+            "Video generation from text and image prompts "
+            "using Wan 2.1 models."
+        ),
+        "capabilities": "video-generation,animation,motion",
+        "rate_sats": 100,
+        "bid_base": 80,
+        "bid_jitter": 20,
+        "preferred_keywords": [
+            "video", "clip", "animate", "motion", "film",
+            "scene", "cinematic", "footage", "render", "timelapse",
         ],
     },
 }

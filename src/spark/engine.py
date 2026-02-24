@@ -201,6 +201,71 @@ class SparkEngine:
             agent_id=agent_id,
         )
 
+    # ── Tool-level event capture ─────────────────────────────────────────────
+
+    def on_tool_executed(
+        self,
+        agent_id: str,
+        tool_name: str,
+        task_id: Optional[str] = None,
+        success: bool = True,
+        duration_ms: Optional[int] = None,
+    ) -> Optional[str]:
+        """Capture an individual tool invocation.
+
+        Tracks which tools each agent uses, success rates, and latency
+        so Spark can generate tool-specific advisories.
+        """
+        if not self._enabled:
+            return None
+
+        data = {"tool": tool_name, "success": success}
+        if duration_ms is not None:
+            data["duration_ms"] = duration_ms
+
+        return spark_memory.record_event(
+            event_type="tool_executed",
+            description=f"Agent {agent_id[:8]} used {tool_name} ({'ok' if success else 'FAIL'})",
+            agent_id=agent_id,
+            task_id=task_id,
+            data=json.dumps(data),
+            importance=0.3 if success else 0.6,
+        )
+
+    # ── Creative pipeline event capture ──────────────────────────────────────
+
+    def on_creative_step(
+        self,
+        project_id: str,
+        step_name: str,
+        agent_id: str,
+        output_path: Optional[str] = None,
+        success: bool = True,
+    ) -> Optional[str]:
+        """Capture a creative pipeline step (storyboard, music, video, assembly).
+
+        Tracks pipeline progress and creative output quality metrics
+        for Spark advisory generation.
+        """
+        if not self._enabled:
+            return None
+
+        data = {
+            "project_id": project_id,
+            "step": step_name,
+            "success": success,
+        }
+        if output_path:
+            data["output_path"] = output_path
+
+        return spark_memory.record_event(
+            event_type="creative_step",
+            description=f"Creative pipeline: {step_name} by {agent_id[:8]} ({'ok' if success else 'FAIL'})",
+            agent_id=agent_id,
+            data=json.dumps(data),
+            importance=0.5,
+        )
+
     # ── Memory consolidation ────────────────────────────────────────────────
 
     def _maybe_consolidate(self, agent_id: str) -> None:
@@ -254,6 +319,8 @@ class SparkEngine:
                 "task_completed": spark_memory.count_events("task_completed"),
                 "task_failed": spark_memory.count_events("task_failed"),
                 "agent_joined": spark_memory.count_events("agent_joined"),
+                "tool_executed": spark_memory.count_events("tool_executed"),
+                "creative_step": spark_memory.count_events("creative_step"),
             },
         }
 
