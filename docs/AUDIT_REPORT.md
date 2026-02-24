@@ -20,7 +20,9 @@ The Timmy Time Dashboard is a **real, functional codebase** with substantial imp
 | "LND gRPC-ready for production" | **FALSE** | Every LND method raises `NotImplementedError` |
 | "15 Subsystems" | **TRUE** | 15+ distinct modules confirmed |
 | "No cloud, no telemetry" | **PARTIALLY FALSE** | Backend is local-only; frontend depends on CDN resources |
-| "Agents earn and spend sats autonomously" | **FALSE** | Not implemented; inter-agent payments exist only as mock scaffolding |
+| "Agents earn and spend sats autonomously" | **FALSE** | Not implemented; agents bid in sats but no satoshi movement occurs |
+| "15-second Lightning auctions" | **PARTIALLY TRUE** | Auction logic exists but `asyncio.sleep(0)` closes auctions immediately |
+| "Macaroon" implementation | **SIMPLIFIED** | HMAC-only, not true macaroons (no caveats, no delegation) |
 
 **Overall assessment**: The core system (agent, dashboard, swarm coordination, mock Lightning, voice NLU, creative pipeline orchestration, WebSocket, Spark intelligence) is genuinely implemented and well-tested. The main areas of concern are inflated claims about Lightning/LND production readiness and the "zero cloud" positioning.
 
@@ -70,7 +72,9 @@ $ python -m pytest -q
 - Approval workflow (`approvals.py`) implements real human-in-the-loop with SQLite-backed state
 - Briefing system (`briefing.py`) generates real scheduled briefings
 
-**Issue**: `agent_core/ollama_adapter.py:184` has `# TODO: Persist to SQLite for long-term memory` and `communicate()` at line 221 is explicitly described as "a stub"
+**Issues**:
+- `agent_core/ollama_adapter.py:184` has `# TODO: Persist to SQLite for long-term memory` and `communicate()` at line 221 is explicitly described as "a stub"
+- CLI tests are sparse: only 2 tests for 3 commands. The `chat` and `think` commands lack dedicated test coverage.
 
 ### 2.2 Mission Control UI
 **Claimed**: FastAPI + HTMX + Jinja2 dashboard, dark terminal aesthetic
@@ -97,7 +101,11 @@ $ python -m pytest -q
 - `recovery.py`: Fault recovery on startup
 - 9 personas defined (Echo, Mace, Helm, Seer, Forge, Quill, Pixel, Lyra, Reel)
 
-**Issue**: The documentation roadmap mentions personas "Echo, Mace, Helm, Seer, Forge, Quill" but the codebase also includes Pixel, Lyra, and Reel. The creative persona toolkits (pixel, lyra, reel) are stubs in `tools.py:293-295` — they create empty `Toolkit` objects because the real tools live in separate modules.
+**Issues**:
+- The documentation roadmap mentions personas "Echo, Mace, Helm, Seer, Forge, Quill" but the codebase also includes Pixel, Lyra, and Reel. The creative persona toolkits (pixel, lyra, reel) are stubs in `tools.py:293-295` — they create empty `Toolkit` objects because the real tools live in separate modules.
+- **Auction timing bug**: `coordinator.py` uses `await asyncio.sleep(0)` instead of the documented 15-second wait, meaning auctions close almost immediately. This is masked by synchronous in-process bidding but would break for subprocess/Docker agents.
+- **Docker agent HTTP API partially wired**: `agent_runner.py` polls `/internal/tasks` and posts to `/internal/bids` — these endpoints exist in `swarm_internal.py` but the integration path is incomplete for containerized deployment.
+- **Tool execution not fully wired**: `persona_node.py`'s `execute_task()` has infrastructure for tool invocation but doesn't execute tools end-to-end in practice.
 
 ### 2.4 L402 Lightning Payments
 **Claimed**: "Bitcoin Lightning payment gating via HMAC macaroons. Mock backend for dev, LND gRPC-ready for production. Agents earn and spend sats autonomously."
@@ -119,7 +127,9 @@ $ python -m pytest -q
   - `health_check()` — returns `{"ok": False, "backend": "lnd-stub"}` (line 327)
   - The gRPC stub is explicitly `None` with comment: "LND gRPC stubs not yet implemented" (line 153)
 
-**The documentation claim that LND is "gRPC-ready for production" is false.** The file contains commented-out pseudocode showing what the implementation *would* look like, but no actual gRPC calls are made. The claim that "agents earn and spend sats autonomously" is also unimplemented — this is listed under v3.0.0 (Planned) in the roadmap but stated as current capability in the features section.
+**The documentation claim that LND is "gRPC-ready for production" is false.** The file contains commented-out pseudocode showing what the implementation *would* look like, but no actual gRPC calls are made. The gRPC channel/auth infrastructure is ~80% ready but the protobuf stubs are missing entirely. The claim that "agents earn and spend sats autonomously" is also unimplemented — agents bid in sats during auctions but `payment_handler.settle_invoice()` is never called from agent code. No satoshi movement occurs. This is listed under v3.0.0 (Planned) in the roadmap but stated as current capability in the features section.
+
+Additionally, the "macaroon" implementation is HMAC-only (`l402_proxy.py:67-69`), not true macaroons. There is no support for caveats, delegation, or cryptographic nesting. This is adequate for L402 but not the full macaroon specification the documentation implies.
 
 ### 2.5 Spark Intelligence Engine
 **Claimed**: Event capture, predictions (EIDOS), memory consolidation, advisory engine
