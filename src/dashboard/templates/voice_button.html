@@ -4,133 +4,164 @@
 
 {% block extra_styles %}
 <style>
-    .voice-button {
-        width: 200px;
-        height: 200px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, var(--accent), var(--accent-dim));
-        border: none;
-        color: var(--bg-primary);
-        font-size: 4rem;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 40px auto;
-        box-shadow: 0 0 40px rgba(0, 255, 136, 0.3);
-    }
-    
-    .voice-button:hover {
-        transform: scale(1.05);
-        box-shadow: 0 0 60px rgba(0, 255, 136, 0.5);
-    }
-    
-    .voice-button:active, .voice-button.listening {
-        transform: scale(0.95);
-        background: var(--danger);
-        box-shadow: 0 0 60px rgba(255, 68, 68, 0.5);
-        animation: pulse-red 1s infinite;
-    }
-    
-    @keyframes pulse-red {
-        0%, 100% { box-shadow: 0 0 40px rgba(255, 68, 68, 0.5); }
-        50% { box-shadow: 0 0 80px rgba(255, 68, 68, 0.8); }
-    }
-    
-    .voice-status {
-        text-align: center;
-        font-size: 1.25rem;
-        color: var(--text-secondary);
-        margin-bottom: 20px;
-    }
-    
-    .voice-result {
-        background: var(--bg-tertiary);
-        border-radius: 12px;
-        padding: 20px;
-        margin-top: 20px;
-    }
-    
-    .voice-transcript {
-        font-size: 1.125rem;
-        margin-bottom: 12px;
-    }
-    
-    .voice-response {
-        color: var(--accent);
-        font-style: italic;
-    }
+  .voice-page {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .voice-button {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--border-glow), var(--purple));
+    border: none;
+    color: white;
+    font-size: 3.5rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 30px auto;
+    box-shadow: 0 0 40px rgba(124, 58, 237, 0.3);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .voice-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 60px rgba(124, 58, 237, 0.5);
+  }
+  .voice-button:active, .voice-button.listening {
+    transform: scale(0.95);
+    background: linear-gradient(135deg, var(--red), var(--red-dim));
+    box-shadow: 0 0 60px rgba(255, 68, 85, 0.5);
+    animation: pulse-listen 1s infinite;
+  }
+  @keyframes pulse-listen {
+    0%, 100% { box-shadow: 0 0 40px rgba(255, 68, 85, 0.5); }
+    50% { box-shadow: 0 0 80px rgba(255, 68, 85, 0.8); }
+  }
+
+  .voice-status {
+    font-size: 1rem;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    letter-spacing: 0.06em;
+  }
+
+  .voice-result {
+    background: rgba(24, 10, 45, 0.8);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-top: 20px;
+    text-align: left;
+  }
+  .voice-transcript {
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+  .voice-response {
+    color: var(--purple);
+    font-style: italic;
+  }
+
+  .voice-tips {
+    margin-top: 24px;
+    padding: 16px;
+    background: rgba(24, 10, 45, 0.6);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    text-align: left;
+  }
+  .voice-tips h3 {
+    font-size: 0.85rem;
+    color: var(--text-bright);
+    margin-bottom: 10px;
+  }
+  .voice-tips ul {
+    color: var(--text-dim);
+    line-height: 2;
+    padding-left: 18px;
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 768px) {
+    .voice-button { width: 140px; height: 140px; font-size: 3rem; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 600px; margin: 0 auto;">
-    <div class="card-header" style="text-align: center;">
-        <h2 class="card-title">🎙️ Voice Control</h2>
-        <p style="color: var(--text-secondary);">Hold the button and speak to Timmy</p>
-    </div>
-    
-    <div class="voice-status" id="voice-status">Tap and hold to speak</div>
-    
-    <button class="voice-button" id="voice-btn" 
-            onmousedown="startListening()" 
-            onmouseup="stopListening()"
-            ontouchstart="startListening()"
-            ontouchend="stopListening()">
-        🎤
-    </button>
-    
-    <div id="voice-result" class="voice-result" style="display: none;">
+<div class="voice-page py-3">
+  <div class="card mc-panel">
+    <div class="card-header mc-panel-header" style="text-align:center;">// VOICE CONTROL</div>
+    <div class="card-body">
+      <p style="color: var(--text-dim); font-size: 0.85rem; margin-bottom: 0;">Hold the button and speak to Timmy</p>
+
+      <div class="voice-status" id="voice-status">Tap and hold to speak</div>
+
+      <button class="voice-button" id="voice-btn"
+              onmousedown="startListening()"
+              onmouseup="stopListening()"
+              ontouchstart="startListening()"
+              ontouchend="stopListening()">
+        &#x1F3A4;
+      </button>
+
+      <div id="voice-result" class="voice-result" style="display: none;">
         <div class="voice-transcript">
-            <strong>You said:</strong> <span id="transcript-text"></span>
+          <strong style="color:var(--text-dim);">You said:</strong> <span id="transcript-text"></span>
         </div>
         <div class="voice-response">
-            <strong>Timmy:</strong> <span id="response-text"></span>
+          <strong>Timmy:</strong> <span id="response-text"></span>
         </div>
-    </div>
-    
-    <div style="margin-top: 30px; padding: 20px; background: var(--bg-tertiary); border-radius: 8px;">
-        <h3 style="margin-bottom: 12px;">Try saying:</h3>
-        <ul style="color: var(--text-secondary); line-height: 2;">
-            <li>"What's the status?"</li>
-            <li>"Launch a research agent"</li>
-            <li>"Create a task to find Bitcoin news"</li>
-            <li>"Show me the marketplace"</li>
-            <li>"Emergency stop"</li>
+      </div>
+
+      <div class="voice-tips">
+        <h3>Try saying:</h3>
+        <ul>
+          <li>"What's the status?"</li>
+          <li>"Launch a research agent"</li>
+          <li>"Create a task to find Bitcoin news"</li>
+          <li>"Show me the marketplace"</li>
+          <li>"Emergency stop"</li>
         </ul>
+      </div>
     </div>
+  </div>
 </div>
 
 <script>
-let recognition = null;
-let isListening = false;
+var recognition = null;
+var isListening = false;
 
-// Initialize Web Speech API
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = 'en-US';
-    
+
     recognition.onstart = function() {
         isListening = true;
         document.getElementById('voice-status').textContent = 'Listening...';
         document.getElementById('voice-btn').classList.add('listening');
     };
-    
+
     recognition.onresult = function(event) {
-        const transcript = event.results[0][0].transcript;
+        var transcript = event.results[0][0].transcript;
         processVoiceCommand(transcript);
     };
-    
+
     recognition.onerror = function(event) {
         console.error('Speech recognition error:', event.error);
         document.getElementById('voice-status').textContent = 'Error: ' + event.error;
         resetButton();
     };
-    
+
     recognition.onend = function() {
         isListening = false;
         resetButton();
@@ -141,17 +172,11 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
 }
 
 function startListening() {
-    if (recognition && !isListening) {
-        recognition.start();
-    }
+    if (recognition && !isListening) { recognition.start(); }
 }
-
 function stopListening() {
-    if (recognition && isListening) {
-        recognition.stop();
-    }
+    if (recognition && isListening) { recognition.stop(); }
 }
-
 function resetButton() {
     document.getElementById('voice-status').textContent = 'Tap and hold to speak';
     document.getElementById('voice-btn').classList.remove('listening');
@@ -160,33 +185,30 @@ function resetButton() {
 async function processVoiceCommand(text) {
     document.getElementById('transcript-text').textContent = text;
     document.getElementById('voice-status').textContent = 'Processing...';
-    
+
     try {
-        const response = await fetch('/voice/command', {
+        var response = await fetch('/voice/command', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `text=${encodeURIComponent(text)}`
+            body: 'text=' + encodeURIComponent(text)
         });
-        
-        const data = await response.json();
-        
+        var data = await response.json();
+
         document.getElementById('response-text').textContent = data.command.response;
         document.getElementById('voice-result').style.display = 'block';
         document.getElementById('voice-status').textContent = 'Done!';
-        
-        // Speak response if supported
+
         if ('speechSynthesis' in window) {
-            const utterance = new SpeechSynthesisUtterance(data.command.response);
+            var utterance = new SpeechSynthesisUtterance(data.command.response);
             utterance.rate = 1.1;
             window.speechSynthesis.speak(utterance);
         }
-        
     } catch (e) {
         document.getElementById('response-text').textContent = 'Sorry, I had trouble processing that.';
         document.getElementById('voice-result').style.display = 'block';
         document.getElementById('voice-status').textContent = 'Error';
     }
-    
+
     setTimeout(resetButton, 2000);
 }
 </script>

@@ -9,7 +9,7 @@ class TestSwarmLivePage:
 
     def test_swarm_live_contains_dashboard_title(self, client):
         resp = client.get("/swarm/live")
-        assert "Live Swarm Dashboard" in resp.text
+        assert "LIVE SWARM" in resp.text
 
     def test_swarm_live_contains_websocket_script(self, client):
         resp = client.get("/swarm/live")

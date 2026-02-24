@@ -2,43 +2,105 @@
 
 {% block title %}Creative Studio — Mission Control{% endblock %}
 
+{% block extra_styles %}
+<style>
+  .creative-container { max-width: 1200px; margin: 0 auto; }
+
+  .creative-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .creative-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    letter-spacing: 0.08em;
+  }
+  .creative-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .creative-stats {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .creative-stat-box {
+    background: var(--glass-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 8px 14px;
+    text-align: center;
+    min-width: 60px;
+  }
+  .creative-stat-val {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-bright);
+  }
+  .creative-stat-label {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+  }
+
+  .persona-card .card-header strong { color: var(--text-bright); }
+  .persona-card .card-body { font-size: 0.85rem; }
+  .persona-card .card-body p { color: var(--text-dim); }
+
+  .pipeline-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  @media (max-width: 768px) {
+    .creative-title { font-size: 1.1rem; }
+    .creative-header { flex-direction: column; }
+    .creative-stats { width: 100%; }
+    .creative-stat-box { flex: 1; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid py-4">
-  <div class="row mb-4">
-    <div class="col">
-      <h1 class="display-6">Creative Studio</h1>
-      <p class="text-secondary">Image, music, and video generation — powered by Pixel, Lyra, and Reel</p>
+<div class="creative-container py-3">
+
+  <div class="creative-header">
+    <div>
+      <div class="creative-title">CREATIVE STUDIO</div>
+      <div class="creative-subtitle">Image, music, and video generation &mdash; powered by Pixel, Lyra, and Reel</div>
     </div>
-    <div class="col-auto d-flex gap-3">
-      <div class="card bg-dark border-secondary">
-        <div class="card-body text-center py-2 px-3">
-          <h4 class="mb-0">{{ image_count }}</h4>
-          <small class="text-secondary">Images</small>
-        </div>
+    <div class="creative-stats">
+      <div class="creative-stat-box">
+        <div class="creative-stat-val">{{ image_count }}</div>
+        <div class="creative-stat-label">IMAGES</div>
       </div>
-      <div class="card bg-dark border-secondary">
-        <div class="card-body text-center py-2 px-3">
-          <h4 class="mb-0">{{ music_count }}</h4>
-          <small class="text-secondary">Tracks</small>
-        </div>
+      <div class="creative-stat-box">
+        <div class="creative-stat-val">{{ music_count }}</div>
+        <div class="creative-stat-label">TRACKS</div>
       </div>
-      <div class="card bg-dark border-secondary">
-        <div class="card-body text-center py-2 px-3">
-          <h4 class="mb-0">{{ video_count }}</h4>
-          <small class="text-secondary">Clips</small>
-        </div>
+      <div class="creative-stat-box">
+        <div class="creative-stat-val">{{ video_count }}</div>
+        <div class="creative-stat-label">CLIPS</div>
       </div>
-      <div class="card bg-dark border-secondary">
-        <div class="card-body text-center py-2 px-3">
-          <h4 class="mb-0">{{ project_count }}</h4>
-          <small class="text-secondary">Projects</small>
-        </div>
+      <div class="creative-stat-box">
+        <div class="creative-stat-val">{{ project_count }}</div>
+        <div class="creative-stat-label">PROJECTS</div>
       </div>
     </div>
   </div>
 
   <!-- Tab Navigation -->
-  <ul class="nav nav-tabs mb-4" role="tablist">
+  <ul class="nav nav-tabs mb-3" role="tablist">
     <li class="nav-item">
       <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-images" type="button">Images</button>
     </li>
@@ -56,143 +118,149 @@
   <div class="tab-content">
     <!-- Images Tab -->
     <div class="tab-pane fade show active" id="tab-images" role="tabpanel">
-      <div class="row mb-3">
-        <div class="col-12">
-          <div class="card bg-dark border-secondary">
-            <div class="card-header">
-              <strong>Pixel</strong> &mdash; Visual Architect (FLUX)
-            </div>
-            <div class="card-body">
-              <p class="text-secondary small mb-2">Generate images by sending a task to the swarm: <code>"Generate an image of ..."</code></p>
-              <p class="text-secondary small">Tools: <span class="badge bg-primary">generate_image</span> <span class="badge bg-primary">generate_storyboard</span> <span class="badge bg-primary">image_variations</span></p>
-            </div>
-          </div>
+      <div class="card mc-panel persona-card mb-3">
+        <div class="card-header mc-panel-header">
+          <strong>Pixel</strong> &mdash; Visual Architect (FLUX)
+        </div>
+        <div class="card-body">
+          <p>Generate images by sending a task to the swarm: <code>"Generate an image of ..."</code></p>
+          <p>Tools: <span class="badge badge-info">generate_image</span> <span class="badge badge-info">generate_storyboard</span> <span class="badge badge-info">image_variations</span></p>
         </div>
       </div>
       {% if images %}
       <div class="row g-3">
         {% for img in images %}
-        <div class="col-md-3">
-          <div class="card bg-dark border-secondary h-100">
+        <div class="col-6 col-md-3">
+          <div class="card">
             <div class="card-body text-center">
-              <small class="text-secondary">{{ img.name }}</small>
+              <small style="color:var(--text-dim);">{{ img.name }}</small>
             </div>
           </div>
         </div>
         {% endfor %}
       </div>
       {% else %}
-      <div class="alert alert-secondary">No images generated yet. Send an image generation task to the swarm to get started.</div>
+      <div style="text-align:center; padding:24px; color:var(--text-dim); font-size:0.85rem;">No images generated yet. Send an image generation task to the swarm.</div>
       {% endif %}
     </div>
 
     <!-- Music Tab -->
     <div class="tab-pane fade" id="tab-music" role="tabpanel">
-      <div class="row mb-3">
-        <div class="col-12">
-          <div class="card bg-dark border-secondary">
-            <div class="card-header">
-              <strong>Lyra</strong> &mdash; Sound Weaver (ACE-Step 1.5)
-            </div>
-            <div class="card-body">
-              <p class="text-secondary small mb-2">Generate music by sending a task: <code>"Compose a pop song about ..."</code></p>
-              <p class="text-secondary small">Tools: <span class="badge bg-success">generate_song</span> <span class="badge bg-success">generate_instrumental</span> <span class="badge bg-success">generate_vocals</span> <span class="badge bg-success">list_genres</span></p>
-              <p class="text-secondary small mb-0">Genres: pop, rock, hip-hop, r&amp;b, jazz, blues, country, electronic, classical, folk, reggae, metal, punk, soul, funk, latin, ambient, lo-fi, cinematic</p>
-            </div>
-          </div>
+      <div class="card mc-panel persona-card mb-3">
+        <div class="card-header mc-panel-header">
+          <strong>Lyra</strong> &mdash; Sound Weaver (ACE-Step 1.5)
+        </div>
+        <div class="card-body">
+          <p>Generate music by sending a task: <code>"Compose a pop song about ..."</code></p>
+          <p>Tools: <span class="badge badge-success">generate_song</span> <span class="badge badge-success">generate_instrumental</span> <span class="badge badge-success">generate_vocals</span> <span class="badge badge-success">list_genres</span></p>
+          <p style="margin-bottom:0;">Genres: pop, rock, hip-hop, r&amp;b, jazz, blues, country, electronic, classical, folk, reggae, metal, punk, soul, funk, latin, ambient, lo-fi, cinematic</p>
         </div>
       </div>
       {% if music_files %}
-      <div class="list-group">
+      <div class="d-flex flex-column gap-2">
         {% for track in music_files %}
-        <div class="list-group-item bg-dark border-secondary d-flex justify-content-between align-items-center">
-          <span>{{ track.name }}</span>
-          <audio controls preload="none"><source src="/static/{{ track.path }}" type="audio/wav"></audio>
+        <div class="card">
+          <div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2" style="padding:10px 14px;">
+            <span style="color:var(--text-bright); font-size:0.85rem;">{{ track.name }}</span>
+            <audio controls preload="none" style="max-width:100%;"><source src="/static/{{ track.path }}" type="audio/wav"></audio>
+          </div>
         </div>
         {% endfor %}
       </div>
       {% else %}
-      <div class="alert alert-secondary">No music tracks generated yet. Send a music generation task to the swarm.</div>
+      <div style="text-align:center; padding:24px; color:var(--text-dim); font-size:0.85rem;">No music tracks generated yet. Send a music generation task to the swarm.</div>
       {% endif %}
     </div>
 
     <!-- Video Tab -->
     <div class="tab-pane fade" id="tab-video" role="tabpanel">
-      <div class="row mb-3">
-        <div class="col-12">
-          <div class="card bg-dark border-secondary">
-            <div class="card-header">
-              <strong>Reel</strong> &mdash; Motion Director (Wan 2.1)
-            </div>
-            <div class="card-body">
-              <p class="text-secondary small mb-2">Generate video clips: <code>"Create a cinematic clip of ..."</code></p>
-              <p class="text-secondary small">Tools: <span class="badge bg-warning text-dark">generate_video_clip</span> <span class="badge bg-warning text-dark">image_to_video</span> <span class="badge bg-warning text-dark">stitch_clips</span> <span class="badge bg-warning text-dark">overlay_audio</span></p>
-              <p class="text-secondary small mb-0">Resolutions: 480p, 720p | Styles: cinematic, anime, documentary, abstract, timelapse, slow-motion, music-video, vlog</p>
-            </div>
-          </div>
+      <div class="card mc-panel persona-card mb-3">
+        <div class="card-header mc-panel-header">
+          <strong>Reel</strong> &mdash; Motion Director (Wan 2.1)
+        </div>
+        <div class="card-body">
+          <p>Generate video clips: <code>"Create a cinematic clip of ..."</code></p>
+          <p>Tools: <span class="badge badge-warning">generate_video_clip</span> <span class="badge badge-warning">image_to_video</span> <span class="badge badge-warning">stitch_clips</span> <span class="badge badge-warning">overlay_audio</span></p>
+          <p style="margin-bottom:0;">Resolutions: 480p, 720p | Styles: cinematic, anime, documentary, abstract, timelapse, slow-motion, music-video, vlog</p>
         </div>
       </div>
       {% if videos %}
       <div class="row g-3">
         {% for vid in videos %}
-        <div class="col-md-4">
-          <div class="card bg-dark border-secondary">
+        <div class="col-6 col-md-4">
+          <div class="card">
             <div class="card-body text-center">
-              <small class="text-secondary">{{ vid.name }}</small>
+              <small style="color:var(--text-dim);">{{ vid.name }}</small>
             </div>
           </div>
         </div>
         {% endfor %}
       </div>
       {% else %}
-      <div class="alert alert-secondary">No video clips generated yet. Send a video generation task to the swarm.</div>
+      <div style="text-align:center; padding:24px; color:var(--text-dim); font-size:0.85rem;">No video clips generated yet. Send a video generation task to the swarm.</div>
       {% endif %}
     </div>
 
     <!-- Director Tab -->
     <div class="tab-pane fade" id="tab-director" role="tabpanel">
-      <div class="row mb-3">
-        <div class="col-12">
-          <div class="card bg-dark border-secondary">
-            <div class="card-header">
-              <strong>Creative Director</strong> &mdash; Full Pipeline
-            </div>
-            <div class="card-body">
-              <p class="text-secondary small mb-2">Orchestrate all three creative personas to produce a 3+ minute music video or cinematic short.</p>
-              <p class="text-secondary small">Pipeline: <span class="badge bg-info">Script</span> &rarr; <span class="badge bg-primary">Storyboard</span> &rarr; <span class="badge bg-success">Music</span> &rarr; <span class="badge bg-warning text-dark">Video</span> &rarr; <span class="badge bg-danger">Assembly</span></p>
-              <p class="text-secondary small mb-0">Tools: <span class="badge bg-secondary">create_project</span> <span class="badge bg-secondary">run_storyboard</span> <span class="badge bg-secondary">run_music</span> <span class="badge bg-secondary">run_video_generation</span> <span class="badge bg-secondary">run_assembly</span> <span class="badge bg-secondary">run_full_pipeline</span></p>
-            </div>
-          </div>
+      <div class="card mc-panel persona-card mb-3">
+        <div class="card-header mc-panel-header">
+          <strong>Creative Director</strong> &mdash; Full Pipeline
+        </div>
+        <div class="card-body">
+          <p>Orchestrate all three creative personas to produce a 3+ minute music video or cinematic short.</p>
+          <p>Pipeline:
+            <span class="badge badge-info">Script</span> &rarr;
+            <span class="badge badge-info">Storyboard</span> &rarr;
+            <span class="badge badge-success">Music</span> &rarr;
+            <span class="badge badge-warning">Video</span> &rarr;
+            <span class="badge badge-danger">Assembly</span>
+          </p>
+          <p style="margin-bottom:0;">Tools:
+            <span class="badge badge-secondary">create_project</span>
+            <span class="badge badge-secondary">run_storyboard</span>
+            <span class="badge badge-secondary">run_music</span>
+            <span class="badge badge-secondary">run_video_generation</span>
+            <span class="badge badge-secondary">run_assembly</span>
+            <span class="badge badge-secondary">run_full_pipeline</span>
+          </p>
         </div>
       </div>
 
-      <h5 class="mb-3">Projects</h5>
-      {% if projects %}
-      <div class="row g-3">
-        {% for proj in projects %}
-        <div class="col-md-6">
-          <div class="card bg-dark border-secondary">
-            <div class="card-header d-flex justify-content-between">
-              <strong>{{ proj.title or proj.id }}</strong>
-              <span class="badge {% if proj.status == 'complete' %}bg-success{% elif proj.status == 'failed' %}bg-danger{% else %}bg-info{% endif %}">{{ proj.status }}</span>
-            </div>
-            <div class="card-body">
-              <div class="d-flex gap-3 small text-secondary">
-                <span>Scenes: {{ proj.scene_count }}</span>
-                <span>Storyboard: {{ 'Yes' if proj.has_storyboard else 'No' }}</span>
-                <span>Music: {{ 'Yes' if proj.has_music else 'No' }}</span>
-                <span>Clips: {{ proj.clip_count }}</span>
-                <span>Final: {{ 'Yes' if proj.has_final else 'No' }}</span>
+      <div class="card mc-panel">
+        <div class="card-header mc-panel-header">// PROJECTS</div>
+        <div class="card-body">
+          {% if projects %}
+          <div class="row g-3">
+            {% for proj in projects %}
+            <div class="col-12 col-md-6">
+              <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                  <strong style="color:var(--text-bright);">{{ proj.title or proj.id }}</strong>
+                  <span class="badge {% if proj.status == 'complete' %}badge-success{% elif proj.status == 'failed' %}badge-danger{% else %}badge-info{% endif %}">{{ proj.status }}</span>
+                </div>
+                <div class="card-body">
+                  <div class="d-flex gap-3 flex-wrap" style="font-size:0.8rem; color:var(--text-dim);">
+                    <span>Scenes: {{ proj.scene_count }}</span>
+                    <span>Storyboard: {{ 'Yes' if proj.has_storyboard else 'No' }}</span>
+                    <span>Music: {{ 'Yes' if proj.has_music else 'No' }}</span>
+                    <span>Clips: {{ proj.clip_count }}</span>
+                    <span>Final: {{ 'Yes' if proj.has_final else 'No' }}</span>
+                  </div>
+                </div>
               </div>
             </div>
+            {% endfor %}
           </div>
+          {% else %}
+          <div style="text-align:center; padding:20px; color:var(--text-dim); font-size:0.85rem;">
+            No creative projects yet. Use the swarm to create one: <code>"Create a music video about sunrise over mountains"</code>
+          </div>
+          {% endif %}
         </div>
-        {% endfor %}
       </div>
-      {% else %}
-      <div class="alert alert-secondary">No creative projects yet. Use the swarm to create one: <code>"Create a music video about sunrise over mountains"</code></div>
-      {% endif %}
     </div>
   </div>
+
 </div>
 {% endblock %}

@@ -2,51 +2,89 @@
 
 {% block title %}{{ page_title }}{% endblock %}
 
+{% block extra_styles %}
+<style>
+  .swarm-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .swarm-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .swarm-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    letter-spacing: 0.08em;
+  }
+  .swarm-log-box {
+    height: 200px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: rgba(24, 10, 45, 0.6);
+    padding: 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    font-family: var(--font);
+    font-size: 12px;
+  }
+  @media (max-width: 768px) {
+    .swarm-title { font-size: 1rem; }
+    .swarm-log-box { height: 160px; font-size: 11px; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">🔴 Live Swarm Dashboard</h2>
-        <div>
-            <span class="badge badge-success" id="connection-status">Connecting...</span>
-        </div>
+<div class="swarm-container py-3">
+
+  <div class="swarm-header-row">
+    <div class="swarm-title">LIVE SWARM</div>
+    <span class="badge badge-success" id="connection-status">Connecting...</span>
+  </div>
+
+  <div class="grid grid-3" style="margin-bottom: 16px;">
+    <div class="stat">
+      <div class="stat-value" id="stat-agents">-</div>
+      <div class="stat-label">Total Agents</div>
     </div>
-    
-    <div class="grid grid-3" style="margin-bottom: 20px;">
-        <div class="stat">
-            <div class="stat-value" id="stat-agents">-</div>
-            <div class="stat-label">Total Agents</div>
-        </div>
-        <div class="stat">
-            <div class="stat-value" id="stat-active">-</div>
-            <div class="stat-label">Active</div>
-        </div>
-        <div class="stat">
-            <div class="stat-value" id="stat-tasks">-</div>
-            <div class="stat-label">Active Tasks</div>
-        </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-active">-</div>
+      <div class="stat-label">Active</div>
     </div>
-    
-    <div class="grid grid-2">
-        <div>
-            <h3 style="margin-bottom: 12px;">Agents</h3>
-            <div id="agents-list">
-                <p style="color: var(--text-muted);">Loading agents...</p>
-            </div>
-        </div>
-        <div>
-            <h3 style="margin-bottom: 12px;">Active Auctions</h3>
-            <div id="auctions-list">
-                <p style="color: var(--text-muted);">Loading auctions...</p>
-            </div>
-        </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-tasks">-</div>
+      <div class="stat-label">Active Tasks</div>
     </div>
-    
-    <div style="margin-top: 20px;">
-        <h3 style="margin-bottom: 12px;">Swarm Log</h3>
-        <div id="swarm-log" style="height: 200px; overflow-y: auto; background: var(--bg-tertiary); padding: 12px; border-radius: 8px; font-family: monospace; font-size: 0.875rem;">
-            <div style="color: var(--text-muted);">Waiting for updates...</div>
-        </div>
+  </div>
+
+  <div class="grid grid-2" style="margin-bottom: 16px;">
+    <div class="card mc-panel">
+      <div class="card-header mc-panel-header">// AGENTS</div>
+      <div class="card-body" id="agents-list">
+        <p style="color: var(--text-dim); font-size: 12px;">Loading agents...</p>
+      </div>
     </div>
+    <div class="card mc-panel">
+      <div class="card-header mc-panel-header">// ACTIVE AUCTIONS</div>
+      <div class="card-body" id="auctions-list">
+        <p style="color: var(--text-dim); font-size: 12px;">Loading auctions...</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mc-panel">
+    <div class="card-header mc-panel-header">// SWARM LOG</div>
+    <div class="card-body p-0">
+      <div class="swarm-log-box" id="swarm-log">
+        <div style="color: var(--text-dim);">Waiting for updates...</div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -56,8 +94,8 @@ const maxReconnectInterval = 30000;
 
 function connect() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    ws = new WebSocket(`${protocol}//${window.location.host}/swarm/live`);
-    
+    ws = new WebSocket(protocol + '//' + window.location.host + '/swarm/live');
+
     ws.onopen = function() {
         console.log('WebSocket connected');
         document.getElementById('connection-status').textContent = 'Live';
@@ -65,22 +103,21 @@ function connect() {
         reconnectInterval = 1000;
         addLog('Connected to swarm', 'success');
     };
-    
+
     ws.onmessage = function(event) {
-        const message = JSON.parse(event.data);
+        var message = JSON.parse(event.data);
         handleMessage(message);
     };
-    
+
     ws.onclose = function() {
         console.log('WebSocket disconnected');
         document.getElementById('connection-status').textContent = 'Reconnecting...';
         document.getElementById('connection-status').className = 'badge badge-warning';
         addLog('Disconnected, reconnecting...', 'warning');
-        
         setTimeout(connect, reconnectInterval);
         reconnectInterval = Math.min(reconnectInterval * 2, maxReconnectInterval);
     };
-    
+
     ws.onerror = function(error) {
         console.error('WebSocket error:', error);
         addLog('Connection error', 'error');
@@ -88,9 +125,8 @@ function connect() {
 }
 
 function handleMessage(message) {
-    // Handle structured state snapshots (initial_state / state_update)
     if (message.type === 'initial_state' || message.type === 'state_update') {
-        const data = message.data;
+        var data = message.data;
         document.getElementById('stat-agents').textContent = data.agents.total;
         document.getElementById('stat-active').textContent = data.agents.active;
         document.getElementById('stat-tasks').textContent = data.tasks.active;
@@ -99,9 +135,8 @@ function handleMessage(message) {
         return;
     }
 
-    // Handle individual swarm events broadcast by ws_manager
-    const evt = message.event || message.type || '';
-    const data = message.data || message;
+    var evt = message.event || message.type || '';
+    var data = message.data || message;
 
     if (evt === 'agent_joined') {
         addLog('Agent joined: ' + (data.name || data.agent_id || ''), 'success');
@@ -124,43 +159,42 @@ function handleMessage(message) {
 }
 
 function refreshStats() {
-    // Fetch current swarm status via REST and update the stat counters
-    fetch('/swarm').then(r => r.json()).then(data => {
+    fetch('/swarm').then(function(r) { return r.json(); }).then(function(data) {
         document.getElementById('stat-agents').textContent = data.agents || 0;
         document.getElementById('stat-active').textContent = data.agents_busy || 0;
         document.getElementById('stat-tasks').textContent = (data.tasks_pending || 0) + (data.tasks_running || 0);
-    }).catch(() => {});
+    }).catch(function() {});
 }
 
-// Safe text setter — avoids XSS when inserting user/server data into DOM
 function _t(el, text) { el.textContent = text; return el; }
-function _el(tag, cls) { const e = document.createElement(tag); if (cls) e.className = cls; return e; }
+function _el(tag, cls) { var e = document.createElement(tag); if (cls) e.className = cls; return e; }
 
 function updateAgentsList(agents) {
-    const container = document.getElementById('agents-list');
+    var container = document.getElementById('agents-list');
     container.innerHTML = '';
 
     if (!agents || agents.length === 0) {
-        const p = _el('p'); p.style.color = 'var(--text-muted)';
+        var p = _el('p'); p.style.color = 'var(--text-dim)';
         _t(p, 'No agents registered');
         container.appendChild(p);
         return;
     }
 
-    agents.forEach(agent => {
-        const card = _el('div', 'agent-card');
-        const avatar = _el('div', 'agent-avatar');
+    agents.forEach(function(agent) {
+        var card = _el('div', 'agent-card');
+        var avatar = _el('div', 'agent-avatar');
         _t(avatar, (agent.name || '?').charAt(0).toUpperCase());
-        const info = _el('div', 'agent-info');
-        const name = _el('div', 'agent-name');
+        var info = _el('div', 'agent-info');
+        var name = _el('div', 'agent-name');
         _t(name, agent.name || '');
-        const desc = _el('div', 'agent-meta');
+        var desc = _el('div', 'agent-meta');
         _t(desc, agent.description || 'No description');
-        const meta = _el('div', 'agent-meta');
-        const badge = _el('span', `badge badge-${agent.status === 'active' ? 'success' : agent.status === 'busy' ? 'warning' : 'danger'}`);
+        var meta = _el('div', 'agent-meta');
+        var badge = _el('span', 'badge badge-' + (agent.status === 'active' ? 'success' : agent.status === 'busy' ? 'warning' : 'danger'));
         _t(badge, agent.status || '');
-        const stats = _el('span');
-        _t(stats, ` ${agent.min_bid ?? 0} sats min bid | ${agent.tasks_completed ?? 0} tasks | ${agent.total_earned ?? 0} sats earned`);
+        var stats = _el('span');
+        stats.style.marginLeft = '6px';
+        _t(stats, (agent.min_bid || 0) + ' sats min | ' + (agent.tasks_completed || 0) + ' tasks | ' + (agent.total_earned || 0) + ' earned');
         meta.appendChild(badge);
         meta.appendChild(stats);
         info.appendChild(name);
@@ -173,23 +207,23 @@ function updateAgentsList(agents) {
 }
 
 function updateAuctionsList(auctions) {
-    const container = document.getElementById('auctions-list');
+    var container = document.getElementById('auctions-list');
     container.innerHTML = '';
 
     if (!auctions || auctions.length === 0) {
-        const p = _el('p'); p.style.color = 'var(--text-muted)';
+        var p = _el('p'); p.style.color = 'var(--text-dim)';
         _t(p, 'No active auctions');
         container.appendChild(p);
         return;
     }
 
-    auctions.forEach(auction => {
-        const card = _el('div', 'agent-card');
-        const info = _el('div', 'agent-info');
-        const name = _el('div', 'agent-name');
+    auctions.forEach(function(auction) {
+        var card = _el('div', 'agent-card');
+        var info = _el('div', 'agent-info');
+        var name = _el('div', 'agent-name');
         _t(name, 'Task ' + String(auction.task_id || '').slice(0, 8));
-        const meta = _el('div', 'agent-meta');
-        _t(meta, `${Math.round(auction.time_remaining ?? 0)}s remaining | ${auction.bid_count ?? 0} bids`);
+        var meta = _el('div', 'agent-meta');
+        _t(meta, Math.round(auction.time_remaining || 0) + 's remaining | ' + (auction.bid_count || 0) + ' bids');
         info.appendChild(name);
         info.appendChild(meta);
         card.appendChild(info);
@@ -197,27 +231,27 @@ function updateAuctionsList(auctions) {
     });
 }
 
-function addLog(message, type = 'info') {
-    const log = document.getElementById('swarm-log');
-    const timestamp = new Date().toLocaleTimeString();
-    const color = type === 'error' ? 'var(--danger)' : type === 'warning' ? 'var(--warning)' : type === 'success' ? 'var(--success)' : 'var(--text-secondary)';
-    
-    const entry = document.createElement('div');
+function addLog(message, type) {
+    type = type || 'info';
+    var log = document.getElementById('swarm-log');
+    var timestamp = new Date().toLocaleTimeString();
+    var color = type === 'error' ? 'var(--red)' : type === 'warning' ? 'var(--amber)' : type === 'success' ? 'var(--green)' : 'var(--text-dim)';
+
+    var entry = document.createElement('div');
     entry.style.marginBottom = '4px';
-    const tsSpan = _el('span');
-    tsSpan.style.color = 'var(--text-muted)';
+    var tsSpan = _el('span');
+    tsSpan.style.color = 'var(--text-dim)';
     _t(tsSpan, '[' + timestamp + '] ');
-    const msgSpan = _el('span');
+    var msgSpan = _el('span');
     msgSpan.style.color = color;
     _t(msgSpan, message);
     entry.appendChild(tsSpan);
     entry.appendChild(msgSpan);
-    
+
     log.appendChild(entry);
     log.scrollTop = log.scrollHeight;
 }
 
-// Connect on load
 connect();
 </script>
 {% endblock %}
