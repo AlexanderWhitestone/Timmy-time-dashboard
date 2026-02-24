@@ -4,53 +4,117 @@
 
 {% block extra_styles %}
 <style>
-    .wave-container {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-        height: 60px;
-        margin: 20px 0;
-    }
-    
-    .wave-bar {
-        width: 4px;
-        background: var(--accent);
-        border-radius: 2px;
-        animation: wave 1s ease-in-out infinite;
-    }
-    
-    .wave-bar:nth-child(1) { animation-delay: 0s; height: 20%; }
-    .wave-bar:nth-child(2) { animation-delay: 0.1s; height: 40%; }
-    .wave-bar:nth-child(3) { animation-delay: 0.2s; height: 60%; }
-    .wave-bar:nth-child(4) { animation-delay: 0.3s; height: 80%; }
-    .wave-bar:nth-child(5) { animation-delay: 0.4s; height: 100%; }
-    .wave-bar:nth-child(6) { animation-delay: 0.3s; height: 80%; }
-    .wave-bar:nth-child(7) { animation-delay: 0.2s; height: 60%; }
-    .wave-bar:nth-child(8) { animation-delay: 0.1s; height: 40%; }
-    .wave-bar:nth-child(9) { animation-delay: 0s; height: 20%; }
-    
-    @keyframes wave {
-        0%, 100% { transform: scaleY(0.5); opacity: 0.5; }
-        50% { transform: scaleY(1); opacity: 1; }
-    }
-    
-    .wave-container:not(.listening) .wave-bar {
-        animation: none;
-        height: 10%;
-        opacity: 0.3;
-    }
+  .voice-enhanced-page {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .wave-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 60px;
+    margin: 20px 0;
+  }
+  .wave-bar {
+    width: 4px;
+    background: var(--purple);
+    border-radius: 2px;
+    animation: wave 1s ease-in-out infinite;
+  }
+  .wave-bar:nth-child(1) { animation-delay: 0s; height: 20%; }
+  .wave-bar:nth-child(2) { animation-delay: 0.1s; height: 40%; }
+  .wave-bar:nth-child(3) { animation-delay: 0.2s; height: 60%; }
+  .wave-bar:nth-child(4) { animation-delay: 0.3s; height: 80%; }
+  .wave-bar:nth-child(5) { animation-delay: 0.4s; height: 100%; }
+  .wave-bar:nth-child(6) { animation-delay: 0.3s; height: 80%; }
+  .wave-bar:nth-child(7) { animation-delay: 0.2s; height: 60%; }
+  .wave-bar:nth-child(8) { animation-delay: 0.1s; height: 40%; }
+  .wave-bar:nth-child(9) { animation-delay: 0s; height: 20%; }
+  @keyframes wave {
+    0%, 100% { transform: scaleY(0.5); opacity: 0.5; }
+    50% { transform: scaleY(1); opacity: 1; }
+  }
+  .wave-container:not(.listening) .wave-bar {
+    animation: none;
+    height: 10%;
+    opacity: 0.3;
+  }
+
+  .voice-btn-row {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .voice-btn-row button {
+    padding: 12px 32px;
+    font-size: 1rem;
+    font-family: var(--font);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    min-height: 48px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: transform 0.1s, box-shadow 0.2s;
+  }
+  .voice-btn-row button:active { transform: scale(0.96); }
+  #start-btn {
+    background: var(--border-glow);
+    border: none;
+    color: var(--text-bright);
+  }
+  #stop-btn {
+    background: var(--red);
+    border: none;
+    color: white;
+  }
+
+  #status-text {
+    text-align: center;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+  }
+
+  .result-box {
+    background: rgba(24, 10, 45, 0.8);
+    border: 1px solid var(--border);
+    padding: 14px;
+    border-radius: var(--radius-md);
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    color: var(--text);
+  }
+  .result-box.timmy-reply {
+    border-left: 3px solid var(--purple);
+  }
+  .result-box strong {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .result-box.timmy-reply strong { color: var(--purple); }
+
+  #audio-player {
+    width: 100%;
+    margin-top: 10px;
+    border-radius: var(--radius-md);
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="card" style="max-width: 600px; margin: 0 auto;">
-    <div class="card-header" style="text-align: center;">
-        <h2 class="card-title">🎙️ Enhanced Voice Control</h2>
-        <p style="color: var(--text-secondary);">Natural language with audio responses</p>
-    </div>
-    
-    <div class="wave-container" id="wave-container">
+<div class="voice-enhanced-page py-3">
+  <div class="card mc-panel">
+    <div class="card-header mc-panel-header" style="text-align:center;">// ENHANCED VOICE CONTROL</div>
+    <div class="card-body">
+      <p style="color:var(--text-dim); text-align:center; font-size:0.85rem;">Natural language with audio responses</p>
+
+      <div class="wave-container" id="wave-container">
         <div class="wave-bar"></div>
         <div class="wave-bar"></div>
         <div class="wave-bar"></div>
@@ -60,46 +124,41 @@
         <div class="wave-bar"></div>
         <div class="wave-bar"></div>
         <div class="wave-bar"></div>
-    </div>
-    
-    <div style="text-align: center; margin-bottom: 20px;">
-        <button class="btn btn-primary" id="start-btn" onclick="startRecording()" style="padding: 15px 40px; font-size: 1.125rem;">
-            🎤 Start Recording
-        </button>
-        <button class="btn btn-danger" id="stop-btn" onclick="stopRecording()" style="display: none; padding: 15px 40px; font-size: 1.125rem;">
-            ⏹ Stop Recording
-        </button>
-    </div>
-    
-    <div id="status-text" style="text-align: center; color: var(--text-secondary); margin-bottom: 20px;">
-        Click Start to begin
-    </div>
-    
-    <div id="result-container" style="display: none;">
-        <div style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px; margin-bottom: 12px;">
-            <strong style="color: var(--text-muted);">You said:</strong>
-            <p id="user-text" style="margin-top: 8px;"></p>
+      </div>
+
+      <div class="voice-btn-row">
+        <button id="start-btn" onclick="startRecording()">&#x1F3A4; Start Recording</button>
+        <button id="stop-btn" onclick="stopRecording()" style="display: none;">&#x23F9; Stop Recording</button>
+      </div>
+
+      <div id="status-text">Click Start to begin</div>
+
+      <div id="result-container" style="display: none;">
+        <div class="result-box">
+          <strong>YOU SAID</strong>
+          <p id="user-text" style="margin:0;"></p>
         </div>
-        <div style="background: var(--bg-tertiary); padding: 16px; border-radius: 8px; border-left: 3px solid var(--accent);">
-            <strong style="color: var(--accent);">Timmy:</strong>
-            <p id="timmy-text" style="margin-top: 8px;"></p>
+        <div class="result-box timmy-reply">
+          <strong>TIMMY</strong>
+          <p id="timmy-text" style="margin:0;"></p>
         </div>
-        <audio id="audio-player" controls style="width: 100%; margin-top: 12px; display: none;"></audio>
+        <audio id="audio-player" controls style="display: none;"></audio>
+      </div>
     </div>
+  </div>
 </div>
 
 <script>
-let recognition = null;
-let isRecording = false;
+var recognition = null;
+var isRecording = false;
 
-// Initialize speech recognition
 if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
-    
+
     recognition.onstart = function() {
         isRecording = true;
         document.getElementById('start-btn').style.display = 'none';
@@ -107,29 +166,25 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         document.getElementById('wave-container').classList.add('listening');
         document.getElementById('status-text').textContent = 'Listening...';
     };
-    
+
     recognition.onresult = function(event) {
-        let finalTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        var finalTranscript = '';
+        for (var i = event.resultIndex; i < event.results.length; i++) {
             if (event.results[i].isFinal) {
                 finalTranscript += event.results[i][0].transcript;
             }
         }
-        if (finalTranscript) {
-            processCommand(finalTranscript);
-        }
+        if (finalTranscript) { processCommand(finalTranscript); }
     };
-    
+
     recognition.onerror = function(event) {
         console.error('Speech error:', event.error);
         document.getElementById('status-text').textContent = 'Error: ' + event.error;
         stopRecording();
     };
-    
+
     recognition.onend = function() {
-        if (isRecording) {
-            stopRecording();
-        }
+        if (isRecording) { stopRecording(); }
     };
 } else {
     document.getElementById('status-text').textContent = 'Speech recognition not supported';
@@ -137,16 +192,11 @@ if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
 }
 
 function startRecording() {
-    if (recognition) {
-        recognition.start();
-    }
+    if (recognition) { recognition.start(); }
 }
-
 function stopRecording() {
     isRecording = false;
-    if (recognition) {
-        recognition.stop();
-    }
+    if (recognition) { recognition.stop(); }
     document.getElementById('start-btn').style.display = 'inline-flex';
     document.getElementById('stop-btn').style.display = 'none';
     document.getElementById('wave-container').classList.remove('listening');
@@ -155,33 +205,29 @@ function stopRecording() {
 
 async function processCommand(text) {
     document.getElementById('user-text').textContent = text;
-    
+
     try {
-        const response = await fetch('/voice/enhanced', {
+        var response = await fetch('/voice/enhanced', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `text=${encodeURIComponent(text)}`
+            body: 'text=' + encodeURIComponent(text)
         });
-        
-        const data = await response.json();
-        
+        var data = await response.json();
+
         document.getElementById('timmy-text').textContent = data.response_text;
         document.getElementById('result-container').style.display = 'block';
         document.getElementById('status-text').textContent = 'Done!';
-        
-        // Play audio if available
+
         if (data.audio_url) {
-            const audio = document.getElementById('audio-player');
+            var audio = document.getElementById('audio-player');
             audio.src = data.audio_url;
             audio.style.display = 'block';
             audio.play();
         } else {
-            // Fallback to browser TTS
-            const utterance = new SpeechSynthesisUtterance(data.response_text);
+            var utterance = new SpeechSynthesisUtterance(data.response_text);
             utterance.rate = 1.1;
             window.speechSynthesis.speak(utterance);
         }
-        
     } catch (e) {
         document.getElementById('timmy-text').textContent = 'Sorry, I had trouble with that.';
         document.getElementById('result-container').style.display = 'block';
