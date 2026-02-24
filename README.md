@@ -1,10 +1,10 @@
 # Timmy Time — Mission Control
 
-[![Tests](https://github.com/Alexspayne/Timmy-time-dashboard/actions/workflows/tests.yml/badge.svg)](https://github.com/Alexspayne/Timmy-time-dashboard/actions/workflows/tests.yml)
+[![Tests](https://github.com/AlexanderWhitestone/Timmy-time-dashboard/actions/workflows/tests.yml/badge.svg)](https://github.com/AlexanderWhitestone/Timmy-time-dashboard/actions/workflows/tests.yml)
 
 A local-first, sovereign AI agent system.  Talk to Timmy, watch his swarm, gate API access with Bitcoin Lightning — all from a browser, no cloud required.
 
-**[Live Docs →](https://alexspayne.github.io/Timmy-time-dashboard/)**
+**[Live Docs →](https://alexanderwhitestone.github.io/Timmy-time-dashboard/)**
 
 ---
 
@@ -45,7 +45,7 @@ brew install ollama
 
 ```bash
 # 1. Clone
-git clone https://github.com/Alexspayne/Timmy-time-dashboard.git
+git clone https://github.com/AlexanderWhitestone/Timmy-time-dashboard.git
 cd Timmy-time-dashboard
 
 # 2. Install

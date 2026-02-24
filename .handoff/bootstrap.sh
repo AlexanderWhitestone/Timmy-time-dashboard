@@ -4,7 +4,7 @@
 echo "=== Kimi Handoff Bootstrap ==="
 echo ""
 
-cd /Users/apayne/Timmy-time-dashboard
+cd "$(dirname "$0")/.."
 
 echo "📋 Current Checkpoint:"
 cat .handoff/CHECKPOINT.md | head -30
