@@ -1,0 +1,152 @@
+# ── Timmy Time — Production Stack ────────────────────────────────────────────
+#
+# One-click cloud deployment. Includes:
+#   - Caddy        auto-HTTPS reverse proxy (Let's Encrypt)
+#   - Dashboard    FastAPI app + swarm coordinator
+#   - Timmy        sovereign AI agent
+#   - Ollama       local LLM inference engine
+#   - Watchtower   auto-updates containers when images change
+#
+# Usage:
+#   cp .env.example .env         # edit with your domain + secrets
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Scale agents:
+#   docker compose -f docker-compose.prod.yml --profile agents up -d --scale agent=4
+
+services:
+
+  # ── Caddy — automatic HTTPS reverse proxy ──────────────────────────────────
+  caddy:
+    image: caddy:2-alpine
+    container_name: timmy-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      DOMAIN: "${DOMAIN:-localhost}"
+    networks:
+      - swarm-net
+    restart: unless-stopped
+
+  # ── Ollama — local LLM inference ───────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: timmy-ollama
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - swarm-net
+    restart: unless-stopped
+    # GPU passthrough (uncomment for NVIDIA GPU)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── Dashboard (coordinator + FastAPI) ──────────────────────────────────────
+  dashboard:
+    build: .
+    image: timmy-time:latest
+    container_name: timmy-dashboard
+    volumes:
+      - timmy-data:/app/data
+    environment:
+      DEBUG: "${DEBUG:-false}"
+      OLLAMA_URL: "http://ollama:11434"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-llama3.2}"
+      L402_HMAC_SECRET: "${L402_HMAC_SECRET:-}"
+      L402_MACAROON_SECRET: "${L402_MACAROON_SECRET:-}"
+      TELEGRAM_TOKEN: "${TELEGRAM_TOKEN:-}"
+    networks:
+      - swarm-net
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ── Timmy — sovereign AI agent ─────────────────────────────────────────────
+  timmy:
+    build: .
+    image: timmy-time:latest
+    container_name: timmy-agent
+    volumes:
+      - timmy-data:/app/data
+    environment:
+      COORDINATOR_URL: "http://dashboard:8000"
+      OLLAMA_URL: "http://ollama:11434"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-llama3.2}"
+      TIMMY_AGENT_ID: "timmy"
+    command: ["python", "-m", "timmy.docker_agent"]
+    networks:
+      - swarm-net
+    depends_on:
+      dashboard:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Agent worker template ──────────────────────────────────────────────────
+  agent:
+    build: .
+    image: timmy-time:latest
+    profiles:
+      - agents
+    volumes:
+      - timmy-data:/app/data
+    environment:
+      COORDINATOR_URL: "http://dashboard:8000"
+      OLLAMA_URL: "http://ollama:11434"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-llama3.2}"
+      AGENT_NAME: "${AGENT_NAME:-Worker}"
+      AGENT_CAPABILITIES: "${AGENT_CAPABILITIES:-general}"
+    command: ["sh", "-c", "python -m swarm.agent_runner --agent-id agent-$(hostname) --name $${AGENT_NAME:-Worker}"]
+    networks:
+      - swarm-net
+    depends_on:
+      dashboard:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Watchtower — auto-update containers ────────────────────────────────────
+  watchtower:
+    image: containrrr/watchtower
+    container_name: timmy-watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_POLL_INTERVAL: "3600"  # check every hour
+      WATCHTOWER_LABEL_ENABLE: "false"
+    restart: unless-stopped
+
+# ── Volumes ──────────────────────────────────────────────────────────────────
+volumes:
+  timmy-data:
+  caddy-data:
+  caddy-config:
+  ollama-models:
+
+# ── Network ──────────────────────────────────────────────────────────────────
+networks:
+  swarm-net:
+    driver: bridge

@@ -1,5 +1,6 @@
 .PHONY: install install-bigbrain dev test test-cov test-cov-html watch lint clean help \
-        docker-build docker-up docker-down docker-agent docker-logs docker-shell
+        docker-build docker-up docker-down docker-agent docker-logs docker-shell \
+        cloud-deploy cloud-up cloud-down cloud-logs cloud-status cloud-update
 
 VENV        := .venv
 PYTHON      := $(VENV)/bin/python
@@ -95,6 +96,45 @@ docker-logs:
 docker-shell:
 	docker compose exec dashboard bash
 
+# ── Cloud Deploy ─────────────────────────────────────────────────────────────
+
+# One-click production deployment (run on your cloud server)
+cloud-deploy:
+	@bash deploy/setup.sh
+
+# Start the production stack (Caddy + Ollama + Dashboard + Timmy)
+cloud-up:
+	docker compose -f docker-compose.prod.yml up -d
+
+# Stop the production stack
+cloud-down:
+	docker compose -f docker-compose.prod.yml down
+
+# Tail production logs
+cloud-logs:
+	docker compose -f docker-compose.prod.yml logs -f
+
+# Show status of all production containers
+cloud-status:
+	docker compose -f docker-compose.prod.yml ps
+
+# Pull latest code and rebuild
+cloud-update:
+	git pull
+	docker compose -f docker-compose.prod.yml up -d --build
+
+# Create a DigitalOcean droplet (requires doctl CLI)
+cloud-droplet:
+	@bash deploy/digitalocean/create-droplet.sh
+
+# Scale agent workers in production: make cloud-scale N=4
+cloud-scale:
+	docker compose -f docker-compose.prod.yml --profile agents up -d --scale agent=$${N:-2}
+
+# Pull a model into Ollama: make cloud-pull-model MODEL=llama3.2
+cloud-pull-model:
+	docker exec timmy-ollama ollama pull $${MODEL:-llama3.2}
+
 # ── Housekeeping ──────────────────────────────────────────────────────────────
 
 clean:
@@ -105,6 +145,8 @@ clean:
 
 help:
 	@echo ""
+	@echo "  Local Development"
+	@echo "  ─────────────────────────────────────────────────"
 	@echo "  make install          create venv + install dev deps"
 	@echo "  make install-bigbrain install with AirLLM (big-model backend)"
 	@echo "  make dev              start dashboard at http://localhost:8000"
@@ -116,10 +158,24 @@ help:
 	@echo "  make lint             run ruff or flake8"
 	@echo "  make clean            remove build artefacts and caches"
 	@echo ""
+	@echo "  Docker (Dev)"
+	@echo "  ─────────────────────────────────────────────────"
 	@echo "  make docker-build     build the timmy-time:latest image"
 	@echo "  make docker-up        start dashboard container"
 	@echo "  make docker-agent     add one agent worker (AGENT_NAME=Echo)"
 	@echo "  make docker-down      stop all containers"
 	@echo "  make docker-logs      tail container logs"
 	@echo "  make docker-shell     open a bash shell in the dashboard container"
+	@echo ""
+	@echo "  Cloud Deploy (Production)"
+	@echo "  ─────────────────────────────────────────────────"
+	@echo "  make cloud-deploy     one-click server setup (run as root)"
+	@echo "  make cloud-up         start production stack"
+	@echo "  make cloud-down       stop production stack"
+	@echo "  make cloud-logs       tail production logs"
+	@echo "  make cloud-status     show container status"
+	@echo "  make cloud-update     pull + rebuild from git"
+	@echo "  make cloud-droplet    create DigitalOcean droplet (needs doctl)"
+	@echo "  make cloud-scale N=4  scale agent workers"
+	@echo "  make cloud-pull-model MODEL=llama3.2  pull LLM model"
 	@echo ""

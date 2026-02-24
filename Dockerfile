@@ -11,7 +11,7 @@
 #                    timmy-time:latest \
 #                    python -m swarm.agent_runner --agent-id w1 --name Worker-1
 
-FROM python:3.12-slim
+FROM python:3.12-slim AS base
 
 # ── System deps ──────────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -38,7 +38,10 @@ RUN pip install --no-cache-dir \
         "agno[sqlite]>=1.4.0" \
         "ollama>=0.3.0" \
         "openai>=1.0.0" \
-        "python-telegram-bot>=21.0"
+        "python-telegram-bot>=21.0" \
+        "GitPython>=3.1.40" \
+        "moviepy>=2.0.0" \
+        "redis>=5.0.0"
 
 # ── Application source ───────────────────────────────────────────────────────
 COPY src/ ./src/
@@ -47,12 +50,21 @@ COPY static/ ./static/
 # Create data directory (mounted as a volume in production)
 RUN mkdir -p /app/data
 
+# ── Non-root user for production ─────────────────────────────────────────────
+RUN groupadd -r timmy && useradd -r -g timmy -d /app -s /sbin/nologin timmy \
+    && chown -R timmy:timmy /app
+USER timmy
+
 # ── Environment ──────────────────────────────────────────────────────────────
 ENV PYTHONPATH=/app/src
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
 EXPOSE 8000
+
+# ── Healthcheck ──────────────────────────────────────────────────────────────
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
 
 # ── Default: run the dashboard ───────────────────────────────────────────────
 CMD ["uvicorn", "dashboard.app:app", "--host", "0.0.0.0", "--port", "8000"]

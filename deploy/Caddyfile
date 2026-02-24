@@ -1,0 +1,36 @@
+# ── Timmy Time — Caddy Reverse Proxy ─────────────────────────────────────────
+#
+# Automatic HTTPS via Let's Encrypt.
+# Set DOMAIN env var or replace {$DOMAIN} below.
+#
+# For local/IP-only access (no domain), Caddy serves on :80 without TLS.
+
+{$DOMAIN:localhost} {
+	# Reverse proxy to the FastAPI dashboard
+	reverse_proxy dashboard:8000
+
+	# WebSocket support (swarm live updates)
+	@websocket {
+		header Connection *Upgrade*
+		header Upgrade websocket
+	}
+	reverse_proxy @websocket dashboard:8000
+
+	# Security headers
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+		X-XSS-Protection "1; mode=block"
+		-Server
+	}
+
+	# Gzip compression
+	encode gzip zstd
+
+	# Access logging
+	log {
+		output stdout
+		format console
+	}
+}
