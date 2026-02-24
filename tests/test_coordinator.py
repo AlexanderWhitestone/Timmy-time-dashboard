@@ -162,8 +162,8 @@ async def test_coordinator_run_auction_no_bids():
     coord = SwarmCoordinator()
     task = coord.post_task("No bids task")
 
-    # Patch sleep to avoid 15-second wait
-    with patch("swarm.bidder.asyncio.sleep", new_callable=AsyncMock):
+    # Patch sleep to avoid 15-second wait in tests
+    with patch("swarm.coordinator.asyncio.sleep", new_callable=AsyncMock):
         winner = await coord.run_auction_and_assign(task.id)
 
     assert winner is None

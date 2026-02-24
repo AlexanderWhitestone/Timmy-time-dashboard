@@ -8,6 +8,13 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 
+@pytest.fixture(autouse=True)
+def _fast_auction():
+    """Skip the 15-second auction wait in tests."""
+    with patch("swarm.coordinator.AUCTION_DURATION_SECONDS", 0):
+        yield
+
+
 class TestFullSwarmLifecycle:
     """Integration tests for end-to-end swarm task lifecycle."""
 

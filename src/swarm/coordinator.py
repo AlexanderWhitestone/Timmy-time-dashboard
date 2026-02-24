@@ -11,7 +11,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-from swarm.bidder import AuctionManager, Bid
+from swarm.bidder import AUCTION_DURATION_SECONDS, AuctionManager, Bid
 from swarm.comms import SwarmComms
 from swarm import learner as swarm_learner
 from swarm.manager import SwarmManager
@@ -227,7 +227,7 @@ class SwarmCoordinator:
         All bids are recorded in the learner so agents accumulate outcome
         history that later feeds back into adaptive bidding.
         """
-        await asyncio.sleep(0)  # yield to let any pending callbacks fire
+        await asyncio.sleep(AUCTION_DURATION_SECONDS)
 
         # Snapshot the auction bids before closing (for learner recording)
         auction = self.auctions.get_auction(task_id)
