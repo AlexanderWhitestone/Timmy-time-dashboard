@@ -62,6 +62,12 @@ test-cov-html:
 	$(PYTEST) tests/ --cov=src --cov-report=term-missing --cov-report=html -q
 	@echo "✓ HTML coverage report: open htmlcov/index.html"
 
+# Full-stack functional test: spins up Ollama (CPU, qwen2.5:0.5b) + dashboard
+# in Docker and verifies real LLM chat end-to-end.
+# Override model: make test-ollama OLLAMA_TEST_MODEL=tinyllama
+test-ollama:
+	FUNCTIONAL_DOCKER=1 $(PYTEST) tests/functional/test_ollama_chat.py -v --tb=long -x
+
 # ── Code quality ──────────────────────────────────────────────────────────────
 
 lint:

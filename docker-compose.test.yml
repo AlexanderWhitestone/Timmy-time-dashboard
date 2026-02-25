@@ -3,8 +3,17 @@
 # Lightweight compose for functional tests.  Runs the dashboard on port 18000
 # and optional agent workers on the swarm-test-net network.
 #
+# Profiles:
+#   (default)   dashboard only (Ollama on host via host.docker.internal)
+#   ollama      adds a containerised Ollama instance + auto model pull
+#   agents      adds scalable agent workers
+#
 # Usage:
+#   # Swarm tests (no LLM needed):
 #   FUNCTIONAL_DOCKER=1 pytest tests/functional/test_docker_swarm.py -v
+#
+#   # Full-stack with Ollama (pulls qwen2.5:0.5b automatically):
+#   FUNCTIONAL_DOCKER=1 pytest tests/functional/test_ollama_chat.py -v
 #
 # Or manually:
 #   docker compose -f docker-compose.test.yml -p timmy-test up -d --build --wait
@@ -12,6 +21,23 @@
 #   docker compose -f docker-compose.test.yml -p timmy-test down -v
 
 services:
+
+  # ── Ollama — local LLM for functional tests ───────────────────────────────
+  # Activated with: --profile ollama
+  # Uses a tiny model (qwen2.5:0.5b, ~400 MB) so it runs on CPU-only CI.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: timmy-test-ollama
+    profiles:
+      - ollama
+    networks:
+      - swarm-test-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
 
   dashboard:
     build: .
@@ -26,7 +52,8 @@ services:
     environment:
       DEBUG: "true"
       TIMMY_TEST_MODE: "1"
-      OLLAMA_URL: "http://host.docker.internal:11434"
+      OLLAMA_URL: "${OLLAMA_URL:-http://host.docker.internal:11434}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-llama3.2}"
       LIGHTNING_BACKEND: "mock"
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -49,7 +76,8 @@ services:
       - ./src:/app/src
     environment:
       COORDINATOR_URL: "http://dashboard:8000"
-      OLLAMA_URL: "http://host.docker.internal:11434"
+      OLLAMA_URL: "${OLLAMA_URL:-http://host.docker.internal:11434}"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-llama3.2}"
       AGENT_NAME: "${AGENT_NAME:-TestWorker}"
       AGENT_CAPABILITIES: "${AGENT_CAPABILITIES:-general}"
       TIMMY_TEST_MODE: "1"
