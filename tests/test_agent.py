@@ -52,7 +52,7 @@ def test_create_timmy_history_config():
 
         kwargs = MockAgent.call_args.kwargs
         assert kwargs["add_history_to_context"] is True
-        assert kwargs["num_history_runs"] == 10
+        assert kwargs["num_history_runs"] == 20
         assert kwargs["markdown"] is True
 
 

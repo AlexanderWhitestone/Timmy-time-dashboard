@@ -1,3 +1,11 @@
+"""Timmy agent creation with multi-layer memory system.
+
+Integrates Agno's Agent with our custom memory layers:
+- Working Memory (immediate context)
+- Short-term Memory (Agno SQLite)  
+- Long-term Memory (facts/preferences)
+"""
+
 from typing import TYPE_CHECKING, Union
 
 from agno.agent import Agent
@@ -72,8 +80,64 @@ def create_timmy(
         db=SqliteDb(db_file=db_file),
         description=TIMMY_SYSTEM_PROMPT,
         add_history_to_context=True,
-        num_history_runs=10,
+        num_history_runs=20,  # Increased for better conversational context
         markdown=True,
         tools=[tools] if tools else None,
         telemetry=settings.telemetry_enabled,
     )
+
+
+class TimmyWithMemory:
+    """Timmy wrapper with explicit memory layer management.
+    
+    This class wraps the Agno Agent and adds:
+    - Working memory tracking
+    - Long-term memory storage/retrieval
+    - Context injection from memory layers
+    """
+    
+    def __init__(self, db_file: str = "timmy.db") -> None:
+        from timmy.memory_layers import memory_manager
+        
+        self.agent = create_timmy(db_file=db_file)
+        self.memory = memory_manager
+        self.memory.start_session()
+        
+        # Inject user context if available
+        self._inject_context()
+    
+    def _inject_context(self) -> None:
+        """Inject relevant memory context into system prompt."""
+        context = self.memory.get_context_for_prompt()
+        if context:
+            # Append context to system prompt
+            original_description = self.agent.description
+            self.agent.description = f"{original_description}\n\n## User Context\n{context}"
+    
+    def run(self, message: str, stream: bool = False) -> object:
+        """Run with memory tracking."""
+        # Get relevant memories
+        relevant = self.memory.get_relevant_memories(message)
+        
+        # Enhance message with context if relevant
+        enhanced_message = message
+        if relevant:
+            context_str = "\n".join(f"- {r}" for r in relevant[:3])
+            enhanced_message = f"[Context: {context_str}]\n\n{message}"
+        
+        # Run agent
+        result = self.agent.run(enhanced_message, stream=stream)
+        
+        # Extract response content
+        response_text = result.content if hasattr(result, "content") else str(result)
+        
+        # Track in memory
+        tool_calls = getattr(result, "tool_calls", None)
+        self.memory.add_exchange(message, response_text, tool_calls)
+        
+        return result
+    
+    def chat(self, message: str) -> str:
+        """Simple chat interface that returns string response."""
+        result = self.run(message, stream=False)
+        return result.content if hasattr(result, "content") else str(result)
