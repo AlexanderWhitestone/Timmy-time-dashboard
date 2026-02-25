@@ -1,4 +1,4 @@
-.PHONY: install install-bigbrain dev nuke test test-cov test-cov-html watch lint clean help \
+.PHONY: install install-bigbrain install-creative dev nuke test test-cov test-cov-html watch lint clean help \
         up down logs \
         docker-build docker-up docker-down docker-agent docker-logs docker-shell \
         cloud-deploy cloud-up cloud-down cloud-logs cloud-status cloud-update
@@ -23,6 +23,17 @@ install-bigbrain: $(VENV)/bin/activate
 	    echo "✓ AirLLM + MLX installed (Apple Silicon detected)"; \
 	else \
 	    echo "✓ AirLLM installed (PyTorch backend)"; \
+	fi
+
+install-creative: $(VENV)/bin/activate
+	$(PIP) install --quiet -e ".[dev,creative]"
+	@if [ "$$(uname -m)" = "arm64" ] && [ "$$(uname -s)" = "Darwin" ]; then \
+	    echo "  Apple Silicon detected — installing PyTorch with Metal (MPS) support..."; \
+	    $(PIP) install --quiet --pre torch torchvision torchaudio \
+	        --index-url https://download.pytorch.org/whl/nightly/cpu; \
+	    echo "✓ Creative extras installed with Metal GPU acceleration"; \
+	else \
+	    echo "✓ Creative extras installed (diffusers, torch, ace-step)"; \
 	fi
 
 $(VENV)/bin/activate:
@@ -54,10 +65,15 @@ ip:
 	@echo ""
 	@echo "  Open one of these on your phone:  http://<IP>:8000"
 	@echo ""
-	@ipconfig getifaddr en0  2>/dev/null | awk '{print "  en0 (Wi-Fi):    http://" $$1 ":8000"}' || true
-	@ipconfig getifaddr en1  2>/dev/null | awk '{print "  en1 (Ethernet): http://" $$1 ":8000"}' || true
-	@ipconfig getifaddr en2  2>/dev/null | awk '{print "  en2:            http://" $$1 ":8000"}' || true
-	@ifconfig 2>/dev/null | awk '/inet / && !/127\.0\.0\.1/ && !/::1/{print "  " $$2 "  →  http://" $$2 ":8000"}' | head -5 || true
+	@if [ "$$(uname -s)" = "Darwin" ]; then \
+	    ipconfig getifaddr en0  2>/dev/null | awk '{print "  en0 (Wi-Fi):    http://" $$1 ":8000"}' || true; \
+	    ipconfig getifaddr en1  2>/dev/null | awk '{print "  en1 (Ethernet): http://" $$1 ":8000"}' || true; \
+	    ipconfig getifaddr en2  2>/dev/null | awk '{print "  en2:            http://" $$1 ":8000"}' || true; \
+	fi
+	@# Generic fallback — works on both macOS and Linux
+	@ifconfig 2>/dev/null | awk '/inet / && !/127\.0\.0\.1/ && !/::1/{print "  " $$2 "  →  http://" $$2 ":8000"}' | head -5 \
+	    || ip -4 addr show 2>/dev/null | awk '/inet / && !/127\.0\.0\.1/{split($$2,a,"/"); print "  " a[1] "  →  http://" a[1] ":8000"}' | head -5 \
+	    || true
 	@echo ""
 
 watch:
@@ -202,6 +218,7 @@ help:
 	@echo "  ─────────────────────────────────────────────────"
 	@echo "  make install          create venv + install dev deps"
 	@echo "  make install-bigbrain install with AirLLM (big-model backend)"
+	@echo "  make install-creative install with creative extras (torch, diffusers)"
 	@echo "  make dev              clean up + start dashboard (auto-fixes errno 48)"
 	@echo "  make nuke             kill port 8000, stop containers, reset state"
 	@echo "  make ip               print local IP addresses for phone testing"

@@ -13,28 +13,19 @@ import base64
 import hashlib
 import hmac
 import logging
-import os
 import time
 from dataclasses import dataclass
 from typing import Optional
 
+from config import settings
 from timmy_serve.payment_handler import payment_handler
 
 logger = logging.getLogger(__name__)
 
-_MACAROON_SECRET_DEFAULT = "timmy-macaroon-secret"
-_MACAROON_SECRET_RAW = os.environ.get("L402_MACAROON_SECRET", _MACAROON_SECRET_DEFAULT)
-_MACAROON_SECRET = _MACAROON_SECRET_RAW.encode()
-
-_HMAC_SECRET_DEFAULT = "timmy-hmac-secret"
-_HMAC_SECRET_RAW = os.environ.get("L402_HMAC_SECRET", _HMAC_SECRET_DEFAULT)
+# Read secrets from centralised config (validated at startup in config.py)
+_MACAROON_SECRET = settings.l402_macaroon_secret.encode()
+_HMAC_SECRET_RAW = settings.l402_hmac_secret
 _HMAC_SECRET = _HMAC_SECRET_RAW.encode()
-
-if _MACAROON_SECRET_RAW == _MACAROON_SECRET_DEFAULT or _HMAC_SECRET_RAW == _HMAC_SECRET_DEFAULT:
-    logger.warning(
-        "SEC: L402 secrets are using default values — set L402_MACAROON_SECRET "
-        "and L402_HMAC_SECRET in .env before deploying to production."
-    )
 
 
 @dataclass

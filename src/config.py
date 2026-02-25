@@ -59,6 +59,14 @@ class Settings(BaseSettings):
     video_transition_duration: float = 1.0
     default_video_codec: str = "libx264"
 
+    # ── L402 Lightning ───────────────────────────────────────────────────
+    # HMAC secrets for macaroon signing and invoice verification.
+    # MUST be changed from defaults before deploying to production.
+    # Generate with: python3 -c "import secrets; print(secrets.token_hex(32))"
+    l402_hmac_secret: str = "timmy-hmac-secret"
+    l402_macaroon_secret: str = "timmy-macaroon-secret"
+    lightning_backend: Literal["mock", "lnd"] = "mock"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -67,3 +75,20 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# ── Startup validation ───────────────────────────────────────────────────────
+# Warn when security-sensitive settings are using defaults.
+import logging as _logging
+
+_startup_logger = _logging.getLogger("config")
+
+if settings.l402_hmac_secret == "timmy-hmac-secret":
+    _startup_logger.warning(
+        "SEC: L402_HMAC_SECRET is using the default value — "
+        "set a unique secret in .env before deploying to production."
+    )
+if settings.l402_macaroon_secret == "timmy-macaroon-secret":
+    _startup_logger.warning(
+        "SEC: L402_MACAROON_SECRET is using the default value — "
+        "set a unique secret in .env before deploying to production."
+    )
