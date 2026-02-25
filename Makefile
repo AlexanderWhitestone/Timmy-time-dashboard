@@ -42,7 +42,7 @@ $(VENV)/bin/activate:
 # ── Development ───────────────────────────────────────────────────────────────
 
 dev: nuke
-	$(UVICORN) dashboard.app:app --reload --host 0.0.0.0 --port 8000
+	PYTHONDONTWRITEBYTECODE=1 $(UVICORN) dashboard.app:app --reload --host 0.0.0.0 --port 8000
 
 # Kill anything on port 8000, stop Docker containers, clear stale state.
 # Safe to run anytime — idempotent, never errors out.
@@ -52,9 +52,12 @@ nuke:
 	@docker compose down --remove-orphans 2>/dev/null || true
 	@# Kill any process holding port 8000 (errno 48 fix)
 	@lsof -ti :8000 | xargs kill -9 2>/dev/null || true
+	@# Purge stale bytecache to prevent loading old .pyc files
+	@find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+	@find . -name "*.pyc" -delete 2>/dev/null || true
 	@# Brief pause to let the OS release the socket
 	@sleep 0.5
-	@echo "  ✓ Port 8000 free, containers stopped"
+	@echo "  ✓ Port 8000 free, containers stopped, caches cleared"
 
 # Print the local IP addresses your phone can use to reach this machine.
 # Connect your phone to the same hotspot your Mac is sharing from,
