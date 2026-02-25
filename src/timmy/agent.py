@@ -68,7 +68,7 @@ def create_timmy(
     
     return Agent(
         name="Timmy",
-        model=Ollama(id=settings.ollama_model),
+        model=Ollama(id=settings.ollama_model, host=settings.ollama_url),
         db=SqliteDb(db_file=db_file),
         description=TIMMY_SYSTEM_PROMPT,
         add_history_to_context=True,

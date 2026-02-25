@@ -18,7 +18,8 @@
     <div class="chat-log flex-grow-1 overflow-auto p-3" id="chat-log"
          hx-get="/agents/timmy/history"
          hx-trigger="load"
-         hx-swap="innerHTML"></div>
+         hx-swap="innerHTML"
+         hx-on::after-settle="scrollChat()"></div>
 
     <div class="card-footer mc-chat-footer">
       <form hx-post="/agents/timmy/chat"
@@ -27,7 +28,7 @@
             hx-indicator="#send-indicator"
             hx-sync="this:drop"
             hx-disabled-elt="find button"
-            hx-on::after-settle="this.reset(); scrollChat()"
+            hx-on::after-request="if(event.detail.successful){this.querySelector('[name=message]').value=''; scrollChat()}"
             class="d-flex gap-2">
         <input type="text"
                name="message"

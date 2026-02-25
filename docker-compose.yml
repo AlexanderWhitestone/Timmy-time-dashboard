@@ -15,8 +15,6 @@
 #   make docker-down     stop everything
 #   make docker-logs     tail logs
 
-version: "3.9"
-
 services:
 
   # ── Dashboard (coordinator + FastAPI) ──────────────────────────────────────

@@ -15,7 +15,7 @@ FROM python:3.12-slim AS base
 
 # ── System deps ──────────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        gcc curl \
+        gcc curl fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

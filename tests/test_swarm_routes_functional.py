@@ -192,17 +192,11 @@ class TestSwarmUIPartials:
         assert response.status_code == 200
         assert "text/html" in response.headers["content-type"]
 
-    def test_task_panel_route_shadowed(self, client):
-        """The /swarm/tasks/panel route is shadowed by /swarm/tasks/{task_id}.
-
-        FastAPI matches the dynamic {task_id} route first, so "panel" is
-        treated as a task_id lookup, returning JSON with an error.
-        This documents the current behavior (a routing order issue).
-        """
+    def test_task_panel_route_returns_html(self, client):
+        """The /swarm/tasks/panel route must return HTML, not be shadowed by {task_id}."""
         response = client.get("/swarm/tasks/panel")
         assert response.status_code == 200
-        data = response.json()
-        assert "error" in data
+        assert "text/html" in response.headers["content-type"]
 
     def test_direct_assign_with_agent(self, client):
         spawn_resp = client.post("/swarm/spawn", data={"name": "Worker"})
