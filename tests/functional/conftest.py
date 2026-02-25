@@ -163,6 +163,13 @@ def docker_stack():
     if os.environ.get("FUNCTIONAL_DOCKER") != "1":
         pytest.skip("Set FUNCTIONAL_DOCKER=1 to run Docker tests")
 
+    # Verify Docker daemon is reachable before attempting build
+    docker_check = subprocess.run(
+        ["docker", "info"], capture_output=True, text=True, timeout=10,
+    )
+    if docker_check.returncode != 0:
+        pytest.skip(f"Docker daemon not available: {docker_check.stderr.strip()}")
+
     result = _compose("up", "-d", "--build", "--wait", timeout=300)
     if result.returncode != 0:
         pytest.fail(f"docker compose up failed:\n{result.stderr}")
