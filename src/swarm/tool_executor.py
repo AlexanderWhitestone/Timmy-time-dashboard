@@ -276,22 +276,55 @@ Response:"""
 
 class DirectToolExecutor(ToolExecutor):
     """Tool executor that actually calls tools directly.
-    
-    This is a more advanced version that actually executes the tools
-    rather than just simulating. Use with caution - it has real side effects.
-    
-    Currently WIP - for future implementation.
+
+    For code-modification tasks assigned to the Forge persona, dispatches
+    to the SelfModifyLoop for real edit → test → commit execution.
+    Other tasks fall back to the simulated parent.
     """
-    
+
+    _CODE_KEYWORDS = frozenset({
+        "modify", "edit", "fix", "refactor", "implement",
+        "add function", "change code", "update source", "patch",
+    })
+
     def execute_with_tools(self, task_description: str) -> dict[str, Any]:
-        """Actually execute tools to complete the task.
-        
-        This would involve:
-        1. Parsing the task into tool calls
-        2. Executing each tool
-        3. Handling results and errors
-        4. Potentially iterating based on results
+        """Execute tools to complete the task.
+
+        Code-modification tasks on the Forge persona are routed through
+        the SelfModifyLoop.  Everything else delegates to the parent.
         """
-        # Future: Implement ReAct pattern or similar
-        # For now, just delegate to parent
+        task_lower = task_description.lower()
+        is_code_task = any(kw in task_lower for kw in self._CODE_KEYWORDS)
+
+        if is_code_task and self._persona_id == "forge":
+            try:
+                from config import settings as cfg
+                if not cfg.self_modify_enabled:
+                    return self.execute_task(task_description)
+
+                from self_modify.loop import SelfModifyLoop, ModifyRequest
+
+                loop = SelfModifyLoop()
+                result = loop.run(ModifyRequest(instruction=task_description))
+
+                return {
+                    "success": result.success,
+                    "result": (
+                        f"Modified {len(result.files_changed)} file(s). "
+                        f"Tests {'passed' if result.test_passed else 'failed'}."
+                    ),
+                    "tools_used": ["read_file", "write_file", "shell", "git_commit"],
+                    "persona_id": self._persona_id,
+                    "agent_id": self._agent_id,
+                    "commit_sha": result.commit_sha,
+                }
+            except Exception as exc:
+                logger.exception("Direct tool execution failed")
+                return {
+                    "success": False,
+                    "error": str(exc),
+                    "result": None,
+                    "tools_used": [],
+                }
+
         return self.execute_task(task_description)

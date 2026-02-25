@@ -76,6 +76,14 @@ class Settings(BaseSettings):
     # In production, security settings are strictly enforced.
     timmy_env: Literal["development", "production"] = "development"
 
+    # ── Self-Modification ──────────────────────────────────────────────
+    # Enable self-modification capabilities. When enabled, Timmy can
+    # edit its own source code, run tests, and commit changes.
+    self_modify_enabled: bool = False
+    self_modify_max_retries: int = 2
+    self_modify_allowed_dirs: str = "src,tests"
+    self_modify_backend: str = "auto"  # "ollama", "anthropic", or "auto"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
