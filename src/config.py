@@ -61,11 +61,20 @@ class Settings(BaseSettings):
 
     # ── L402 Lightning ───────────────────────────────────────────────────
     # HMAC secrets for macaroon signing and invoice verification.
-    # MUST be changed from defaults before deploying to production.
     # Generate with: python3 -c "import secrets; print(secrets.token_hex(32))"
-    l402_hmac_secret: str = "timmy-hmac-secret"
-    l402_macaroon_secret: str = "timmy-macaroon-secret"
+    # In production (TIMMY_ENV=production), these MUST be set or the app will refuse to start.
+    l402_hmac_secret: str = ""
+    l402_macaroon_secret: str = ""
     lightning_backend: Literal["mock", "lnd"] = "mock"
+
+    # ── Privacy / Sovereignty ────────────────────────────────────────────
+    # Disable Agno telemetry for air-gapped/sovereign deployments.
+    # Default is False (telemetry disabled) to align with sovereign AI vision.
+    telemetry_enabled: bool = False
+
+    # Environment mode: development | production
+    # In production, security settings are strictly enforced.
+    timmy_env: Literal["development", "production"] = "development"
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -77,18 +86,37 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # ── Startup validation ───────────────────────────────────────────────────────
-# Warn when security-sensitive settings are using defaults.
+# Enforce security requirements — fail fast in production.
 import logging as _logging
+import sys
 
 _startup_logger = _logging.getLogger("config")
 
-if settings.l402_hmac_secret == "timmy-hmac-secret":
-    _startup_logger.warning(
-        "SEC: L402_HMAC_SECRET is using the default value — "
-        "set a unique secret in .env before deploying to production."
-    )
-if settings.l402_macaroon_secret == "timmy-macaroon-secret":
-    _startup_logger.warning(
-        "SEC: L402_MACAROON_SECRET is using the default value — "
-        "set a unique secret in .env before deploying to production."
-    )
+# Production mode: require secrets to be set
+if settings.timmy_env == "production":
+    _missing = []
+    if not settings.l402_hmac_secret:
+        _missing.append("L402_HMAC_SECRET")
+    if not settings.l402_macaroon_secret:
+        _missing.append("L402_MACAROON_SECRET")
+    if _missing:
+        _startup_logger.error(
+            "PRODUCTION SECURITY ERROR: The following secrets must be set: %s\n"
+            "Generate with: python3 -c \"import secrets; print(secrets.token_hex(32))\"\n"
+            "Set in .env file or environment variables.",
+            ", ".join(_missing),
+        )
+        sys.exit(1)
+    _startup_logger.info("Production mode: security secrets validated ✓")
+else:
+    # Development mode: warn but continue
+    if not settings.l402_hmac_secret:
+        _startup_logger.warning(
+            "SEC: L402_HMAC_SECRET is not set — "
+            "set a unique secret in .env before deploying to production."
+        )
+    if not settings.l402_macaroon_secret:
+        _startup_logger.warning(
+            "SEC: L402_MACAROON_SECRET is not set — "
+            "set a unique secret in .env before deploying to production."
+        )

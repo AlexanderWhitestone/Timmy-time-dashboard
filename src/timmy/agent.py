@@ -75,4 +75,5 @@ def create_timmy(
         num_history_runs=10,
         markdown=True,
         tools=[tools] if tools else None,
+        telemetry=settings.telemetry_enabled,
     )
