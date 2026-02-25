@@ -1,4 +1,4 @@
-.PHONY: install install-bigbrain dev test test-cov test-cov-html watch lint clean help \
+.PHONY: install install-bigbrain dev nuke test test-cov test-cov-html watch lint clean help \
         up down logs \
         docker-build docker-up docker-down docker-agent docker-logs docker-shell \
         cloud-deploy cloud-up cloud-down cloud-logs cloud-status cloud-update
@@ -30,8 +30,20 @@ $(VENV)/bin/activate:
 
 # ── Development ───────────────────────────────────────────────────────────────
 
-dev:
+dev: nuke
 	$(UVICORN) dashboard.app:app --reload --host 0.0.0.0 --port 8000
+
+# Kill anything on port 8000, stop Docker containers, clear stale state.
+# Safe to run anytime — idempotent, never errors out.
+nuke:
+	@echo "  Cleaning up dev environment..."
+	@# Stop Docker containers (if any are running)
+	@docker compose down --remove-orphans 2>/dev/null || true
+	@# Kill any process holding port 8000 (errno 48 fix)
+	@lsof -ti :8000 | xargs kill -9 2>/dev/null || true
+	@# Brief pause to let the OS release the socket
+	@sleep 0.5
+	@echo "  ✓ Port 8000 free, containers stopped"
 
 # Print the local IP addresses your phone can use to reach this machine.
 # Connect your phone to the same hotspot your Mac is sharing from,
@@ -190,7 +202,8 @@ help:
 	@echo "  ─────────────────────────────────────────────────"
 	@echo "  make install          create venv + install dev deps"
 	@echo "  make install-bigbrain install with AirLLM (big-model backend)"
-	@echo "  make dev              start dashboard locally (no Docker)"
+	@echo "  make dev              clean up + start dashboard (auto-fixes errno 48)"
+	@echo "  make nuke             kill port 8000, stop containers, reset state"
 	@echo "  make ip               print local IP addresses for phone testing"
 	@echo "  make test             run all tests"
 	@echo "  make test-cov         tests + coverage report (terminal + XML)"
