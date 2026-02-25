@@ -329,16 +329,21 @@
     const failed  = Object.values(results).filter(v => v === "fail").length;
     const skipped = Object.values(results).filter(v => v === "skip").length;
     const decided = passed + failed + skipped;
+    const summaryBody = document.getElementById("summary-body");
 
     if (decided < TOTAL) {
-      document.getElementById("summary-body").innerHTML =
-        '<p class="mt-summary-hint">' + (TOTAL - decided) + ' scenario(s) still pending.</p>';
+      summaryBody.innerHTML = '';
+      const p = document.createElement('p');
+      p.className = 'mt-summary-hint';
+      p.textContent = (TOTAL - decided) + ' scenario(s) still pending.';
+      summaryBody.appendChild(p);
       return;
     }
 
     const pct   = TOTAL ? Math.round((passed / TOTAL) * 100) : 0;
     const color = failed > 0 ? "var(--red)" : "var(--green)";
-    document.getElementById("summary-body").innerHTML = `
+    
+    summaryBody.innerHTML = `
       <div class="mt-summary-score" style="color:${color}">${passed} / ${TOTAL}</div>
       <div class="mt-summary-pct">${pct}% pass rate</div>
       <div style="margin-top:16px;">
@@ -346,8 +351,19 @@
         <div class="mt-summary-row"><span>FAILED</span><span style="color:var(--red);font-weight:700;">${failed}</span></div>
         <div class="mt-summary-row"><span>SKIPPED</span><span style="color:var(--amber);font-weight:700;">${skipped}</span></div>
       </div>
-      ${failed > 0 ? '<p style="color:var(--red);margin-top:12px;font-size:11px;">⚠ ' + failed + ' failure(s) need attention before release.</p>' : '<p style="color:var(--green);margin-top:12px;font-size:11px;">All tested scenarios passed — ship it.</p>'}
     `;
+    
+    const statusMsg = document.createElement('p');
+    statusMsg.style.marginTop = '12px';
+    statusMsg.style.fontSize = '11px';
+    if (failed > 0) {
+      statusMsg.style.color = 'var(--red)';
+      statusMsg.textContent = '⚠ ' + failed + ' failure(s) need attention before release.';
+    } else {
+      statusMsg.style.color = 'var(--green)';
+      statusMsg.textContent = 'All tested scenarios passed — ship it.';
+    }
+    summaryBody.appendChild(statusMsg);
   }
 
   function resetAll() {
@@ -359,8 +375,13 @@
       applyState(id, null);
     });
     updateScore(results);
-    document.getElementById("summary-body").innerHTML =
-      '<p class="mt-summary-hint">Mark all scenarios above to see your final score.</p>';
+    
+    const summaryBody = document.getElementById("summary-body");
+    summaryBody.innerHTML = '';
+    const p = document.createElement('p');
+    p.className = 'mt-summary-hint';
+    p.textContent = 'Mark all scenarios above to see your final score.';
+    summaryBody.appendChild(p);
   }
 
   // Restore saved state on load
