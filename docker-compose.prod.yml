@@ -52,11 +52,11 @@ services:
     #           count: all
     #           capabilities: [gpu]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 30s
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
       timeout: 10s
       retries: 5
-      start_period: 30s
+      start_period: 60s
 
   # ── Dashboard (coordinator + FastAPI) ──────────────────────────────────────
   dashboard:
