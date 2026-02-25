@@ -3,7 +3,7 @@
 ## Quick Start
 
 ```bash
-cd /Users/apayne/Timmy-time-dashboard && cat .handoff/CHECKPOINT.md
+cd Timmy-time-dashboard && cat .handoff/CHECKPOINT.md
 ```
 
 Then paste this prompt to Kimi:

@@ -1,10 +1,10 @@
 <div class="approval-card {{ item.status }}" id="approval-{{ item.id }}">
   <div class="d-flex justify-content-between align-items-start mb-1">
-    <div class="approval-card-title">{{ item.title }}</div>
+    <div class="approval-card-title">{{ item.title | e }}</div>
     <span class="impact-badge impact-{{ item.impact }}">{{ item.impact }}</span>
   </div>
-  <div class="approval-card-desc">{{ item.description }}</div>
-  <div class="approval-card-action">&#x25B6; {{ item.proposed_action }}</div>
+  <div class="approval-card-desc">{{ item.description | e }}</div>
+  <div class="approval-card-action">&#x25B6; {{ item.proposed_action | e }}</div>
 
   {% if item.status == "pending" %}
   <div class="approval-actions">

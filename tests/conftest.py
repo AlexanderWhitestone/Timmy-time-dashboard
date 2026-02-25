@@ -25,6 +25,14 @@ for _mod in [
     # without the package installed.
     "telegram",
     "telegram.ext",
+    # discord.py is optional (discord extra) — stub so tests run
+    # without the package installed.
+    "discord",
+    "discord.ext",
+    "discord.ext.commands",
+    # pyzbar is optional (for QR code invite detection)
+    "pyzbar",
+    "pyzbar.pyzbar",
 ]:
     sys.modules.setdefault(_mod, MagicMock())
 

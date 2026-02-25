@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     # Telegram bot token — set via TELEGRAM_TOKEN env var or the /telegram/setup endpoint
     telegram_token: str = ""
 
+    # Discord bot token — set via DISCORD_TOKEN env var or the /discord/setup endpoint
+    discord_token: str = ""
+
     # ── AirLLM / backend selection ───────────────────────────────────────────
     # "ollama"  — always use Ollama (default, safe everywhere)
     # "airllm"  — always use AirLLM (requires pip install ".[bigbrain]")
@@ -28,6 +31,59 @@ class Settings(BaseSettings):
     # 8b  ~16 GB  |  70b  ~140 GB  |  405b  ~810 GB
     airllm_model_size: Literal["8b", "70b", "405b"] = "70b"
 
+    # ── Spark Intelligence ────────────────────────────────────────────────
+    # Enable/disable the Spark cognitive layer.
+    # When enabled, Spark captures swarm events, runs EIDOS predictions,
+    # consolidates memories, and generates advisory recommendations.
+    spark_enabled: bool = True
+
+    # ── Git / DevOps ──────────────────────────────────────────────────────
+    git_default_repo_dir: str = "~/repos"
+
+    # ── Creative — Image Generation (Pixel) ───────────────────────────────
+    flux_model_id: str = "black-forest-labs/FLUX.1-schnell"
+    image_output_dir: str = "data/images"
+    image_default_steps: int = 4
+
+    # ── Creative — Music Generation (Lyra) ────────────────────────────────
+    music_output_dir: str = "data/music"
+    ace_step_model: str = "ace-step/ACE-Step-v1.5"
+
+    # ── Creative — Video Generation (Reel) ────────────────────────────────
+    video_output_dir: str = "data/video"
+    wan_model_id: str = "Wan-AI/Wan2.1-T2V-1.3B"
+    video_default_resolution: str = "480p"
+
+    # ── Creative — Pipeline / Assembly ────────────────────────────────────
+    creative_output_dir: str = "data/creative"
+    video_transition_duration: float = 1.0
+    default_video_codec: str = "libx264"
+
+    # ── L402 Lightning ───────────────────────────────────────────────────
+    # HMAC secrets for macaroon signing and invoice verification.
+    # Generate with: python3 -c "import secrets; print(secrets.token_hex(32))"
+    # In production (TIMMY_ENV=production), these MUST be set or the app will refuse to start.
+    l402_hmac_secret: str = ""
+    l402_macaroon_secret: str = ""
+    lightning_backend: Literal["mock", "lnd"] = "mock"
+
+    # ── Privacy / Sovereignty ────────────────────────────────────────────
+    # Disable Agno telemetry for air-gapped/sovereign deployments.
+    # Default is False (telemetry disabled) to align with sovereign AI vision.
+    telemetry_enabled: bool = False
+
+    # Environment mode: development | production
+    # In production, security settings are strictly enforced.
+    timmy_env: Literal["development", "production"] = "development"
+
+    # ── Self-Modification ──────────────────────────────────────────────
+    # Enable self-modification capabilities. When enabled, Timmy can
+    # edit its own source code, run tests, and commit changes.
+    self_modify_enabled: bool = False
+    self_modify_max_retries: int = 2
+    self_modify_allowed_dirs: str = "src,tests"
+    self_modify_backend: str = "auto"  # "ollama", "anthropic", or "auto"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -36,3 +92,39 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# ── Startup validation ───────────────────────────────────────────────────────
+# Enforce security requirements — fail fast in production.
+import logging as _logging
+import sys
+
+_startup_logger = _logging.getLogger("config")
+
+# Production mode: require secrets to be set
+if settings.timmy_env == "production":
+    _missing = []
+    if not settings.l402_hmac_secret:
+        _missing.append("L402_HMAC_SECRET")
+    if not settings.l402_macaroon_secret:
+        _missing.append("L402_MACAROON_SECRET")
+    if _missing:
+        _startup_logger.error(
+            "PRODUCTION SECURITY ERROR: The following secrets must be set: %s\n"
+            "Generate with: python3 -c \"import secrets; print(secrets.token_hex(32))\"\n"
+            "Set in .env file or environment variables.",
+            ", ".join(_missing),
+        )
+        sys.exit(1)
+    _startup_logger.info("Production mode: security secrets validated ✓")
+else:
+    # Development mode: warn but continue
+    if not settings.l402_hmac_secret:
+        _startup_logger.warning(
+            "SEC: L402_HMAC_SECRET is not set — "
+            "set a unique secret in .env before deploying to production."
+        )
+    if not settings.l402_macaroon_secret:
+        _startup_logger.warning(
+            "SEC: L402_MACAROON_SECRET is not set — "
+            "set a unique secret in .env before deploying to production."
+        )

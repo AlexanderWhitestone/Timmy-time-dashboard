@@ -2,39 +2,97 @@
 
 {% block title %}Tools & Capabilities — Mission Control{% endblock %}
 
+{% block extra_styles %}
+<style>
+  .tools-container { max-width: 1200px; margin: 0 auto; }
+
+  .tools-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .tools-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    letter-spacing: 0.08em;
+  }
+  .tools-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .tools-stat-box {
+    background: var(--glass-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 18px;
+    text-align: center;
+  }
+  .tools-stat-val {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-bright);
+  }
+  .tools-stat-label {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  .tool-card {
+    height: 100%;
+  }
+  .tool-card .card-title {
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+  }
+  .tool-card .card-text {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 768px) {
+    .tools-title { font-size: 1.1rem; }
+    .tools-header { flex-direction: column; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid py-4">
-  <div class="row mb-4">
-    <div class="col">
-      <h1 class="display-6">🔧 Tools & Capabilities</h1>
-      <p class="text-secondary">Agent tools and usage statistics</p>
+<div class="tools-container py-3">
+
+  <div class="tools-header">
+    <div>
+      <div class="tools-title">TOOLS &amp; CAPABILITIES</div>
+      <div class="tools-subtitle">Agent tools and usage statistics</div>
     </div>
-    <div class="col-auto">
-      <div class="card bg-dark border-secondary">
-        <div class="card-body text-center">
-          <h3 class="mb-0">{{ total_calls }}</h3>
-          <small class="text-secondary">Total Tool Calls</small>
-        </div>
-      </div>
+    <div class="tools-stat-box">
+      <div class="tools-stat-val">{{ total_calls }}</div>
+      <div class="tools-stat-label">TOTAL CALLS</div>
     </div>
   </div>
 
-  <!-- Available Tools Reference -->
-  <div class="row mb-4">
-    <div class="col-12">
-      <h5 class="mb-3">Available Tools</h5>
+  <!-- Available Tools -->
+  <div class="card mc-panel mb-3">
+    <div class="card-header mc-panel-header">// AVAILABLE TOOLS</div>
+    <div class="card-body">
       <div class="row g-3">
         {% for tool_id, tool_info in available_tools.items() %}
-        <div class="col-md-4">
-          <div class="card h-100 bg-dark border-secondary">
+        <div class="col-12 col-md-4">
+          <div class="card tool-card">
             <div class="card-body">
-              <h6 class="card-title">{{ tool_info.name }}</h6>
-              <p class="card-text small text-secondary">{{ tool_info.description }}</p>
-              <div class="mt-2">
-                <small class="text-muted">Available to:</small>
+              <h6 class="card-title" style="color:var(--text-bright);">{{ tool_info.name }}</h6>
+              <p class="card-text">{{ tool_info.description }}</p>
+              <div style="margin-top:8px;">
+                <small style="color:var(--text-dim); font-size:0.65rem; letter-spacing:0.08em;">AVAILABLE TO</small>
                 <div class="d-flex flex-wrap gap-1 mt-1">
                   {% for persona in tool_info.available_in %}
-                  <span class="badge bg-secondary">{{ persona|title }}</span>
+                  <span class="badge badge-secondary">{{ persona|title }}</span>
                   {% endfor %}
                 </div>
               </div>
@@ -46,37 +104,35 @@
     </div>
   </div>
 
-  <!-- Agent Tool Assignments -->
-  <div class="row">
-    <div class="col-12">
-      <h5 class="mb-3">Agent Capabilities</h5>
+  <!-- Agent Capabilities -->
+  <div class="card mc-panel">
+    <div class="card-header mc-panel-header">// AGENT CAPABILITIES</div>
+    <div class="card-body">
       {% if agent_tools %}
       <div class="row g-3">
         {% for agent in agent_tools %}
-        <div class="col-md-6">
-          <div class="card bg-dark border-secondary">
+        <div class="col-12 col-md-6">
+          <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
               <span>
-                <strong>{{ agent.name }}</strong>
-                <span class="badge {% if agent.status == 'idle' %}bg-success{% elif agent.status == 'busy' %}bg-warning{% else %}bg-secondary{% endif %} ms-2">
+                <strong style="color:var(--text-bright);">{{ agent.name }}</strong>
+                <span class="badge {% if agent.status == 'idle' %}badge-success{% elif agent.status == 'busy' %}badge-warning{% else %}badge-secondary{% endif %} ms-2">
                   {{ agent.status }}
                 </span>
               </span>
               {% if agent.stats %}
-              <small class="text-muted">{{ agent.stats.total_calls }} calls</small>
+              <small style="color:var(--text-dim);">{{ agent.stats.total_calls }} calls</small>
               {% endif %}
             </div>
             <div class="card-body">
               {% if agent.tools %}
               <div class="d-flex flex-wrap gap-2">
                 {% for tool in agent.tools %}
-                <span class="badge bg-primary" title="{{ tool.description }}">
-                  {{ tool.name }}
-                </span>
+                <span class="badge badge-info" title="{{ tool.description }}">{{ tool.name }}</span>
                 {% endfor %}
               </div>
               {% else %}
-              <p class="text-secondary mb-0">No tools assigned</p>
+              <p style="color:var(--text-dim); margin:0; font-size:0.85rem;">No tools assigned</p>
               {% endif %}
             </div>
           </div>
@@ -84,11 +140,12 @@
         {% endfor %}
       </div>
       {% else %}
-      <div class="alert alert-secondary">
+      <div style="text-align:center; padding:20px; color:var(--text-dim); font-size:0.85rem;">
         No agents registered yet.
       </div>
       {% endif %}
     </div>
   </div>
+
 </div>
 {% endblock %}

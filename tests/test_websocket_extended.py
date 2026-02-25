@@ -1,4 +1,4 @@
-"""Extended tests for websocket/handler.py — broadcast, disconnect, convenience."""
+"""Extended tests for ws_manager/handler.py — broadcast, disconnect, convenience."""
 
 import asyncio
 import json
@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from websocket.handler import WebSocketManager, WSEvent
+from ws_manager.handler import WebSocketManager, WSEvent
 
 
 class TestWSEventSerialization:

@@ -1,10 +1,10 @@
 # Timmy Time — Mission Control
 
-[![Tests](https://github.com/Alexspayne/Timmy-time-dashboard/actions/workflows/tests.yml/badge.svg)](https://github.com/Alexspayne/Timmy-time-dashboard/actions/workflows/tests.yml)
+[![Tests](https://github.com/AlexanderWhitestone/Timmy-time-dashboard/actions/workflows/tests.yml/badge.svg)](https://github.com/AlexanderWhitestone/Timmy-time-dashboard/actions/workflows/tests.yml)
 
-A local-first, sovereign AI agent system.  Talk to Timmy, watch his swarm, gate API access with Bitcoin Lightning — all from a browser, no cloud required.
+A local-first, sovereign AI agent system.  Talk to Timmy, watch his swarm, gate API access with Bitcoin Lightning — all from a browser, no cloud AI required.
 
-**[Live Docs →](https://alexspayne.github.io/Timmy-time-dashboard/)**
+**[Live Docs →](https://alexanderwhitestone.github.io/Timmy-time-dashboard/)**
 
 ---
 
@@ -15,13 +15,17 @@ A local-first, sovereign AI agent system.  Talk to Timmy, watch his swarm, gate 
 | **Timmy Agent** | Agno-powered agent (Ollama default, AirLLM optional for 70B/405B) |
 | **Mission Control** | FastAPI + HTMX dashboard — chat, health, swarm, marketplace |
 | **Swarm** | Multi-agent coordinator — spawn agents, post tasks, run Lightning auctions |
-| **L402 / Lightning** | Bitcoin Lightning payment gating for API access |
+| **L402 / Lightning** | Bitcoin Lightning payment gating for API access (mock backend; LND scaffolded) |
+| **Spark Intelligence** | Event capture, predictions, memory consolidation, advisory engine |
+| **Creative Studio** | Multi-persona creative pipeline — image, music, video generation |
+| **Tools** | Git, image, music, and video tools accessible by persona agents |
 | **Voice** | NLU intent detection + TTS (pyttsx3, no cloud) |
 | **WebSocket** | Real-time swarm live feed |
 | **Mobile** | Responsive layout with full iOS safe-area and touch support |
+| **Telegram** | Bridge Telegram messages to Timmy |
 | **CLI** | `timmy`, `timmy-serve`, `self-tdd` entry points |
 
-**228 tests, 100% passing.**
+**Full test suite, 100% passing.**
 
 ---
 
@@ -45,7 +49,7 @@ brew install ollama
 
 ```bash
 # 1. Clone
-git clone https://github.com/Alexspayne/Timmy-time-dashboard.git
+git clone https://github.com/AlexanderWhitestone/Timmy-time-dashboard.git
 cd Timmy-time-dashboard
 
 # 2. Install
@@ -66,7 +70,7 @@ make dev
 ## Common commands
 
 ```bash
-make test       # run all 228 tests (no Ollama needed)
+make test       # run all tests (no Ollama needed)
 make test-cov   # test + coverage report
 make dev        # start dashboard (http://localhost:8000)
 make watch      # self-TDD watchdog (60s poll, alerts on regressions)
@@ -157,7 +161,7 @@ cp .env.example .env
 | `AIRLLM_MODEL_SIZE` | `70b` | `8b` \| `70b` \| `405b` |
 | `L402_HMAC_SECRET` | *(default — change in prod)* | HMAC signing key for macaroons |
 | `L402_MACAROON_SECRET` | *(default — change in prod)* | Macaroon secret |
-| `LIGHTNING_BACKEND` | `mock` | `mock` \| `lnd` |
+| `LIGHTNING_BACKEND` | `mock` | `mock` (production-ready) \| `lnd` (scaffolded, not yet functional) |
 
 ---
 
@@ -202,12 +206,18 @@ src/
   dashboard/          # FastAPI app, routes, Jinja2 templates
   swarm/              # Multi-agent: coordinator, registry, bidder, tasks, comms
   timmy_serve/        # L402 proxy, payment handler, TTS, serve CLI
+  spark/              # Intelligence engine — events, predictions, advisory
+  creative/           # Creative director + video assembler pipeline
+  tools/              # Git, image, music, video tools for persona agents
+  lightning/          # Lightning backend abstraction (mock + LND)
+  agent_core/         # Substrate-agnostic agent interface
   voice/              # NLU intent detection
-  websocket/          # WebSocket connection manager
+  ws_manager/         # WebSocket connection manager
   notifications/      # Push notification store
   shortcuts/          # Siri Shortcuts endpoints
+  telegram_bot/       # Telegram bridge
   self_tdd/           # Continuous test watchdog
-tests/                # 228 tests — one file per module, all mocked
+tests/                # one test file per module, all mocked
 static/style.css      # Dark mission-control theme (JetBrains Mono)
 docs/                 # GitHub Pages landing page
 AGENTS.md             # AI agent development standards ← read this

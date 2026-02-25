@@ -15,8 +15,6 @@
 #   make docker-down     stop everything
 #   make docker-logs     tail logs
 
-version: "3.9"
-
 services:
 
   # ── Dashboard (coordinator + FastAPI) ──────────────────────────────────────
@@ -95,6 +93,9 @@ services:
     restart: unless-stopped
 
 # ── Shared volume ─────────────────────────────────────────────────────────────
+# NOTE: the data/ directory must exist before running docker compose up.
+# `make docker-up` and `make up` handle this automatically.
+# If running docker compose directly, first run: mkdir -p data
 volumes:
   timmy-data:
     driver: local

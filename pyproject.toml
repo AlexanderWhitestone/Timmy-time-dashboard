@@ -23,6 +23,8 @@ dependencies = [
     "rich>=13.0.0",
     "pydantic-settings>=2.0.0",
     "websockets>=12.0",
+    "GitPython>=3.1.40",
+    "moviepy>=2.0.0",
 ]
 
 [project.optional-dependencies]
@@ -30,6 +32,7 @@ dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.24.0",
     "pytest-cov>=5.0.0",
+    "selenium>=4.20.0",
 ]
 # Big-brain: run 8B / 70B / 405B models locally via layer-by-layer loading.
 # pip install ".[bigbrain]"
@@ -52,11 +55,28 @@ voice = [
 telegram = [
     "python-telegram-bot>=21.0",
 ]
+# Discord: bridge Discord messages to Timmy with native thread support.
+# pip install ".[discord]"
+# Optional: pip install pyzbar Pillow  (for QR code invite detection)
+discord = [
+    "discord.py>=2.3.0",
+]
+# Creative: GPU-accelerated image, music, and video generation.
+# pip install ".[creative]"
+creative = [
+    "diffusers>=0.30.0",
+    "transformers>=4.40.0",
+    "accelerate>=0.30.0",
+    "torch>=2.2.0",
+    "safetensors>=0.4.0",
+    "ace-step>=1.5.0",
+]
 
 [project.scripts]
 timmy = "timmy.cli:main"
 timmy-serve = "timmy_serve.cli:main"
 self-tdd = "self_tdd.watchdog:main"
+self-modify = "self_modify.cli:main"
 
 [tool.hatch.build.targets.wheel]
 sources = {"src" = ""}
@@ -67,16 +87,23 @@ include = [
     "src/config.py",
     "src/self_tdd",
     "src/swarm",
-    "src/websocket",
+    "src/ws_manager",
     "src/voice",
     "src/notifications",
     "src/shortcuts",
     "src/telegram_bot",
+    "src/chat_bridge",
+    "src/spark",
+    "src/tools",
+    "src/creative",
+    "src/agent_core",
+    "src/lightning",
+    "src/self_modify",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 addopts = "-v --tb=short"

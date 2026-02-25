@@ -33,5 +33,10 @@ tests/
 docs/
 *.md
 
+# ── Deploy configs (not needed inside image) ──────────────────────────────────
+deploy/
+docker-compose*.yml
+Makefile
+
 # ── macOS ─────────────────────────────────────────────────────────────────────
 .DS_Store

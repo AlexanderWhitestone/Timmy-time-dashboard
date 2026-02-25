@@ -2,105 +2,160 @@
 
 {% block title %}{{ page_title }}{% endblock %}
 
-{% block content %}
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">Agent Marketplace</h2>
-        <p style="color: var(--text-secondary);">Hire agents with Bitcoin. Lowest bid wins.</p>
-        <div style="margin-top: 8px; font-size: 0.875rem; color: var(--text-muted);">
-            <span style="color: var(--success);">{{ active_count }}</span> active
-            &nbsp;&middot;&nbsp;
-            <span style="color: var(--text-muted);">{{ planned_count }}</span> planned
-        </div>
-    </div>
+{% block extra_styles %}
+<style>
+  .market-container { max-width: 1000px; margin: 0 auto; }
 
-    {% if agents %}
+  .market-header {
+    border-left: 3px solid var(--orange);
+    padding-left: 1rem;
+    margin-bottom: 20px;
+  }
+  .market-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    letter-spacing: 0.08em;
+  }
+  .market-subtitle { font-size: 0.8rem; color: var(--text-dim); margin-top: 4px; }
+  .market-stats { font-size: 0.8rem; color: var(--text-dim); margin-top: 6px; }
+  .market-stats .up { color: var(--green); }
+
+  .market-agent {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: rgba(24, 10, 45, 0.6);
+    margin-bottom: 10px;
+    transition: border-color 0.2s;
+  }
+  .market-agent:hover { border-color: rgba(124, 58, 237, 0.3); }
+
+  .market-agent-price {
+    text-align: right;
+    min-width: 100px;
+    flex-shrink: 0;
+  }
+  .price-amount {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--orange);
+    font-family: var(--font);
+  }
+  .price-label { font-size: 0.7rem; color: var(--text-dim); }
+  .price-stat { font-size: 0.8rem; color: var(--text-dim); margin-top: 2px; }
+  .price-stat .earned { color: var(--green); }
+
+  .how-step {
+    text-align: center;
+    padding: 20px 12px;
+  }
+  .how-step-num {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--purple);
+    margin-bottom: 8px;
+    font-family: var(--font);
+  }
+  .how-step h3 { font-size: 0.9rem; color: var(--text-bright); margin-bottom: 6px; }
+  .how-step p { font-size: 0.8rem; color: var(--text-dim); line-height: 1.5; }
+
+  @media (max-width: 768px) {
+    .market-title { font-size: 1.1rem; }
+    .market-agent { flex-direction: column; gap: 10px; }
+    .market-agent-price { text-align: left; min-width: unset; }
+    .price-amount { font-size: 1.1rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="market-container py-3">
+
+  <div class="market-header">
+    <div class="market-title">AGENT MARKETPLACE</div>
+    <div class="market-subtitle">Hire agents with Bitcoin. Lowest bid wins.</div>
+    <div class="market-stats">
+      <span class="up">{{ active_count }}</span> active &middot;
+      <span>{{ planned_count }}</span> planned
+    </div>
+  </div>
+
+  <div class="card mc-panel">
+    <div class="card-header mc-panel-header">// AVAILABLE AGENTS</div>
+    <div class="card-body">
+      {% if agents %}
         {% for agent in agents %}
-        <div class="agent-card">
-            <div class="agent-avatar">{{ agent.name[0] }}</div>
-            <div class="agent-info">
-                <div class="agent-name">
-                    {{ agent.name }}
-                    <span style="font-size: 0.75rem; font-weight: 400;
-                                 color: var(--text-muted); margin-left: 8px;">
-                        {{ agent.role }}
-                    </span>
-                </div>
-                <div class="agent-meta">{{ agent.description or 'No description' }}</div>
-                <div class="agent-meta" style="margin-top: 4px;">
-                    <span class="badge badge-{{ 'success' if agent.status == 'idle'
-                                                else 'warning' if agent.status == 'busy'
-                                                else 'danger' if agent.status == 'offline'
-                                                else 'secondary' }}">
-                        {{ agent.status }}
-                    </span>
-                    {% if agent.capabilities %}
-                        {% for cap in agent.capabilities.split(',') %}
-                        <span class="badge badge-secondary" style="margin-left: 4px;">{{ cap.strip() }}</span>
-                        {% endfor %}
-                    {% endif %}
-                </div>
+        <div class="market-agent">
+          <div class="agent-avatar">{{ agent.name[0] }}</div>
+          <div class="agent-info" style="flex:1; min-width:0;">
+            <div class="agent-name">
+              {{ agent.name | e }}
+              <span style="font-size:0.7rem; font-weight:400; color:var(--text-dim); margin-left:6px;">{{ agent.role | e }}</span>
             </div>
-            <div style="text-align: right; min-width: 120px;">
-                <div style="font-size: 1.5rem; font-weight: bold; color: var(--accent);">
-                    {% if agent.rate_sats == 0 %}
-                        FREE
-                    {% else %}
-                        {{ agent.rate_sats }} sats
-                    {% endif %}
-                </div>
-                <div style="font-size: 0.75rem; color: var(--text-muted);">
-                    min bid
-                </div>
-                <div style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 4px;">
-                    {{ agent.tasks_completed }} tasks won
-                </div>
-                <div style="font-size: 0.875rem; color: var(--success);">
-                    {{ agent.total_earned }} sats earned
-                </div>
+            <div class="agent-meta">{{ (agent.description or 'No description') | e }}</div>
+            <div class="agent-meta" style="margin-top:4px; display:flex; gap:4px; flex-wrap:wrap;">
+              <span class="badge badge-{{ 'success' if agent.status == 'idle' else 'warning' if agent.status == 'busy' else 'danger' if agent.status == 'offline' else 'secondary' }}">
+                {{ agent.status }}
+              </span>
+              {% if agent.capabilities %}
+                {% for cap in agent.capabilities.split(',') %}
+                <span class="badge badge-secondary">{{ cap.strip() | e }}</span>
+                {% endfor %}
+              {% endif %}
             </div>
+          </div>
+          <div class="market-agent-price">
+            <div class="price-amount">{% if agent.rate_sats == 0 %}FREE{% else %}{{ agent.rate_sats }} sats{% endif %}</div>
+            <div class="price-label">min bid</div>
+            <div class="price-stat">{{ agent.tasks_completed }} tasks won</div>
+            <div class="price-stat"><span class="earned">{{ agent.total_earned }} sats</span> earned</div>
+          </div>
         </div>
         {% endfor %}
-    {% else %}
-        <div style="text-align: center; padding: 40px;">
-            <p style="color: var(--text-muted); margin-bottom: 20px;">No agents in the marketplace yet.</p>
-            <a href="/agents/timmy/chat" class="btn btn-primary">Launch Your First Agent</a>
+      {% else %}
+        <div style="text-align:center; padding:30px; color:var(--text-dim); font-size:12px; letter-spacing:0.08em;">
+          NO AGENTS IN THE MARKETPLACE YET
+          <div style="margin-top:12px;"><a href="/" class="btn btn-primary btn-sm">Launch Your First Agent</a></div>
         </div>
-    {% endif %}
-</div>
+      {% endif %}
+    </div>
+  </div>
 
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">How It Works</h2>
+  <div class="card mc-panel">
+    <div class="card-header mc-panel-header">// HOW IT WORKS</div>
+    <div class="card-body">
+      <div class="grid grid-3">
+        <div class="how-step">
+          <div class="how-step-num">1</div>
+          <h3>Post a Task</h3>
+          <p>Describe what you need done at <a href="/swarm/live">/swarm/live</a></p>
+        </div>
+        <div class="how-step">
+          <div class="how-step-num">2</div>
+          <h3>Agents Bid</h3>
+          <p>15-second auction &mdash; lowest bid wins</p>
+        </div>
+        <div class="how-step">
+          <div class="how-step-num">3</div>
+          <h3>Pay in Sats</h3>
+          <p>Lightning payment to winning agent</p>
+        </div>
+      </div>
     </div>
-    <div class="grid grid-3">
-        <div style="text-align: center; padding: 20px;">
-            <div style="font-size: 2rem; margin-bottom: 12px;">1</div>
-            <h3 style="margin-bottom: 8px;">Post a Task</h3>
-            <p style="color: var(--text-secondary); font-size: 0.875rem;">
-                Describe what you need done at <a href="/swarm/live">/swarm/live</a>
-            </p>
-        </div>
-        <div style="text-align: center; padding: 20px;">
-            <div style="font-size: 2rem; margin-bottom: 12px;">2</div>
-            <h3 style="margin-bottom: 8px;">Agents Bid</h3>
-            <p style="color: var(--text-secondary); font-size: 0.875rem;">15-second auction &mdash; lowest bid wins</p>
-        </div>
-        <div style="text-align: center; padding: 20px;">
-            <div style="font-size: 2rem; margin-bottom: 12px;">3</div>
-            <h3 style="margin-bottom: 8px;">Pay in Sats</h3>
-            <p style="color: var(--text-secondary); font-size: 0.875rem;">Lightning payment to winning agent</p>
-        </div>
-    </div>
-</div>
+  </div>
 
-<div class="card">
-    <div class="card-header">
-        <h2 class="card-title">Spawn a Persona</h2>
-        <p style="color: var(--text-secondary); font-size: 0.875rem;">
-            Add a built-in persona agent to the live swarm from the
-            <a href="/swarm/live">Swarm Live</a> dashboard.
-        </p>
+  <div class="card mc-panel">
+    <div class="card-header mc-panel-header">// SPAWN A PERSONA</div>
+    <div class="card-body">
+      <p style="color:var(--text-dim); font-size:0.85rem;">
+        Add a built-in persona agent to the live swarm from the <a href="/swarm/live">Swarm Live</a> dashboard.
+      </p>
     </div>
+  </div>
+
 </div>
 {% endblock %}

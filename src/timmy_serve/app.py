@@ -158,18 +158,18 @@ def create_timmy_serve_app(price_sats: int = DEFAULT_PRICE_SATS) -> FastAPI:
         )
     
     @app.post("/serve/chat", response_model=ChatResponse)
-    async def serve_chat(request: ChatRequest):
+    async def serve_chat(request: Request, body: ChatRequest):
         """Process a chat request (L402-gated).
-        
+
         Requires valid L402 token in Authorization header:
             Authorization: L402 <macaroon>:<preimage>
         """
         try:
             # Create Timmy agent and process request
             timmy = create_timmy()
-            result = timmy.run(request.message, stream=False)
+            result = timmy.run(body.message, stream=False)
             response_text = result.content if hasattr(result, "content") else str(result)
-            
+
             # Get payment hash from Authorization header for receipt
             auth_header = request.headers.get("authorization", "")
             payment_hash = None

@@ -23,11 +23,14 @@ class ToolExecutor:
     
     Each persona gets a different set of tools based on their specialty:
     - Echo: web search, file reading
-    - Forge: shell, python, file read/write
+    - Forge: shell, python, file read/write, git
     - Seer: python, file reading
     - Quill: file read/write
     - Mace: shell, web search
-    - Helm: shell, file operations
+    - Helm: shell, file operations, git
+    - Pixel: image generation, storyboards
+    - Lyra: music/song generation
+    - Reel: video generation, assembly
     
     The executor combines:
     1. MCP tools (file, shell, python, search)
@@ -214,6 +217,39 @@ Response:"""
             "run": "shell",
             "list": "list_files",
             "directory": "list_files",
+            # Git operations
+            "commit": "git_commit",
+            "branch": "git_branch",
+            "push": "git_push",
+            "pull": "git_pull",
+            "diff": "git_diff",
+            "clone": "git_clone",
+            "merge": "git_branch",
+            "stash": "git_stash",
+            "blame": "git_blame",
+            "git status": "git_status",
+            "git log": "git_log",
+            # Image generation
+            "image": "generate_image",
+            "picture": "generate_image",
+            "storyboard": "generate_storyboard",
+            "illustration": "generate_image",
+            # Music generation
+            "music": "generate_song",
+            "song": "generate_song",
+            "vocal": "generate_vocals",
+            "instrumental": "generate_instrumental",
+            "lyrics": "generate_song",
+            # Video generation
+            "video": "generate_video_clip",
+            "clip": "generate_video_clip",
+            "animate": "image_to_video",
+            "film": "generate_video_clip",
+            # Assembly
+            "stitch": "stitch_clips",
+            "assemble": "run_assembly",
+            "title card": "add_title_card",
+            "subtitle": "add_subtitles",
         }
         
         for keyword, tool in keyword_tool_map.items():
@@ -240,22 +276,55 @@ Response:"""
 
 class DirectToolExecutor(ToolExecutor):
     """Tool executor that actually calls tools directly.
-    
-    This is a more advanced version that actually executes the tools
-    rather than just simulating. Use with caution - it has real side effects.
-    
-    Currently WIP - for future implementation.
+
+    For code-modification tasks assigned to the Forge persona, dispatches
+    to the SelfModifyLoop for real edit → test → commit execution.
+    Other tasks fall back to the simulated parent.
     """
-    
+
+    _CODE_KEYWORDS = frozenset({
+        "modify", "edit", "fix", "refactor", "implement",
+        "add function", "change code", "update source", "patch",
+    })
+
     def execute_with_tools(self, task_description: str) -> dict[str, Any]:
-        """Actually execute tools to complete the task.
-        
-        This would involve:
-        1. Parsing the task into tool calls
-        2. Executing each tool
-        3. Handling results and errors
-        4. Potentially iterating based on results
+        """Execute tools to complete the task.
+
+        Code-modification tasks on the Forge persona are routed through
+        the SelfModifyLoop.  Everything else delegates to the parent.
         """
-        # Future: Implement ReAct pattern or similar
-        # For now, just delegate to parent
+        task_lower = task_description.lower()
+        is_code_task = any(kw in task_lower for kw in self._CODE_KEYWORDS)
+
+        if is_code_task and self._persona_id == "forge":
+            try:
+                from config import settings as cfg
+                if not cfg.self_modify_enabled:
+                    return self.execute_task(task_description)
+
+                from self_modify.loop import SelfModifyLoop, ModifyRequest
+
+                loop = SelfModifyLoop()
+                result = loop.run(ModifyRequest(instruction=task_description))
+
+                return {
+                    "success": result.success,
+                    "result": (
+                        f"Modified {len(result.files_changed)} file(s). "
+                        f"Tests {'passed' if result.test_passed else 'failed'}."
+                    ),
+                    "tools_used": ["read_file", "write_file", "shell", "git_commit"],
+                    "persona_id": self._persona_id,
+                    "agent_id": self._agent_id,
+                    "commit_sha": result.commit_sha,
+                }
+            except Exception as exc:
+                logger.exception("Direct tool execution failed")
+                return {
+                    "success": False,
+                    "error": str(exc),
+                    "result": None,
+                    "tools_used": [],
+                }
+
         return self.execute_task(task_description)

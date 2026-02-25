@@ -52,7 +52,7 @@
             hx-swap="beforeend"
             hx-indicator="#agent-send-indicator"
             hx-disabled-elt="find button"
-            hx-on::after-settle="this.reset(); scrollAgentLog('{{ agent.id }}')"
+            hx-on::after-request="if(event.detail.successful){this.querySelector('[name=message]').value=''; scrollAgentLog('{{ agent.id }}')}"
             class="d-flex gap-2">
         <input type="text"
                name="message"

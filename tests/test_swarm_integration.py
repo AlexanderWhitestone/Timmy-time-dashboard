@@ -8,12 +8,19 @@ These tests verify that:
 """
 
 import asyncio
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from swarm.coordinator import SwarmCoordinator
 from swarm.tasks import TaskStatus
+
+
+@pytest.fixture(autouse=True)
+def _fast_auction():
+    """Skip the 15-second auction wait in tests."""
+    with patch("swarm.coordinator.AUCTION_DURATION_SECONDS", 0):
+        yield
 
 
 class TestSwarmInProcessAgents:

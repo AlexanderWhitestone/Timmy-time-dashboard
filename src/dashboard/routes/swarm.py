@@ -4,6 +4,7 @@ Provides REST endpoints for managing the swarm: listing agents,
 spawning sub-agents, posting tasks, and viewing auction results.
 """
 
+import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -98,8 +99,10 @@ async def list_tasks(status: Optional[str] = None):
 
 @router.post("/tasks")
 async def post_task(description: str = Form(...)):
-    """Post a new task to the swarm for bidding."""
+    """Post a new task to the swarm and run auction to assign it."""
     task = coordinator.post_task(description)
+    # Start auction asynchronously - don't wait for it to complete
+    asyncio.create_task(coordinator.run_auction_and_assign(task.id))
     return {
         "task_id": task.id,
         "description": task.description,
@@ -120,6 +123,52 @@ async def post_task_and_auction(description: str = Form(...)):
         "assigned_agent": updated.assigned_agent if updated else None,
         "winning_bid": winner.bid_sats if winner else None,
     }
+
+
+@router.get("/tasks/panel", response_class=HTMLResponse)
+async def task_create_panel(request: Request, agent_id: Optional[str] = None):
+    """Task creation panel, optionally pre-selecting an agent."""
+    agents = coordinator.list_swarm_agents()
+    return templates.TemplateResponse(
+        request,
+        "partials/task_assign_panel.html",
+        {"agents": agents, "preselected_agent_id": agent_id},
+    )
+
+
+@router.post("/tasks/direct", response_class=HTMLResponse)
+async def direct_assign_task(
+    request: Request,
+    description: str = Form(...),
+    agent_id: Optional[str] = Form(None),
+):
+    """Create a task: assign directly if agent_id given, else open auction."""
+    timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
+
+    if agent_id:
+        agent = registry.get_agent(agent_id)
+        task = coordinator.post_task(description)
+        coordinator.auctions.open_auction(task.id)
+        coordinator.auctions.submit_bid(task.id, agent_id, 1)
+        coordinator.auctions.close_auction(task.id)
+        update_task(task.id, status=TaskStatus.ASSIGNED, assigned_agent=agent_id)
+        registry.update_status(agent_id, "busy")
+        agent_name = agent.name if agent else agent_id
+    else:
+        task = coordinator.post_task(description)
+        winner = await coordinator.run_auction_and_assign(task.id)
+        task = coordinator.get_task(task.id)
+        agent_name = winner.agent_id if winner else "unassigned"
+
+    return templates.TemplateResponse(
+        request,
+        "partials/task_result.html",
+        {
+            "task": task,
+            "agent_name": agent_name,
+            "timestamp": timestamp,
+        },
+    )
 
 
 @router.get("/tasks/{task_id}")
@@ -276,47 +325,3 @@ async def message_agent(agent_id: str, request: Request, message: str = Form(...
     )
 
 
-@router.get("/tasks/panel", response_class=HTMLResponse)
-async def task_create_panel(request: Request, agent_id: Optional[str] = None):
-    """Task creation panel, optionally pre-selecting an agent."""
-    agents = coordinator.list_swarm_agents()
-    return templates.TemplateResponse(
-        request,
-        "partials/task_assign_panel.html",
-        {"agents": agents, "preselected_agent_id": agent_id},
-    )
-
-
-@router.post("/tasks/direct", response_class=HTMLResponse)
-async def direct_assign_task(
-    request: Request,
-    description: str = Form(...),
-    agent_id: Optional[str] = Form(None),
-):
-    """Create a task: assign directly if agent_id given, else open auction."""
-    timestamp = datetime.now(timezone.utc).strftime("%H:%M:%S")
-
-    if agent_id:
-        agent = registry.get_agent(agent_id)
-        task = coordinator.post_task(description)
-        coordinator.auctions.open_auction(task.id)
-        coordinator.auctions.submit_bid(task.id, agent_id, 1)
-        coordinator.auctions.close_auction(task.id)
-        update_task(task.id, status=TaskStatus.ASSIGNED, assigned_agent=agent_id)
-        registry.update_status(agent_id, "busy")
-        agent_name = agent.name if agent else agent_id
-    else:
-        task = coordinator.post_task(description)
-        winner = await coordinator.run_auction_and_assign(task.id)
-        task = coordinator.get_task(task.id)
-        agent_name = winner.agent_id if winner else "unassigned"
-
-    return templates.TemplateResponse(
-        request,
-        "partials/task_result.html",
-        {
-            "task": task,
-            "agent_name": agent_name,
-            "timestamp": timestamp,
-        },
-    )

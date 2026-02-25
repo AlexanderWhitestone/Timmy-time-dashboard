@@ -5,12 +5,22 @@ Provides Timmy and swarm agents with capabilities for:
 - File read/write (local filesystem)
 - Shell command execution (sandboxed)
 - Python code execution
+- Git operations (clone, commit, push, pull, branch, diff, etc.)
+- Image generation (FLUX text-to-image, storyboards)
+- Music generation (ACE-Step vocals + instrumentals)
+- Video generation (Wan 2.1 text-to-video, image-to-video)
+- Creative pipeline (storyboard → music → video → assembly)
 
 Tools are assigned to personas based on their specialties:
 - Echo (Research): web search, file read
-- Forge (Code): shell, python execution, file write
+- Forge (Code): shell, python execution, file write, git
 - Seer (Data): python execution, file read
 - Quill (Writing): file read/write
+- Helm (DevOps): shell, file operations, git
+- Mace (Security): shell, web search, file read
+- Pixel (Visual): image generation, storyboards
+- Lyra (Music): song/vocal/instrumental generation
+- Reel (Video): video clip generation, image-to-video
 """
 
 from __future__ import annotations
@@ -108,13 +118,13 @@ def create_research_tools(base_dir: str | Path | None = None):
     
     # Web search via DuckDuckGo
     search_tools = DuckDuckGoTools()
-    toolkit.add_tool(search_tools.web_search, name="web_search")
+    toolkit.register(search_tools.web_search, name="web_search")
     
     # File reading
     base_path = Path(base_dir) if base_dir else Path.cwd()
-    file_tools = FileTools(base_dir=str(base_path))
-    toolkit.add_tool(file_tools.read_file, name="read_file")
-    toolkit.add_tool(file_tools.list_files, name="list_files")
+    file_tools = FileTools(base_dir=base_path)
+    toolkit.register(file_tools.read_file, name="read_file")
+    toolkit.register(file_tools.list_files, name="list_files")
     
     return toolkit
 
@@ -130,18 +140,18 @@ def create_code_tools(base_dir: str | Path | None = None):
     
     # Shell commands (sandboxed)
     shell_tools = ShellTools()
-    toolkit.add_tool(shell_tools.run_shell_command, name="shell")
+    toolkit.register(shell_tools.run_shell_command, name="shell")
     
     # Python execution
     python_tools = PythonTools()
-    toolkit.add_tool(python_tools.python, name="python")
+    toolkit.register(python_tools.run_python_code, name="python")
     
     # File operations
     base_path = Path(base_dir) if base_dir else Path.cwd()
-    file_tools = FileTools(base_dir=str(base_path))
-    toolkit.add_tool(file_tools.read_file, name="read_file")
-    toolkit.add_tool(file_tools.write_file, name="write_file")
-    toolkit.add_tool(file_tools.list_files, name="list_files")
+    file_tools = FileTools(base_dir=base_path)
+    toolkit.register(file_tools.read_file, name="read_file")
+    toolkit.register(file_tools.save_file, name="write_file")
+    toolkit.register(file_tools.list_files, name="list_files")
     
     return toolkit
 
@@ -157,17 +167,17 @@ def create_data_tools(base_dir: str | Path | None = None):
     
     # Python execution for analysis
     python_tools = PythonTools()
-    toolkit.add_tool(python_tools.python, name="python")
+    toolkit.register(python_tools.run_python_code, name="python")
     
     # File reading
     base_path = Path(base_dir) if base_dir else Path.cwd()
-    file_tools = FileTools(base_dir=str(base_path))
-    toolkit.add_tool(file_tools.read_file, name="read_file")
-    toolkit.add_tool(file_tools.list_files, name="list_files")
+    file_tools = FileTools(base_dir=base_path)
+    toolkit.register(file_tools.read_file, name="read_file")
+    toolkit.register(file_tools.list_files, name="list_files")
     
     # Web search for finding datasets
     search_tools = DuckDuckGoTools()
-    toolkit.add_tool(search_tools.web_search, name="web_search")
+    toolkit.register(search_tools.web_search, name="web_search")
     
     return toolkit
 
@@ -183,10 +193,10 @@ def create_writing_tools(base_dir: str | Path | None = None):
     
     # File operations
     base_path = Path(base_dir) if base_dir else Path.cwd()
-    file_tools = FileTools(base_dir=str(base_path))
-    toolkit.add_tool(file_tools.read_file, name="read_file")
-    toolkit.add_tool(file_tools.write_file, name="write_file")
-    toolkit.add_tool(file_tools.list_files, name="list_files")
+    file_tools = FileTools(base_dir=base_path)
+    toolkit.register(file_tools.read_file, name="read_file")
+    toolkit.register(file_tools.save_file, name="write_file")
+    toolkit.register(file_tools.list_files, name="list_files")
     
     return toolkit
 
@@ -202,17 +212,17 @@ def create_security_tools(base_dir: str | Path | None = None):
     
     # Shell for running security scans
     shell_tools = ShellTools()
-    toolkit.add_tool(shell_tools.run_shell_command, name="shell")
+    toolkit.register(shell_tools.run_shell_command, name="shell")
     
     # Web search for threat intelligence
     search_tools = DuckDuckGoTools()
-    toolkit.add_tool(search_tools.web_search, name="web_search")
+    toolkit.register(search_tools.web_search, name="web_search")
     
     # File reading for logs/configs
     base_path = Path(base_dir) if base_dir else Path.cwd()
-    file_tools = FileTools(base_dir=str(base_path))
-    toolkit.add_tool(file_tools.read_file, name="read_file")
-    toolkit.add_tool(file_tools.list_files, name="list_files")
+    file_tools = FileTools(base_dir=base_path)
+    toolkit.register(file_tools.read_file, name="read_file")
+    toolkit.register(file_tools.list_files, name="list_files")
     
     return toolkit
 
@@ -228,14 +238,14 @@ def create_devops_tools(base_dir: str | Path | None = None):
     
     # Shell for deployment commands
     shell_tools = ShellTools()
-    toolkit.add_tool(shell_tools.run_shell_command, name="shell")
+    toolkit.register(shell_tools.run_shell_command, name="shell")
     
     # File operations for config management
     base_path = Path(base_dir) if base_dir else Path.cwd()
-    file_tools = FileTools(base_dir=str(base_path))
-    toolkit.add_tool(file_tools.read_file, name="read_file")
-    toolkit.add_tool(file_tools.write_file, name="write_file")
-    toolkit.add_tool(file_tools.list_files, name="list_files")
+    file_tools = FileTools(base_dir=base_path)
+    toolkit.register(file_tools.read_file, name="read_file")
+    toolkit.register(file_tools.save_file, name="write_file")
+    toolkit.register(file_tools.list_files, name="list_files")
     
     return toolkit
 
@@ -252,22 +262,22 @@ def create_full_toolkit(base_dir: str | Path | None = None):
     
     # Web search
     search_tools = DuckDuckGoTools()
-    toolkit.add_tool(search_tools.web_search, name="web_search")
+    toolkit.register(search_tools.web_search, name="web_search")
     
     # Python execution
     python_tools = PythonTools()
-    toolkit.add_tool(python_tools.python, name="python")
+    toolkit.register(python_tools.run_python_code, name="python")
     
     # Shell commands
     shell_tools = ShellTools()
-    toolkit.add_tool(shell_tools.run_shell_command, name="shell")
+    toolkit.register(shell_tools.run_shell_command, name="shell")
     
     # File operations
     base_path = Path(base_dir) if base_dir else Path.cwd()
-    file_tools = FileTools(base_dir=str(base_path))
-    toolkit.add_tool(file_tools.read_file, name="read_file")
-    toolkit.add_tool(file_tools.write_file, name="write_file")
-    toolkit.add_tool(file_tools.list_files, name="list_files")
+    file_tools = FileTools(base_dir=base_path)
+    toolkit.register(file_tools.read_file, name="read_file")
+    toolkit.register(file_tools.save_file, name="write_file")
+    toolkit.register(file_tools.list_files, name="list_files")
     
     return toolkit
 
@@ -280,7 +290,24 @@ PERSONA_TOOLKITS: dict[str, Callable[[], Toolkit]] = {
     "seer": create_data_tools,
     "forge": create_code_tools,
     "quill": create_writing_tools,
+    "pixel": lambda base_dir=None: _create_stub_toolkit("pixel"),
+    "lyra": lambda base_dir=None: _create_stub_toolkit("lyra"),
+    "reel": lambda base_dir=None: _create_stub_toolkit("reel"),
 }
+
+
+def _create_stub_toolkit(name: str):
+    """Create a minimal Agno toolkit for creative personas.
+
+    Creative personas use their own dedicated tool modules (tools.image_tools,
+    tools.music_tools, tools.video_tools) rather than Agno-wrapped functions.
+    This stub ensures PERSONA_TOOLKITS has an entry so ToolExecutor doesn't
+    fall back to the full toolkit.
+    """
+    if not _AGNO_TOOLS_AVAILABLE:
+        return None
+    toolkit = Toolkit(name=name)
+    return toolkit
 
 
 def get_tools_for_persona(persona_id: str, base_dir: str | Path | None = None) -> Toolkit | None:
@@ -301,11 +328,11 @@ def get_tools_for_persona(persona_id: str, base_dir: str | Path | None = None) -
 
 def get_all_available_tools() -> dict[str, dict]:
     """Get a catalog of all available tools and their descriptions.
-    
+
     Returns:
         Dict mapping tool categories to their tools and descriptions.
     """
-    return {
+    catalog = {
         "web_search": {
             "name": "Web Search",
             "description": "Search the web using DuckDuckGo",
@@ -337,3 +364,77 @@ def get_all_available_tools() -> dict[str, dict]:
             "available_in": ["echo", "seer", "forge", "quill", "mace", "helm", "timmy"],
         },
     }
+
+    # ── Git tools ─────────────────────────────────────────────────────────────
+    try:
+        from tools.git_tools import GIT_TOOL_CATALOG
+        for tool_id, info in GIT_TOOL_CATALOG.items():
+            catalog[tool_id] = {
+                "name": info["name"],
+                "description": info["description"],
+                "available_in": ["forge", "helm", "timmy"],
+            }
+    except ImportError:
+        pass
+
+    # ── Image tools (Pixel) ───────────────────────────────────────────────────
+    try:
+        from tools.image_tools import IMAGE_TOOL_CATALOG
+        for tool_id, info in IMAGE_TOOL_CATALOG.items():
+            catalog[tool_id] = {
+                "name": info["name"],
+                "description": info["description"],
+                "available_in": ["pixel", "timmy"],
+            }
+    except ImportError:
+        pass
+
+    # ── Music tools (Lyra) ────────────────────────────────────────────────────
+    try:
+        from tools.music_tools import MUSIC_TOOL_CATALOG
+        for tool_id, info in MUSIC_TOOL_CATALOG.items():
+            catalog[tool_id] = {
+                "name": info["name"],
+                "description": info["description"],
+                "available_in": ["lyra", "timmy"],
+            }
+    except ImportError:
+        pass
+
+    # ── Video tools (Reel) ────────────────────────────────────────────────────
+    try:
+        from tools.video_tools import VIDEO_TOOL_CATALOG
+        for tool_id, info in VIDEO_TOOL_CATALOG.items():
+            catalog[tool_id] = {
+                "name": info["name"],
+                "description": info["description"],
+                "available_in": ["reel", "timmy"],
+            }
+    except ImportError:
+        pass
+
+    # ── Creative pipeline (Director) ──────────────────────────────────────────
+    try:
+        from creative.director import DIRECTOR_TOOL_CATALOG
+        for tool_id, info in DIRECTOR_TOOL_CATALOG.items():
+            catalog[tool_id] = {
+                "name": info["name"],
+                "description": info["description"],
+                "available_in": ["timmy"],
+            }
+    except ImportError:
+        pass
+
+    # ── Assembler tools ───────────────────────────────────────────────────────
+    try:
+        from creative.assembler import ASSEMBLER_TOOL_CATALOG
+        for tool_id, info in ASSEMBLER_TOOL_CATALOG.items():
+            catalog[tool_id] = {
+                "name": info["name"],
+                "description": info["description"],
+                "available_in": ["reel", "timmy"],
+            }
+    except ImportError:
+        pass
+
+    return catalog

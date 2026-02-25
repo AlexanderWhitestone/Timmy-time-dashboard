@@ -11,6 +11,7 @@ Intents:
   - task:       Task creation/management
   - help:       Request help or list commands
   - voice:      Voice settings (volume, rate, etc.)
+  - code:       Code modification / self-modify commands
   - unknown:    Unrecognized intent
 """
 
@@ -62,6 +63,14 @@ _PATTERNS: list[tuple[str, re.Pattern, float]] = [
         r"\b(voice|speak|volume|rate|speed|louder|quieter|faster|slower|mute|unmute)\b",
         re.IGNORECASE,
     ), 0.85),
+
+    # Code modification / self-modify
+    ("code", re.compile(
+        r"\b(modify|edit|change|update|fix|refactor|implement|patch)\s+(the\s+)?(code|file|function|class|module|source)\b"
+        r"|\bself[- ]?modify\b"
+        r"|\b(update|change|edit)\s+(your|the)\s+(code|source)\b",
+        re.IGNORECASE,
+    ), 0.9),
 ]
 
 # Keywords for entity extraction
@@ -69,6 +78,7 @@ _ENTITY_PATTERNS = {
     "agent_name": re.compile(r"(?:spawn|start)\s+(?:agent\s+)?(\w+)|(?:agent)\s+(\w+)", re.IGNORECASE),
     "task_description": re.compile(r"(?:task|assign)[:;]?\s+(.+)", re.IGNORECASE),
     "number": re.compile(r"\b(\d+)\b"),
+    "target_file": re.compile(r"(?:in|file|modify)\s+(?:the\s+)?([/\w._-]+\.py)", re.IGNORECASE),
 }
 
 

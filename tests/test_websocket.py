@@ -1,10 +1,10 @@
-"""Tests for websocket/handler.py — WebSocket manager."""
+"""Tests for ws_manager/handler.py — WebSocket manager."""
 
 import json
 
 import pytest
 
-from websocket.handler import WebSocketManager, WSEvent
+from ws_manager.handler import WebSocketManager, WSEvent
 
 
 def test_ws_event_to_json():

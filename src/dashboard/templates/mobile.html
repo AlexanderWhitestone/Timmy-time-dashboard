@@ -4,205 +4,277 @@
 
 {% block extra_styles %}
 <style>
-    @media (min-width: 769px) {
-        .mobile-only { display: none; }
-    }
-    
-    .mobile-nav {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: var(--bg-secondary);
-        border-top: 1px solid var(--bg-tertiary);
-        display: flex;
-        justify-content: space-around;
-        padding: 12px 0;
-        z-index: 100;
-    }
-    
-    .mobile-nav a {
-        color: var(--text-secondary);
-        text-decoration: none;
-        font-size: 0.75rem;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 4px;
-    }
-    
-    .mobile-nav a.active {
-        color: var(--accent);
-    }
-    
-    .mobile-nav-icon {
-        font-size: 1.5rem;
-    }
-    
-    .touch-button {
-        min-height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
+  @media (min-width: 769px) {
+    .mobile-only { display: none; }
+  }
+  @media (max-width: 768px) {
+    .desktop-message { display: none; }
+  }
+
+  .mobile-only {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 20px;
+  }
+
+  .quick-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .quick-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 52px;
+    border-radius: var(--radius-md);
+    font-family: var(--font);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    color: var(--text-bright);
+    border: 1px solid var(--border);
+    background: rgba(24, 10, 45, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: transform 0.1s, border-color 0.2s, box-shadow 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .quick-btn:hover { color: var(--text-bright); text-decoration: none; }
+  .quick-btn:active { transform: scale(0.96); }
+  .quick-btn.voice {
+    border-color: var(--border-glow);
+    background: rgba(124, 58, 237, 0.15);
+  }
+  .quick-btn.voice:active {
+    box-shadow: 0 0 18px rgba(124, 58, 237, 0.3);
+  }
+
+  .mobile-chat-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .mobile-chat-log {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 14px;
+    max-height: 300px;
+  }
+  .mobile-chat-input {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    background: rgba(24, 10, 45, 0.9);
+    border-top: 1px solid var(--border);
+  }
+  .mobile-chat-input input {
+    flex: 1;
+    background: rgba(8, 4, 18, 0.75);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-bright);
+    font-family: var(--font);
+    font-size: 16px;
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+  .mobile-chat-input input:focus {
+    outline: none;
+    border-color: var(--border-glow);
+    box-shadow: 0 0 0 1px var(--border-glow), 0 0 8px rgba(124, 58, 237, 0.2);
+  }
+  .mobile-chat-input input::placeholder { color: var(--text-dim); }
+  .mobile-chat-input button {
+    background: var(--border-glow);
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--text-bright);
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 0 16px;
+    min-height: 44px;
+    letter-spacing: 0.1em;
+    transition: background 0.15s, transform 0.1s;
+    touch-action: manipulation;
+  }
+  .mobile-chat-input button:active { transform: scale(0.96); }
+
+  .mobile-agents-list {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mobile-chat-msg {
+    margin-bottom: 12px;
+  }
+  .mobile-chat-msg .meta {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    margin-bottom: 3px;
+  }
+  .mobile-chat-msg.user .meta { color: var(--orange); }
+  .mobile-chat-msg.timmy .meta { color: var(--purple); }
+  .mobile-chat-msg .bubble {
+    background: rgba(24, 10, 45, 0.8);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .mobile-chat-msg.timmy .bubble {
+    border-left: 3px solid var(--purple);
+  }
+  .mobile-chat-msg.user .bubble {
+    border-color: var(--border-glow);
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="mobile-only">
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">🎙️ Quick Actions</h2>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-            <a href="/voice/button" class="btn btn-primary touch-button">
-                🎤 Voice
-            </a>
-            <a href="/swarm/task/create" class="btn btn-secondary touch-button">
-                ➕ Task
-            </a>
-            <a href="/swarm/live" class="btn btn-secondary touch-button">
-                📊 Swarm
-            </a>
-            <a href="/marketplace" class="btn btn-secondary touch-button">
-                🏪 Market
-            </a>
-        </div>
+
+  <!-- Quick Actions -->
+  <div class="card mc-panel">
+    <div class="card-header mc-panel-header">// QUICK ACTIONS</div>
+    <div class="quick-grid">
+      <a href="/voice/button" class="quick-btn voice">&#x1F3A4; Voice</a>
+      <a href="/swarm/task/create" class="quick-btn">&#x2795; Task</a>
+      <a href="/swarm/live" class="quick-btn">&#x1F4CA; Swarm</a>
+      <a href="/marketplace/ui" class="quick-btn">&#x1F3EA; Market</a>
     </div>
-    
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">💬 Chat with Timmy</h2>
-        </div>
-        <div id="mobile-chat" class="chat-container" style="height: 300px;">
-            <div class="chat-message timmy">
-                <div class="chat-meta">Timmy</div>
-                <div>Sir, Timmy here. Ready for your command.</div>
-            </div>
-        </div>
-        <form onsubmit="sendMobileMessage(event)">
-            <div style="display: flex; gap: 12px;">
-                <input type="text" id="mobile-message" placeholder="Message Timmy..." 
-                       style="flex: 1;" required autocomplete="off">
-                <button type="submit" class="btn btn-primary touch-button">Send</button>
-            </div>
-        </form>
+  </div>
+
+  <!-- Chat -->
+  <div class="card mc-panel mobile-chat-wrap">
+    <div class="card-header mc-panel-header">// TIMMY</div>
+    <div class="mobile-chat-log" id="mobile-chat">
+      <div class="mobile-chat-msg timmy">
+        <div class="meta">TIMMY</div>
+        <div class="bubble">Sir, Timmy here. Ready for your command.</div>
+      </div>
     </div>
-    
-    <div class="card">
-        <div class="card-header">
-            <h2 class="card-title">🤖 Your Agents</h2>
-        </div>
-        {% if agents %}
-            {% for agent in agents[:3] %}
-            <div class="agent-card">
-                <div class="agent-avatar">{{ agent.name[0] }}</div>
-                <div class="agent-info">
-                    <div class="agent-name">{{ agent.name }}</div>
-                    <div class="agent-meta">
-                        <span class="badge badge-{{ 'success' if agent.status == 'active' else 'warning' if agent.status == 'busy' else 'danger' }}">
-                            {{ agent.status }}
-                        </span>
-                    </div>
-                </div>
+    <form onsubmit="sendMobileMessage(event)" class="mobile-chat-input">
+      <input type="text" id="mobile-message" placeholder="Message Timmy..." required autocomplete="off" />
+      <button type="submit">SEND</button>
+    </form>
+  </div>
+
+  <!-- Agents -->
+  <div class="card mc-panel">
+    <div class="card-header mc-panel-header">// YOUR AGENTS</div>
+    <div class="mobile-agents-list">
+      {% if agents %}
+        {% for agent in agents[:3] %}
+        <div class="agent-card">
+          <div class="agent-avatar">{{ agent.name[0] }}</div>
+          <div class="agent-info">
+            <div class="agent-name">{{ agent.name }}</div>
+            <div class="agent-meta">
+              <span class="badge badge-{{ 'success' if agent.status == 'active' else 'warning' if agent.status == 'busy' else 'danger' }}">
+                {{ agent.status }}
+              </span>
             </div>
-            {% endfor %}
-        {% else %}
-            <p style="color: var(--text-muted); text-align: center; padding: 20px;">
-                No agents yet. Launch one from Mission Control.
-            </p>
-        {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="color: var(--text-dim); text-align: center; padding: 20px; font-size: 12px; letter-spacing: 0.08em;">
+          NO AGENTS YET
+        </div>
+      {% endif %}
     </div>
-    
-    <!-- Mobile Navigation -->
-    <nav class="mobile-nav">
-        <a href="/mobile" class="active">
-            <span class="mobile-nav-icon">🏠</span>
-            <span>Home</span>
-        </a>
-        <a href="/agents/timmy/chat">
-            <span class="mobile-nav-icon">💬</span>
-            <span>Chat</span>
-        </a>
-        <a href="/swarm/live">
-            <span class="mobile-nav-icon">📊</span>
-            <span>Swarm</span>
-        </a>
-        <a href="/marketplace">
-            <span class="mobile-nav-icon">🏪</span>
-            <span>Market</span>
-        </a>
-    </nav>
-    
-    <div style="height: 80px;"></div> <!-- Spacer for bottom nav -->
+  </div>
+
 </div>
 
+<!-- Desktop fallback -->
 <div class="desktop-message" style="text-align: center; padding: 60px;">
-    <p style="font-size: 3rem; margin-bottom: 20px;">📱</p>
-    <h2 style="margin-bottom: 16px;">Mobile Dashboard</h2>
-    <p style="color: var(--text-secondary);">
-        This page is optimized for mobile devices.<br>
-        Please visit on your iPhone or use the desktop dashboard.
-    </p>
-    <a href="/agents/timmy/chat" class="btn btn-primary" style="margin-top: 20px;">
-        Go to Desktop Dashboard
-    </a>
+  <p style="font-size: 3rem; margin-bottom: 20px;">&#x1F4F1;</p>
+  <h2 style="margin-bottom: 16px; color: var(--text-bright);">Mobile Dashboard</h2>
+  <p style="color: var(--text-dim);">
+    This page is optimized for mobile devices.<br>
+    Please visit on your iPhone or use the desktop dashboard.
+  </p>
+  <a href="/" class="btn btn-primary" style="margin-top: 20px;">
+    Go to Desktop Dashboard
+  </a>
 </div>
 
 <script>
-// Simple mobile chat
 async function sendMobileMessage(event) {
     event.preventDefault();
     const input = document.getElementById('mobile-message');
     const message = input.value.trim();
     if (!message) return;
-    
+
     const chat = document.getElementById('mobile-chat');
-    
-    // Add user message — use DOM methods to avoid XSS
+
+    // Add user message
     const userDiv = document.createElement('div');
-    userDiv.className = 'chat-message user';
+    userDiv.className = 'mobile-chat-msg user';
     const userMeta = document.createElement('div');
-    userMeta.className = 'chat-meta';
-    userMeta.textContent = 'You';
-    const userText = document.createElement('div');
-    userText.textContent = message;  // textContent escapes HTML
+    userMeta.className = 'meta';
+    userMeta.textContent = 'YOU';
+    const userBubble = document.createElement('div');
+    userBubble.className = 'bubble';
+    userBubble.textContent = message;
     userDiv.appendChild(userMeta);
-    userDiv.appendChild(userText);
+    userDiv.appendChild(userBubble);
     chat.appendChild(userDiv);
     chat.scrollTop = chat.scrollHeight;
-    
+
     input.value = '';
-    
-    // Send to server
+
     try {
         const response = await fetch('/agents/timmy/chat', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `message=${encodeURIComponent(message)}`
+            body: 'message=' + encodeURIComponent(message)
         });
         const html = await response.text();
-        
-        // Extract Timmy's response from HTML
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
-        const timmyResponse = doc.querySelector('.chat-message.timmy');
-        
-        if (timmyResponse) {
-            chat.appendChild(timmyResponse.cloneNode(true));
-            chat.scrollTop = chat.scrollHeight;
-        }
+        const timmyResponse = doc.querySelector('.chat-message.timmy, .msg-body');
+
+        const replyDiv = document.createElement('div');
+        replyDiv.className = 'mobile-chat-msg timmy';
+        const replyMeta = document.createElement('div');
+        replyMeta.className = 'meta';
+        replyMeta.textContent = 'TIMMY';
+        const replyBubble = document.createElement('div');
+        replyBubble.className = 'bubble';
+        replyBubble.textContent = timmyResponse ? timmyResponse.textContent.trim() : 'Response received.';
+        replyDiv.appendChild(replyMeta);
+        replyDiv.appendChild(replyBubble);
+        chat.appendChild(replyDiv);
+        chat.scrollTop = chat.scrollHeight;
     } catch (e) {
         const errDiv = document.createElement('div');
-        errDiv.className = 'chat-message timmy';
+        errDiv.className = 'mobile-chat-msg timmy';
         const errMeta = document.createElement('div');
-        errMeta.className = 'chat-meta';
-        errMeta.textContent = 'Timmy';
-        const errText = document.createElement('div');
-        errText.style.color = 'var(--danger)';
-        errText.textContent = 'Sorry, I could not process that. Try again?';
+        errMeta.className = 'meta';
+        errMeta.textContent = 'TIMMY';
+        const errBubble = document.createElement('div');
+        errBubble.className = 'bubble';
+        errBubble.style.color = 'var(--red)';
+        errBubble.textContent = 'Sorry, I could not process that. Try again?';
         errDiv.appendChild(errMeta);
-        errDiv.appendChild(errText);
+        errDiv.appendChild(errBubble);
         chat.appendChild(errDiv);
         chat.scrollTop = chat.scrollHeight;
     }
