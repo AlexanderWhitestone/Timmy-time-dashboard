@@ -54,6 +54,12 @@ voice = [
 telegram = [
     "python-telegram-bot>=21.0",
 ]
+# Discord: bridge Discord messages to Timmy with native thread support.
+# pip install ".[discord]"
+# Optional: pip install pyzbar Pillow  (for QR code invite detection)
+discord = [
+    "discord.py>=2.3.0",
+]
 # Creative: GPU-accelerated image, music, and video generation.
 # pip install ".[creative]"
 creative = [
@@ -84,6 +90,7 @@ include = [
     "src/notifications",
     "src/shortcuts",
     "src/telegram_bot",
+    "src/chat_bridge",
     "src/spark",
     "src/tools",
     "src/creative",
