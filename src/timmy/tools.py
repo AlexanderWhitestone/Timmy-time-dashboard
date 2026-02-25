@@ -253,7 +253,8 @@ def create_devops_tools(base_dir: str | Path | None = None):
 def create_full_toolkit(base_dir: str | Path | None = None):
     """Create a full toolkit with all available tools (for Timmy).
     
-    Includes: web search, file read/write, shell commands, python execution
+    Includes: web search, file read/write, shell commands, python execution,
+    and memory search for contextual recall.
     """
     if not _AGNO_TOOLS_AVAILABLE:
         # Return None when tools aren't available (tests)
@@ -278,6 +279,13 @@ def create_full_toolkit(base_dir: str | Path | None = None):
     toolkit.register(file_tools.read_file, name="read_file")
     toolkit.register(file_tools.save_file, name="write_file")
     toolkit.register(file_tools.list_files, name="list_files")
+    
+    # Memory search - semantic recall
+    try:
+        from timmy.semantic_memory import memory_search
+        toolkit.register(memory_search, name="memory_search")
+    except Exception:
+        logger.debug("Memory search not available")
     
     return toolkit
 
