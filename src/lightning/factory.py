@@ -12,6 +12,7 @@ import logging
 import os
 from typing import Optional
 
+from config import settings
 from lightning.base import LightningBackend
 
 logger = logging.getLogger(__name__)
@@ -68,7 +69,7 @@ def get_backend(name: Optional[str] = None) -> LightningBackend:
     """
     _register_backends()
     
-    backend_name = (name or os.environ.get("LIGHTNING_BACKEND", "mock")).lower()
+    backend_name = (name or settings.lightning_backend).lower()
     
     if backend_name not in _BACKENDS:
         available = ", ".join(_BACKENDS.keys())
@@ -100,8 +101,8 @@ def get_backend_info() -> dict:
     Returns:
         Dict with backend info for health/status endpoints
     """
-    backend_name = os.environ.get("LIGHTNING_BACKEND", "mock")
-    
+    backend_name = settings.lightning_backend
+
     return {
         "configured_backend": backend_name,
         "available_backends": list_backends(),

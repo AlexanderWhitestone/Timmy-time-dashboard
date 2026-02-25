@@ -19,18 +19,19 @@ class TestFullSwarmLifecycle:
     """Integration tests for end-to-end swarm task lifecycle."""
 
     def test_post_task_creates_bidding_task(self, client):
-        """Posting a task should create it in BIDDING status."""
+        """Posting a task should initially return BIDDING status."""
         response = client.post("/swarm/tasks", data={"description": "Test integration task"})
         assert response.status_code == 200
-        
+
         data = response.json()
         assert "task_id" in data
         assert data["status"] == "bidding"
-        
-        # Verify task exists and is in bidding status
+
+        # The background auction may have resolved by the time we query,
+        # so the task can be in bidding, assigned, or failed
         task_response = client.get(f"/swarm/tasks/{data['task_id']}")
         task = task_response.json()
-        assert task["status"] == "bidding"
+        assert task["status"] in ("bidding", "assigned", "failed")
 
     def test_post_task_and_auction_assigns_winner(self, client):
         """Posting task with auction should assign it to a winner."""
@@ -187,22 +188,25 @@ class TestSwarmTaskFiltering:
         """Should be able to filter tasks by status."""
         # Create tasks in different statuses
         client.post("/swarm/spawn", data={"name": "Worker"})
-        
-        # Pending task (just created)
+
+        # Post a task — auto-auction runs in background, so it will transition
+        # from "bidding" to "failed" (no agents bid) or "assigned"
         pending_resp = client.post("/swarm/tasks", data={"description": "Pending task"})
         pending_id = pending_resp.json()["task_id"]
-        
+
         # Completed task
         auction_resp = client.post("/swarm/tasks/auction", data={"description": "Completed task"})
         completed_id = auction_resp.json()["task_id"]
         client.post(f"/swarm/tasks/{completed_id}/complete", data={"result": "Done"})
-        
-        # Filter by status
+
+        # Filter by status — completed task should be findable
         completed_list = client.get("/swarm/tasks?status=completed").json()["tasks"]
         assert any(t["id"] == completed_id for t in completed_list)
-        
-        bidding_list = client.get("/swarm/tasks?status=bidding").json()["tasks"]
-        assert any(t["id"] == pending_id for t in bidding_list)
+
+        # The auto-auctioned task may be in bidding or failed depending on
+        # whether the background auction has resolved yet
+        task_detail = client.get(f"/swarm/tasks/{pending_id}").json()
+        assert task_detail["status"] in ("bidding", "failed", "assigned")
 
     def test_get_nonexistent_task_returns_error(self, client):
         """Getting a non-existent task should return appropriate error."""

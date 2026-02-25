@@ -60,15 +60,37 @@ python -m pytest "$REPO_DIR/tests/" -q --tb=short
 echo "==> All tests passed."
 
 # ── 4. Self-TDD watchdog (background) ────────────────────────────────────────
+WATCHDOG_PID_FILE="$REPO_DIR/.watchdog.pid"
+
+# Kill any previously orphaned watchdog
+if [[ -f "$WATCHDOG_PID_FILE" ]]; then
+  OLD_PID=$(cat "$WATCHDOG_PID_FILE")
+  if kill -0 "$OLD_PID" 2>/dev/null; then
+    echo "==> Stopping previous watchdog (PID $OLD_PID)..."
+    kill "$OLD_PID" 2>/dev/null || true
+  fi
+  rm -f "$WATCHDOG_PID_FILE"
+fi
+
 echo "==> Starting self-TDD watchdog (60s interval) in background..."
 self-tdd watch --interval 60 &
 WATCHDOG_PID=$!
-echo "    Watchdog PID: $WATCHDOG_PID"
+echo "$WATCHDOG_PID" > "$WATCHDOG_PID_FILE"
+echo "    Watchdog PID: $WATCHDOG_PID (saved to .watchdog.pid)"
 echo "    Kill with: kill $WATCHDOG_PID"
+
+# Clean up watchdog when the script exits (Ctrl-C, etc.)
+cleanup() {
+  echo ""
+  echo "==> Stopping watchdog (PID $WATCHDOG_PID)..."
+  kill "$WATCHDOG_PID" 2>/dev/null || true
+  rm -f "$WATCHDOG_PID_FILE"
+}
+trap cleanup EXIT
 
 # ── 5. Dashboard ─────────────────────────────────────────────────────────────
 echo ""
 echo "==> Starting Timmy Time dashboard at http://localhost:8000"
-echo "    Ctrl-C stops the dashboard (watchdog continues until you kill it)"
+echo "    Ctrl-C stops both the dashboard and the watchdog"
 echo ""
 uvicorn dashboard.app:app --reload --host 0.0.0.0 --port 8000

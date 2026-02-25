@@ -12,20 +12,13 @@ import secrets
 import time
 from typing import Optional
 
+from config import settings
 from lightning.base import Invoice, LightningBackend, LightningError
 
 logger = logging.getLogger(__name__)
 
-# Secret for HMAC-based invoice verification (mock mode)
-_HMAC_SECRET_DEFAULT = "timmy-sovereign-sats"
-_HMAC_SECRET_RAW = os.environ.get("L402_HMAC_SECRET", _HMAC_SECRET_DEFAULT)
-_HMAC_SECRET = _HMAC_SECRET_RAW.encode()
-
-if _HMAC_SECRET_RAW == _HMAC_SECRET_DEFAULT:
-    logger.warning(
-        "SEC: L402_HMAC_SECRET is using the default value — set a unique "
-        "secret in .env before deploying to production."
-    )
+# Read secret from centralised config (validated at startup in config.py)
+_HMAC_SECRET = settings.l402_hmac_secret.encode()
 
 
 class MockBackend(LightningBackend):

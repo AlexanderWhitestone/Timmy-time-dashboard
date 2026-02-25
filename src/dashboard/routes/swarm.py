@@ -4,6 +4,7 @@ Provides REST endpoints for managing the swarm: listing agents,
 spawning sub-agents, posting tasks, and viewing auction results.
 """
 
+import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -90,8 +91,10 @@ async def list_tasks(status: Optional[str] = None):
 
 @router.post("/tasks")
 async def post_task(description: str = Form(...)):
-    """Post a new task to the swarm for bidding."""
+    """Post a new task to the swarm and run auction to assign it."""
     task = coordinator.post_task(description)
+    # Start auction asynchronously - don't wait for it to complete
+    asyncio.create_task(coordinator.run_auction_and_assign(task.id))
     return {
         "task_id": task.id,
         "description": task.description,

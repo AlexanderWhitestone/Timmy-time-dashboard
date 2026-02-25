@@ -21,29 +21,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # ── Python deps (install before copying src for layer caching) ───────────────
+# Copy only pyproject.toml first so Docker can cache the dep-install layer.
+# The editable install (-e) happens after src is copied below.
 COPY pyproject.toml .
 
-# Install production deps only (no dev/test extras in the image)
-RUN pip install --no-cache-dir \
-        "fastapi>=0.115.0" \
-        "uvicorn[standard]>=0.32.0" \
-        "jinja2>=3.1.0" \
-        "httpx>=0.27.0" \
-        "python-multipart>=0.0.12" \
-        "aiofiles>=24.0.0" \
-        "typer>=0.12.0" \
-        "rich>=13.0.0" \
-        "pydantic-settings>=2.0.0" \
-        "websockets>=12.0" \
-        "agno[sqlite]>=1.4.0" \
-        "ollama>=0.3.0" \
-        "openai>=1.0.0" \
-        "python-telegram-bot>=21.0" \
-        "GitPython>=3.1.40" \
-        "moviepy>=2.0.0" \
-        "redis>=5.0.0"
+# Create a minimal src layout so `pip install` can resolve the package metadata
+# without copying the full source tree (preserves Docker layer caching).
+RUN mkdir -p src/timmy src/timmy_serve src/self_tdd src/dashboard && \
+    touch src/timmy/__init__.py src/timmy/cli.py \
+          src/timmy_serve/__init__.py src/timmy_serve/cli.py \
+          src/self_tdd/__init__.py src/self_tdd/watchdog.py \
+          src/dashboard/__init__.py src/config.py
+
+RUN pip install --no-cache-dir -e ".[swarm,telegram]"
 
 # ── Application source ───────────────────────────────────────────────────────
+# Overwrite the stubs with real source code
 COPY src/ ./src/
 COPY static/ ./static/
 

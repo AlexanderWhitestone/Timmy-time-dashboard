@@ -59,6 +59,23 @@ class Settings(BaseSettings):
     video_transition_duration: float = 1.0
     default_video_codec: str = "libx264"
 
+    # ── L402 Lightning ───────────────────────────────────────────────────
+    # HMAC secrets for macaroon signing and invoice verification.
+    # Generate with: python3 -c "import secrets; print(secrets.token_hex(32))"
+    # In production (TIMMY_ENV=production), these MUST be set or the app will refuse to start.
+    l402_hmac_secret: str = ""
+    l402_macaroon_secret: str = ""
+    lightning_backend: Literal["mock", "lnd"] = "mock"
+
+    # ── Privacy / Sovereignty ────────────────────────────────────────────
+    # Disable Agno telemetry for air-gapped/sovereign deployments.
+    # Default is False (telemetry disabled) to align with sovereign AI vision.
+    telemetry_enabled: bool = False
+
+    # Environment mode: development | production
+    # In production, security settings are strictly enforced.
+    timmy_env: Literal["development", "production"] = "development"
+
     # ── Self-Modification ──────────────────────────────────────────────
     # Enable self-modification capabilities. When enabled, Timmy can
     # edit its own source code, run tests, and commit changes.
@@ -75,3 +92,39 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# ── Startup validation ───────────────────────────────────────────────────────
+# Enforce security requirements — fail fast in production.
+import logging as _logging
+import sys
+
+_startup_logger = _logging.getLogger("config")
+
+# Production mode: require secrets to be set
+if settings.timmy_env == "production":
+    _missing = []
+    if not settings.l402_hmac_secret:
+        _missing.append("L402_HMAC_SECRET")
+    if not settings.l402_macaroon_secret:
+        _missing.append("L402_MACAROON_SECRET")
+    if _missing:
+        _startup_logger.error(
+            "PRODUCTION SECURITY ERROR: The following secrets must be set: %s\n"
+            "Generate with: python3 -c \"import secrets; print(secrets.token_hex(32))\"\n"
+            "Set in .env file or environment variables.",
+            ", ".join(_missing),
+        )
+        sys.exit(1)
+    _startup_logger.info("Production mode: security secrets validated ✓")
+else:
+    # Development mode: warn but continue
+    if not settings.l402_hmac_secret:
+        _startup_logger.warning(
+            "SEC: L402_HMAC_SECRET is not set — "
+            "set a unique secret in .env before deploying to production."
+        )
+    if not settings.l402_macaroon_secret:
+        _startup_logger.warning(
+            "SEC: L402_MACAROON_SECRET is not set — "
+            "set a unique secret in .env before deploying to production."
+        )

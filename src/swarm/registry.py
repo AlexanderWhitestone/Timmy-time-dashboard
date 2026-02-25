@@ -15,21 +15,8 @@ from typing import Optional
 DB_PATH = Path("data/swarm.db")
 
 
-@dataclass
-class AgentRecord:
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    name: str = ""
-    status: str = "idle"  # idle | busy | offline
-    capabilities: str = ""  # comma-separated tags
-    registered_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
-    last_seen: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
-
-
 def _get_conn() -> sqlite3.Connection:
+    """Get a SQLite connection."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
@@ -47,6 +34,20 @@ def _get_conn() -> sqlite3.Connection:
     )
     conn.commit()
     return conn
+
+
+@dataclass
+class AgentRecord:
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    name: str = ""
+    status: str = "idle"  # idle | busy | offline
+    capabilities: str = ""  # comma-separated tags
+    registered_at: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+    last_seen: str = field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
 
 
 def _row_to_record(row: sqlite3.Row) -> AgentRecord:
@@ -67,70 +68,81 @@ def register(name: str, capabilities: str = "", agent_id: Optional[str] = None) 
         capabilities=capabilities,
     )
     conn = _get_conn()
-    conn.execute(
-        """
-        INSERT OR REPLACE INTO agents (id, name, status, capabilities, registered_at, last_seen)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (record.id, record.name, record.status, record.capabilities,
-         record.registered_at, record.last_seen),
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            """
+            INSERT OR REPLACE INTO agents (id, name, status, capabilities, registered_at, last_seen)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (record.id, record.name, record.status, record.capabilities,
+             record.registered_at, record.last_seen),
+        )
+        conn.commit()
+    finally:
+        conn.close()
     return record
 
 
 def unregister(agent_id: str) -> bool:
     conn = _get_conn()
-    cursor = conn.execute("DELETE FROM agents WHERE id = ?", (agent_id,))
-    conn.commit()
-    deleted = cursor.rowcount > 0
-    conn.close()
-    return deleted
+    try:
+        cursor = conn.execute("DELETE FROM agents WHERE id = ?", (agent_id,))
+        conn.commit()
+        return cursor.rowcount > 0
+    finally:
+        conn.close()
 
 
 def get_agent(agent_id: str) -> Optional[AgentRecord]:
     conn = _get_conn()
-    row = conn.execute("SELECT * FROM agents WHERE id = ?", (agent_id,)).fetchone()
-    conn.close()
-    return _row_to_record(row) if row else None
+    try:
+        row = conn.execute("SELECT * FROM agents WHERE id = ?", (agent_id,)).fetchone()
+        return _row_to_record(row) if row else None
+    finally:
+        conn.close()
 
 
 def list_agents(status: Optional[str] = None) -> list[AgentRecord]:
     conn = _get_conn()
-    if status:
-        rows = conn.execute(
-            "SELECT * FROM agents WHERE status = ? ORDER BY registered_at DESC",
-            (status,),
-        ).fetchall()
-    else:
-        rows = conn.execute(
-            "SELECT * FROM agents ORDER BY registered_at DESC"
-        ).fetchall()
-    conn.close()
-    return [_row_to_record(r) for r in rows]
+    try:
+        if status:
+            rows = conn.execute(
+                "SELECT * FROM agents WHERE status = ? ORDER BY registered_at DESC",
+                (status,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM agents ORDER BY registered_at DESC"
+            ).fetchall()
+        return [_row_to_record(r) for r in rows]
+    finally:
+        conn.close()
 
 
 def update_status(agent_id: str, status: str) -> Optional[AgentRecord]:
     now = datetime.now(timezone.utc).isoformat()
     conn = _get_conn()
-    conn.execute(
-        "UPDATE agents SET status = ?, last_seen = ? WHERE id = ?",
-        (status, now, agent_id),
-    )
-    conn.commit()
-    conn.close()
-    return get_agent(agent_id)
+    try:
+        conn.execute(
+            "UPDATE agents SET status = ?, last_seen = ? WHERE id = ?",
+            (status, now, agent_id),
+        )
+        conn.commit()
+        return get_agent(agent_id)
+    finally:
+        conn.close()
 
 
 def heartbeat(agent_id: str) -> Optional[AgentRecord]:
     """Update last_seen timestamp for a registered agent."""
     now = datetime.now(timezone.utc).isoformat()
     conn = _get_conn()
-    conn.execute(
-        "UPDATE agents SET last_seen = ? WHERE id = ?",
-        (now, agent_id),
-    )
-    conn.commit()
-    conn.close()
-    return get_agent(agent_id)
+    try:
+        conn.execute(
+            "UPDATE agents SET last_seen = ? WHERE id = ?",
+            (now, agent_id),
+        )
+        conn.commit()
+        return get_agent(agent_id)
+    finally:
+        conn.close()
