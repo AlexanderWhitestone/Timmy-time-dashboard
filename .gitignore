@@ -37,5 +37,11 @@ reports/
 .vscode/
 *.swp
 *.swo
-.DS_Store
 .claude/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
