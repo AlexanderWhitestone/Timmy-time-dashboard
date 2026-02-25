@@ -26,6 +26,7 @@ from dashboard.routes.tools import router as tools_router
 from dashboard.routes.spark import router as spark_router
 from dashboard.routes.creative import router as creative_router
 from dashboard.routes.discord import router as discord_router
+from dashboard.routes.self_modify import router as self_modify_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -154,6 +155,7 @@ app.include_router(tools_router)
 app.include_router(spark_router)
 app.include_router(creative_router)
 app.include_router(discord_router)
+app.include_router(self_modify_router)
 
 
 @app.get("/", response_class=HTMLResponse)
