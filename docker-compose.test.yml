@@ -1,0 +1,70 @@
+# ── Timmy Time — test stack ──────────────────────────────────────────────────
+#
+# Lightweight compose for functional tests.  Runs the dashboard on port 18000
+# and optional agent workers on the swarm-test-net network.
+#
+# Usage:
+#   FUNCTIONAL_DOCKER=1 pytest tests/functional/test_docker_swarm.py -v
+#
+# Or manually:
+#   docker compose -f docker-compose.test.yml -p timmy-test up -d --build --wait
+#   curl http://localhost:18000/health
+#   docker compose -f docker-compose.test.yml -p timmy-test down -v
+
+services:
+
+  dashboard:
+    build: .
+    image: timmy-time:test
+    container_name: timmy-test-dashboard
+    ports:
+      - "18000:8000"
+    volumes:
+      - test-data:/app/data
+      - ./src:/app/src
+      - ./static:/app/static
+    environment:
+      DEBUG: "true"
+      TIMMY_TEST_MODE: "1"
+      OLLAMA_URL: "http://host.docker.internal:11434"
+      LIGHTNING_BACKEND: "mock"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - swarm-test-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  agent:
+    build: .
+    image: timmy-time:test
+    profiles:
+      - agents
+    volumes:
+      - test-data:/app/data
+      - ./src:/app/src
+    environment:
+      COORDINATOR_URL: "http://dashboard:8000"
+      OLLAMA_URL: "http://host.docker.internal:11434"
+      AGENT_NAME: "${AGENT_NAME:-TestWorker}"
+      AGENT_CAPABILITIES: "${AGENT_CAPABILITIES:-general}"
+      TIMMY_TEST_MODE: "1"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: ["sh", "-c", "python -m swarm.agent_runner --agent-id agent-$(hostname) --name $${AGENT_NAME:-TestWorker}"]
+    networks:
+      - swarm-test-net
+    depends_on:
+      dashboard:
+        condition: service_healthy
+
+volumes:
+  test-data:
+
+networks:
+  swarm-test-net:
+    driver: bridge

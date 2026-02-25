@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     # Telegram bot token — set via TELEGRAM_TOKEN env var or the /telegram/setup endpoint
     telegram_token: str = ""
 
+    # Discord bot token — set via DISCORD_TOKEN env var or the /discord/setup endpoint
+    discord_token: str = ""
+
     # ── AirLLM / backend selection ───────────────────────────────────────────
     # "ollama"  — always use Ollama (default, safe everywhere)
     # "airllm"  — always use AirLLM (requires pip install ".[bigbrain]")
