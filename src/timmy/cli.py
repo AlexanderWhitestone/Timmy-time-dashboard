@@ -1,3 +1,4 @@
+import subprocess
 from typing import Optional
 
 import typer
@@ -52,6 +53,35 @@ def status(
     """Print Timmy's operational status."""
     timmy = create_timmy(backend=backend, model_size=model_size)
     timmy.print_response(TIMMY_STATUS_PROMPT, stream=False)
+
+
+@app.command()
+def up(
+    dev: bool = typer.Option(False, "--dev", help="Enable hot-reload for development"),
+    build: bool = typer.Option(True, "--build/--no-build", help="Rebuild images before starting"),
+):
+    """Start Timmy Time in Docker (dashboard + agents)."""
+    cmd = ["docker", "compose"]
+    if dev:
+        cmd += ["-f", "docker-compose.yml", "-f", "docker-compose.dev.yml"]
+    cmd += ["up", "-d"]
+    if build:
+        cmd.append("--build")
+
+    mode = "dev mode (hot-reload active)" if dev else "production mode"
+    typer.echo(f"Starting Timmy Time in {mode}...")
+    result = subprocess.run(cmd)
+    if result.returncode == 0:
+        typer.echo(f"\n  Timmy Time running at http://localhost:8000  ({mode})\n")
+    else:
+        typer.echo("Failed to start. Is Docker running?", err=True)
+        raise typer.Exit(1)
+
+
+@app.command()
+def down():
+    """Stop all Timmy Time Docker containers."""
+    subprocess.run(["docker", "compose", "down"], check=True)
 
 
 def main():

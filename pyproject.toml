@@ -32,6 +32,7 @@ dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.24.0",
     "pytest-cov>=5.0.0",
+    "selenium>=4.20.0",
 ]
 # Big-brain: run 8B / 70B / 405B models locally via layer-by-layer loading.
 # pip install ".[bigbrain]"
@@ -85,7 +86,7 @@ include = [
     "src/config.py",
     "src/self_tdd",
     "src/swarm",
-    "src/websocket",
+    "src/ws_manager",
     "src/voice",
     "src/notifications",
     "src/shortcuts",

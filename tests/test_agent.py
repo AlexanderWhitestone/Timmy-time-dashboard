@@ -37,7 +37,9 @@ def test_create_timmy_uses_llama32():
         from timmy.agent import create_timmy
         create_timmy()
 
-        MockOllama.assert_called_once_with(id="llama3.2")
+        MockOllama.assert_called_once()
+        kwargs = MockOllama.call_args.kwargs
+        assert kwargs["id"] == "llama3.2"
 
 
 def test_create_timmy_history_config():
@@ -77,6 +79,46 @@ def test_create_timmy_embeds_system_prompt():
 
         kwargs = MockAgent.call_args.kwargs
         assert kwargs["description"] == TIMMY_SYSTEM_PROMPT
+
+
+# ── Ollama host regression (container connectivity) ─────────────────────────
+
+def test_create_timmy_passes_ollama_url_to_model():
+    """Regression: Ollama model must receive settings.ollama_url as host.
+
+    Without this, containers default to localhost:11434 which is unreachable
+    when Ollama runs on the Docker host.
+    """
+    with patch("timmy.agent.Agent"), \
+         patch("timmy.agent.Ollama") as MockOllama, \
+         patch("timmy.agent.SqliteDb"):
+
+        from timmy.agent import create_timmy
+        create_timmy()
+
+        kwargs = MockOllama.call_args.kwargs
+        assert "host" in kwargs, "Ollama() must receive host= parameter"
+        assert kwargs["host"] == "http://localhost:11434"  # default from config
+
+
+def test_create_timmy_respects_custom_ollama_url():
+    """Ollama host should follow OLLAMA_URL when overridden in config."""
+    custom_url = "http://host.docker.internal:11434"
+    with patch("timmy.agent.Agent"), \
+         patch("timmy.agent.Ollama") as MockOllama, \
+         patch("timmy.agent.SqliteDb"), \
+         patch("timmy.agent.settings") as mock_settings:
+
+        mock_settings.ollama_model = "llama3.2"
+        mock_settings.ollama_url = custom_url
+        mock_settings.timmy_model_backend = "ollama"
+        mock_settings.airllm_model_size = "70b"
+
+        from timmy.agent import create_timmy
+        create_timmy()
+
+        kwargs = MockOllama.call_args.kwargs
+        assert kwargs["host"] == custom_url
 
 
 # ── AirLLM path ──────────────────────────────────────────────────────────────

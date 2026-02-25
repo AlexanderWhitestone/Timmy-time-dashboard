@@ -28,8 +28,26 @@ try:
 except ImportError:
     _MOVIEPY_AVAILABLE = False
 
-# Resolve a font that actually exists on this system.
-_DEFAULT_FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+def _resolve_font() -> str:
+    """Find a usable TrueType font on the current platform."""
+    candidates = [
+        # Linux (Debian/Ubuntu)
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/TTF/DejaVuSans.ttf",  # Arch
+        "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",  # Fedora
+        # macOS
+        "/System/Library/Fonts/Supplemental/Arial.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/Library/Fonts/Arial.ttf",
+    ]
+    for path in candidates:
+        if Path(path).exists():
+            return path
+    logger.warning("No system TrueType font found; using Pillow default")
+    return "Helvetica"
+
+
+_DEFAULT_FONT = _resolve_font()
 
 
 def _require_moviepy() -> None:

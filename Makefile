@@ -1,4 +1,5 @@
 .PHONY: install install-bigbrain dev test test-cov test-cov-html watch lint clean help \
+        up down logs \
         docker-build docker-up docker-down docker-agent docker-logs docker-shell \
         cloud-deploy cloud-up cloud-down cloud-logs cloud-status cloud-update
 
@@ -77,6 +78,33 @@ lint:
 
 # ── Housekeeping ──────────────────────────────────────────────────────────────
 
+# ── One-command startup ──────────────────────────────────────────────────────
+#   make up           build + start everything in Docker
+#   make up DEV=1     same, with hot-reload on Python/template/CSS changes
+
+up:
+	mkdir -p data
+ifdef DEV
+	docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+	@echo ""
+	@echo "  ✓ Timmy Time running in DEV mode at http://localhost:8000"
+	@echo "    Hot-reload active — Python, template, and CSS changes auto-apply"
+	@echo "    Logs: make logs"
+	@echo ""
+else
+	docker compose up -d --build
+	@echo ""
+	@echo "  ✓ Timmy Time running at http://localhost:8000"
+	@echo "    Logs: make logs"
+	@echo ""
+endif
+
+down:
+	docker compose down
+
+logs:
+	docker compose logs -f
+
 # ── Docker ────────────────────────────────────────────────────────────────────
 
 docker-build:
@@ -151,11 +179,18 @@ clean:
 
 help:
 	@echo ""
+	@echo "  Quick Start"
+	@echo "  ─────────────────────────────────────────────────"
+	@echo "  make up               build + start everything in Docker"
+	@echo "  make up DEV=1         same, with hot-reload on file changes"
+	@echo "  make down             stop all containers"
+	@echo "  make logs             tail container logs"
+	@echo ""
 	@echo "  Local Development"
 	@echo "  ─────────────────────────────────────────────────"
 	@echo "  make install          create venv + install dev deps"
 	@echo "  make install-bigbrain install with AirLLM (big-model backend)"
-	@echo "  make dev              start dashboard at http://localhost:8000"
+	@echo "  make dev              start dashboard locally (no Docker)"
 	@echo "  make ip               print local IP addresses for phone testing"
 	@echo "  make test             run all tests"
 	@echo "  make test-cov         tests + coverage report (terminal + XML)"
@@ -164,7 +199,7 @@ help:
 	@echo "  make lint             run ruff or flake8"
 	@echo "  make clean            remove build artefacts and caches"
 	@echo ""
-	@echo "  Docker (Dev)"
+	@echo "  Docker (Advanced)"
 	@echo "  ─────────────────────────────────────────────────"
 	@echo "  make docker-build     build the timmy-time:latest image"
 	@echo "  make docker-up        start dashboard container"

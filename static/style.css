@@ -272,7 +272,9 @@ a:hover { color: var(--orange); }
 }
 .mc-chat-panel > .card {
   height: 100%;
-  overflow: clip;
+  min-height: 0;            /* flex child: allow shrink below content */
+  margin-bottom: 0;         /* override Bootstrap .card margin that breaks flex sizing */
+  overflow: hidden;
 }
 
 /* ── Panel / Card overrides ──────────────────────── */
@@ -396,6 +398,7 @@ a:hover { color: var(--orange); }
 /* ── Chat ────────────────────────────────────────── */
 .chat-log {
   flex: 1;
+  min-height: 0;            /* allow flex child to shrink below content height */
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
