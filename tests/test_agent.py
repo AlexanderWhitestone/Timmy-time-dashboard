@@ -78,7 +78,8 @@ def test_create_timmy_embeds_system_prompt():
         create_timmy()
 
         kwargs = MockAgent.call_args.kwargs
-        assert kwargs["description"] == TIMMY_SYSTEM_PROMPT
+        # Prompt should contain base system prompt (may have memory context appended)
+        assert kwargs["description"].startswith(TIMMY_SYSTEM_PROMPT[:100])
 
 
 # ── Ollama host regression (container connectivity) ─────────────────────────

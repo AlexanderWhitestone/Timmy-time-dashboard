@@ -1,9 +1,11 @@
-"""Timmy agent creation with multi-layer memory system.
+"""Timmy agent creation with three-tier memory system.
 
-Integrates Agno's Agent with our custom memory layers:
-- Working Memory (immediate context)
-- Short-term Memory (Agno SQLite)  
-- Long-term Memory (facts/preferences)
+Memory Architecture:
+- Tier 1 (Hot): MEMORY.md — always loaded, ~300 lines
+- Tier 2 (Vault): memory/ — structured markdown, append-only  
+- Tier 3 (Semantic): Vector search (future)
+
+Handoff Protocol maintains continuity across sessions.
 """
 
 from typing import TYPE_CHECKING, Union
@@ -74,13 +76,33 @@ def create_timmy(
     # Add tools for sovereign agent capabilities
     tools = create_full_toolkit()
     
+    # Build enhanced system prompt with memory context
+    base_prompt = TIMMY_SYSTEM_PROMPT
+    
+    # Try to load memory context
+    try:
+        from timmy.memory_system import memory_system
+        memory_context = memory_system.get_system_context()
+        if memory_context:
+            # Truncate if too long (keep under token limit)
+            if len(memory_context) > 8000:
+                memory_context = memory_context[:8000] + "\n... [truncated]"
+            full_prompt = f"{base_prompt}\n\n## Memory Context\n\n{memory_context}"
+        else:
+            full_prompt = base_prompt
+    except Exception as exc:
+        # Fall back to base prompt if memory system fails
+        import logging
+        logging.getLogger(__name__).warning("Failed to load memory context: %s", exc)
+        full_prompt = base_prompt
+    
     return Agent(
         name="Timmy",
         model=Ollama(id=settings.ollama_model, host=settings.ollama_url),
         db=SqliteDb(db_file=db_file),
-        description=TIMMY_SYSTEM_PROMPT,
+        description=full_prompt,
         add_history_to_context=True,
-        num_history_runs=20,  # Increased for better conversational context
+        num_history_runs=20,
         markdown=True,
         tools=[tools] if tools else None,
         telemetry=settings.telemetry_enabled,
@@ -88,56 +110,76 @@ def create_timmy(
 
 
 class TimmyWithMemory:
-    """Timmy wrapper with explicit memory layer management.
-    
-    This class wraps the Agno Agent and adds:
-    - Working memory tracking
-    - Long-term memory storage/retrieval
-    - Context injection from memory layers
-    """
+    """Timmy wrapper with explicit three-tier memory management."""
     
     def __init__(self, db_file: str = "timmy.db") -> None:
-        from timmy.memory_layers import memory_manager
+        from timmy.memory_system import memory_system
         
         self.agent = create_timmy(db_file=db_file)
-        self.memory = memory_manager
-        self.memory.start_session()
+        self.memory = memory_system
+        self.session_active = True
         
-        # Inject user context if available
-        self._inject_context()
-    
-    def _inject_context(self) -> None:
-        """Inject relevant memory context into system prompt."""
-        context = self.memory.get_context_for_prompt()
-        if context:
-            # Append context to system prompt
-            original_description = self.agent.description
-            self.agent.description = f"{original_description}\n\n## User Context\n{context}"
-    
-    def run(self, message: str, stream: bool = False) -> object:
-        """Run with memory tracking."""
-        # Get relevant memories
-        relevant = self.memory.get_relevant_memories(message)
-        
-        # Enhance message with context if relevant
-        enhanced_message = message
-        if relevant:
-            context_str = "\n".join(f"- {r}" for r in relevant[:3])
-            enhanced_message = f"[Context: {context_str}]\n\n{message}"
-        
-        # Run agent
-        result = self.agent.run(enhanced_message, stream=stream)
-        
-        # Extract response content
-        response_text = result.content if hasattr(result, "content") else str(result)
-        
-        # Track in memory
-        tool_calls = getattr(result, "tool_calls", None)
-        self.memory.add_exchange(message, response_text, tool_calls)
-        
-        return result
+        # Store initial context for reference
+        self.initial_context = self.memory.get_system_context()
     
     def chat(self, message: str) -> str:
-        """Simple chat interface that returns string response."""
-        result = self.run(message, stream=False)
-        return result.content if hasattr(result, "content") else str(result)
+        """Simple chat interface that tracks in memory."""
+        # Check for user facts to extract
+        self._extract_and_store_facts(message)
+        
+        # Run agent
+        result = self.agent.run(message, stream=False)
+        response_text = result.content if hasattr(result, "content") else str(result)
+        
+        return response_text
+    
+    def _extract_and_store_facts(self, message: str) -> None:
+        """Extract user facts from message and store in memory."""
+        message_lower = message.lower()
+        
+        # Extract name
+        name_patterns = [
+            ("my name is ", 11),
+            ("i'm ", 4),
+            ("i am ", 5),
+            ("call me ", 8),
+        ]
+        
+        for pattern, offset in name_patterns:
+            if pattern in message_lower:
+                idx = message_lower.find(pattern) + offset
+                name = message[idx:].strip().split()[0].strip(".,!?;:()\"'").capitalize()
+                if name and len(name) > 1 and name.lower() not in ("the", "a", "an"):
+                    self.memory.update_user_fact("Name", name)
+                    self.memory.record_decision(f"Learned user's name: {name}")
+                break
+        
+        # Extract preferences
+        pref_patterns = [
+            ("i like ", "Likes"),
+            ("i love ", "Loves"),
+            ("i prefer ", "Prefers"),
+            ("i don't like ", "Dislikes"),
+            ("i hate ", "Dislikes"),
+        ]
+        
+        for pattern, category in pref_patterns:
+            if pattern in message_lower:
+                idx = message_lower.find(pattern) + len(pattern)
+                pref = message[idx:].strip().split(".")[0].strip()
+                if pref and len(pref) > 3:
+                    self.memory.record_open_item(f"User {category.lower()}: {pref}")
+                break
+    
+    def end_session(self, summary: str = "Session completed") -> None:
+        """End session and write handoff."""
+        if self.session_active:
+            self.memory.end_session(summary)
+            self.session_active = False
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.end_session()
+        return False
