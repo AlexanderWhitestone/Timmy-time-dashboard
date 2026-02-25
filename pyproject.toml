@@ -76,6 +76,7 @@ creative = [
 timmy = "timmy.cli:main"
 timmy-serve = "timmy_serve.cli:main"
 self-tdd = "self_tdd.watchdog:main"
+self-modify = "self_modify.cli:main"
 
 [tool.hatch.build.targets.wheel]
 sources = {"src" = ""}
@@ -97,6 +98,7 @@ include = [
     "src/creative",
     "src/agent_core",
     "src/lightning",
+    "src/self_modify",
 ]
 
 [tool.pytest.ini_options]
