@@ -118,13 +118,13 @@ def create_research_tools(base_dir: str | Path | None = None):
     
     # Web search via DuckDuckGo
     search_tools = DuckDuckGoTools()
-    toolkit.add_tool(search_tools.web_search, name="web_search")
+    toolkit.register(search_tools.web_search, name="web_search")
     
     # File reading
     base_path = Path(base_dir) if base_dir else Path.cwd()
-    file_tools = FileTools(base_dir=str(base_path))
-    toolkit.add_tool(file_tools.read_file, name="read_file")
-    toolkit.add_tool(file_tools.list_files, name="list_files")
+    file_tools = FileTools(base_dir=base_path)
+    toolkit.register(file_tools.read_file, name="read_file")
+    toolkit.register(file_tools.list_files, name="list_files")
     
     return toolkit
 
@@ -140,18 +140,18 @@ def create_code_tools(base_dir: str | Path | None = None):
     
     # Shell commands (sandboxed)
     shell_tools = ShellTools()
-    toolkit.add_tool(shell_tools.run_shell_command, name="shell")
+    toolkit.register(shell_tools.run_shell_command, name="shell")
     
     # Python execution
     python_tools = PythonTools()
-    toolkit.add_tool(python_tools.python, name="python")
+    toolkit.register(python_tools.run_python_code, name="python")
     
     # File operations
     base_path = Path(base_dir) if base_dir else Path.cwd()
-    file_tools = FileTools(base_dir=str(base_path))
-    toolkit.add_tool(file_tools.read_file, name="read_file")
-    toolkit.add_tool(file_tools.write_file, name="write_file")
-    toolkit.add_tool(file_tools.list_files, name="list_files")
+    file_tools = FileTools(base_dir=base_path)
+    toolkit.register(file_tools.read_file, name="read_file")
+    toolkit.register(file_tools.save_file, name="write_file")
+    toolkit.register(file_tools.list_files, name="list_files")
     
     return toolkit
 
@@ -167,17 +167,17 @@ def create_data_tools(base_dir: str | Path | None = None):
     
     # Python execution for analysis
     python_tools = PythonTools()
-    toolkit.add_tool(python_tools.python, name="python")
+    toolkit.register(python_tools.run_python_code, name="python")
     
     # File reading
     base_path = Path(base_dir) if base_dir else Path.cwd()
-    file_tools = FileTools(base_dir=str(base_path))
-    toolkit.add_tool(file_tools.read_file, name="read_file")
-    toolkit.add_tool(file_tools.list_files, name="list_files")
+    file_tools = FileTools(base_dir=base_path)
+    toolkit.register(file_tools.read_file, name="read_file")
+    toolkit.register(file_tools.list_files, name="list_files")
     
     # Web search for finding datasets
     search_tools = DuckDuckGoTools()
-    toolkit.add_tool(search_tools.web_search, name="web_search")
+    toolkit.register(search_tools.web_search, name="web_search")
     
     return toolkit
 
@@ -193,10 +193,10 @@ def create_writing_tools(base_dir: str | Path | None = None):
     
     # File operations
     base_path = Path(base_dir) if base_dir else Path.cwd()
-    file_tools = FileTools(base_dir=str(base_path))
-    toolkit.add_tool(file_tools.read_file, name="read_file")
-    toolkit.add_tool(file_tools.write_file, name="write_file")
-    toolkit.add_tool(file_tools.list_files, name="list_files")
+    file_tools = FileTools(base_dir=base_path)
+    toolkit.register(file_tools.read_file, name="read_file")
+    toolkit.register(file_tools.save_file, name="write_file")
+    toolkit.register(file_tools.list_files, name="list_files")
     
     return toolkit
 
@@ -212,17 +212,17 @@ def create_security_tools(base_dir: str | Path | None = None):
     
     # Shell for running security scans
     shell_tools = ShellTools()
-    toolkit.add_tool(shell_tools.run_shell_command, name="shell")
+    toolkit.register(shell_tools.run_shell_command, name="shell")
     
     # Web search for threat intelligence
     search_tools = DuckDuckGoTools()
-    toolkit.add_tool(search_tools.web_search, name="web_search")
+    toolkit.register(search_tools.web_search, name="web_search")
     
     # File reading for logs/configs
     base_path = Path(base_dir) if base_dir else Path.cwd()
-    file_tools = FileTools(base_dir=str(base_path))
-    toolkit.add_tool(file_tools.read_file, name="read_file")
-    toolkit.add_tool(file_tools.list_files, name="list_files")
+    file_tools = FileTools(base_dir=base_path)
+    toolkit.register(file_tools.read_file, name="read_file")
+    toolkit.register(file_tools.list_files, name="list_files")
     
     return toolkit
 
@@ -238,14 +238,14 @@ def create_devops_tools(base_dir: str | Path | None = None):
     
     # Shell for deployment commands
     shell_tools = ShellTools()
-    toolkit.add_tool(shell_tools.run_shell_command, name="shell")
+    toolkit.register(shell_tools.run_shell_command, name="shell")
     
     # File operations for config management
     base_path = Path(base_dir) if base_dir else Path.cwd()
-    file_tools = FileTools(base_dir=str(base_path))
-    toolkit.add_tool(file_tools.read_file, name="read_file")
-    toolkit.add_tool(file_tools.write_file, name="write_file")
-    toolkit.add_tool(file_tools.list_files, name="list_files")
+    file_tools = FileTools(base_dir=base_path)
+    toolkit.register(file_tools.read_file, name="read_file")
+    toolkit.register(file_tools.save_file, name="write_file")
+    toolkit.register(file_tools.list_files, name="list_files")
     
     return toolkit
 
@@ -262,22 +262,22 @@ def create_full_toolkit(base_dir: str | Path | None = None):
     
     # Web search
     search_tools = DuckDuckGoTools()
-    toolkit.add_tool(search_tools.web_search, name="web_search")
+    toolkit.register(search_tools.web_search, name="web_search")
     
     # Python execution
     python_tools = PythonTools()
-    toolkit.add_tool(python_tools.python, name="python")
+    toolkit.register(python_tools.run_python_code, name="python")
     
     # Shell commands
     shell_tools = ShellTools()
-    toolkit.add_tool(shell_tools.run_shell_command, name="shell")
+    toolkit.register(shell_tools.run_shell_command, name="shell")
     
     # File operations
     base_path = Path(base_dir) if base_dir else Path.cwd()
-    file_tools = FileTools(base_dir=str(base_path))
-    toolkit.add_tool(file_tools.read_file, name="read_file")
-    toolkit.add_tool(file_tools.write_file, name="write_file")
-    toolkit.add_tool(file_tools.list_files, name="list_files")
+    file_tools = FileTools(base_dir=base_path)
+    toolkit.register(file_tools.read_file, name="read_file")
+    toolkit.register(file_tools.save_file, name="write_file")
+    toolkit.register(file_tools.list_files, name="list_files")
     
     return toolkit
 
