@@ -6,14 +6,19 @@ Requires:
   - selenium pip package
 
 Run:
-  SELENIUM_UI=1 pytest tests/functional/test_ui_selenium.py -v --override-ini='pythonpath='
+  SELENIUM_UI=1 pytest tests/functional/test_ui_selenium.py -v
 """
 
 import os
-import sys
 import time
 
 import pytest
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 # Skip entire module unless SELENIUM_UI=1 is set
 pytestmark = pytest.mark.skipif(
@@ -22,27 +27,6 @@ pytestmark = pytest.mark.skipif(
 )
 
 DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "http://localhost:8000")
-
-
-# ── Prevent src/websocket from shadowing the websocket-client package ────────
-# Selenium depends on websocket-client which provides `from websocket import
-# WebSocketApp`.  The project's src/websocket/ module would shadow that import.
-# Remove "src" from sys.path for this module since we don't import project code.
-_src_paths = [p for p in sys.path if p.endswith("/src") or p.endswith("\\src")]
-for _p in _src_paths:
-    sys.path.remove(_p)
-
-from selenium import webdriver  # noqa: E402
-from selenium.webdriver.chrome.options import Options  # noqa: E402
-from selenium.webdriver.common.by import By  # noqa: E402
-from selenium.webdriver.common.keys import Keys  # noqa: E402
-from selenium.webdriver.support import expected_conditions as EC  # noqa: E402
-from selenium.webdriver.support.ui import WebDriverWait  # noqa: E402
-
-# Restore paths so other test modules aren't affected
-for _p in _src_paths:
-    if _p not in sys.path:
-        sys.path.append(_p)
 
 
 @pytest.fixture(scope="module")

@@ -212,7 +212,7 @@ src/
   lightning/          # Lightning backend abstraction (mock + LND)
   agent_core/         # Substrate-agnostic agent interface
   voice/              # NLU intent detection
-  websocket/          # WebSocket connection manager
+  ws_manager/         # WebSocket connection manager
   notifications/      # Push notification store
   shortcuts/          # Siri Shortcuts endpoints
   telegram_bot/       # Telegram bridge

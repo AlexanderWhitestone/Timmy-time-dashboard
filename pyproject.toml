@@ -86,7 +86,7 @@ include = [
     "src/config.py",
     "src/self_tdd",
     "src/swarm",
-    "src/websocket",
+    "src/ws_manager",
     "src/voice",
     "src/notifications",
     "src/shortcuts",

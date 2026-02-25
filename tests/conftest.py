@@ -6,15 +6,6 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
-# ── Fix websocket-client shadowing project's src/websocket/ ──────────────────
-# selenium → websocket-client installs a top-level `websocket` package that
-# shadows our src/websocket/ module.  Ensure src/ is at the FRONT of sys.path
-# so our module wins the import race.
-_src = str(Path(__file__).resolve().parent.parent / "src")
-if _src in sys.path:
-    sys.path.remove(_src)
-sys.path.insert(0, _src)
-
 import pytest
 from fastapi.testclient import TestClient
 

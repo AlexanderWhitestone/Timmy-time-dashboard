@@ -63,7 +63,7 @@ src/
   lightning/             # Lightning backend abstraction (mock + LND)
   agent_core/            # Substrate-agnostic agent interface
   voice/                 # NLU intent detection (regex-based, local)
-  websocket/             # WebSocket connection manager (ws_manager singleton)
+  ws_manager/            # WebSocket connection manager (ws_manager singleton)
   notifications/         # Push notification store (notifier singleton)
   shortcuts/             # Siri Shortcuts API endpoints
   telegram_bot/          # Telegram bridge
@@ -96,7 +96,7 @@ Core services are module-level singleton instances imported directly:
 ```python
 from dashboard.store import message_log
 from notifications.push import notifier
-from websocket.handler import ws_manager
+from ws_manager.handler import ws_manager
 from timmy_serve.payment_handler import payment_handler
 from swarm.coordinator import coordinator
 ```
