@@ -27,14 +27,14 @@ install-bigbrain: $(VENV)/bin/activate
 
 install-creative: $(VENV)/bin/activate
 	$(PIP) install --quiet -e ".[dev,creative]"
-	@if [ "$$(uname -s)" = "Darwin" ]; then \
-	    echo ""; \
-	    echo "  Note: PyTorch on macOS uses CPU by default."; \
-	    echo "  For Metal (GPU) acceleration, install the nightly build:"; \
-	    echo "    pip install --pre torch torchvision torchaudio --index-url https://download.pytorch.org/whl/nightly/cpu"; \
-	    echo ""; \
+	@if [ "$$(uname -m)" = "arm64" ] && [ "$$(uname -s)" = "Darwin" ]; then \
+	    echo "  Apple Silicon detected — installing PyTorch with Metal (MPS) support..."; \
+	    $(PIP) install --quiet --pre torch torchvision torchaudio \
+	        --index-url https://download.pytorch.org/whl/nightly/cpu; \
+	    echo "✓ Creative extras installed with Metal GPU acceleration"; \
+	else \
+	    echo "✓ Creative extras installed (diffusers, torch, ace-step)"; \
 	fi
-	@echo "✓ Creative extras installed (diffusers, torch, ace-step)"
 
 $(VENV)/bin/activate:
 	python3 -m venv $(VENV)

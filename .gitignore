@@ -21,6 +21,9 @@ env/
 # SQLite memory — never commit agent memory
 *.db
 
+# Runtime PID files
+.watchdog.pid
+
 # Chat platform state files (contain bot tokens)
 telegram_state.json
 discord_state.json
