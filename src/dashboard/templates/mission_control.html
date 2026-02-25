@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+
+{% block title %}Mission Control — Timmy Time{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">🎛️ Mission Control</h2>
+        <div>
+            <span class="badge badge-success" id="system-status">Loading...</span>
+        </div>
+    </div>
+    
+    <!-- Sovereignty Score -->
+    <div style="margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 12px;">
+            <div style="font-size: 3rem; font-weight: 700;" id="sov-score">-</div>
+            <div>
+                <div style="font-weight: 600;">Sovereignty Score</div>
+                <div style="font-size: 0.875rem; color: var(--text-muted);" id="sov-label">Calculating...</div>
+            </div>
+        </div>
+        <div style="background: var(--bg-tertiary); height: 8px; border-radius: 4px; overflow: hidden;">
+            <div id="sov-bar" style="background: var(--success); height: 100%; width: 0%; transition: width 0.5s;"></div>
+        </div>
+    </div>
+    
+    <!-- Dependency Grid -->
+    <h3 style="margin-bottom: 12px;">Dependencies</h3>
+    <div class="grid grid-2" id="dependency-grid" style="margin-bottom: 24px;">
+        <p style="color: var(--text-muted);">Loading...</p>
+    </div>
+    
+    <!-- Recommendations -->
+    <h3 style="margin-bottom: 12px;">Recommendations</h3>
+    <div id="recommendations" style="margin-bottom: 24px;">
+        <p style="color: var(--text-muted);">Loading...</p>
+    </div>
+    
+    <!-- System Metrics -->
+    <h3 style="margin-bottom: 12px;">System Metrics</h3>
+    <div class="grid grid-4" id="metrics-grid">
+        <div class="stat">
+            <div class="stat-value" id="metric-uptime">-</div>
+            <div class="stat-label">Uptime</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="metric-agents">-</div>
+            <div class="stat-label">Agents</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="metric-tasks">-</div>
+            <div class="stat-label">Tasks</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="metric-earned">-</div>
+            <div class="stat-label">Sats Earned</div>
+        </div>
+    </div>
+</div>
+
+<!-- Heartbeat Monitor -->
+<div class="card" style="margin-top: 24px;">
+    <div class="card-header">
+        <h2 class="card-title">💓 Heartbeat Monitor</h2>
+        <div>
+            <span class="badge" id="heartbeat-status">Checking...</span>
+        </div>
+    </div>
+    
+    <div class="grid grid-3">
+        <div class="stat">
+            <div class="stat-value" id="hb-tick">-</div>
+            <div class="stat-label">Last Tick</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="hb-backend">-</div>
+            <div class="stat-label">LLM Backend</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="hb-model">-</div>
+            <div class="stat-label">Model</div>
+        </div>
+    </div>
+    
+    <div style="margin-top: 16px;">
+        <div id="heartbeat-log" style="height: 100px; overflow-y: auto; background: var(--bg-tertiary); padding: 12px; border-radius: 8px; font-family: monospace; font-size: 0.75rem;">
+            <div style="color: var(--text-muted);">Waiting for heartbeat...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Chat History -->
+<div class="card" style="margin-top: 24px;">
+    <div class="card-header">
+        <h2 class="card-title">💬 Chat History</h2>
+        <div>
+            <button class="btn btn-sm" onclick="loadChatHistory()">Refresh</button>
+        </div>
+    </div>
+    
+    <div id="chat-history" style="max-height: 300px; overflow-y: auto;">
+        <p style="color: var(--text-muted);">Loading chat history...</p>
+    </div>
+</div>
+
+<script>
+// Load sovereignty status
+async function loadSovereignty() {
+    try {
+        const response = await fetch('/health/sovereignty');
+        const data = await response.json();
+        
+        // Update score
+        document.getElementById('sov-score').textContent = data.overall_score.toFixed(1);
+        document.getElementById('sov-score').style.color = data.overall_score >= 9 ? 'var(--success)' : 
+                                                           data.overall_score >= 7 ? 'var(--warning)' : 'var(--danger)';
+        document.getElementById('sov-bar').style.width = (data.overall_score * 10) + '%';
+        document.getElementById('sov-bar').style.background = data.overall_score >= 9 ? 'var(--success)' : 
+                                                               data.overall_score >= 7 ? 'var(--warning)' : 'var(--danger)';
+        
+        // Update label
+        let label = 'Poor';
+        if (data.overall_score >= 9) label = 'Excellent';
+        else if (data.overall_score >= 8) label = 'Good';
+        else if (data.overall_score >= 6) label = 'Fair';
+        document.getElementById('sov-label').textContent = `${label} — ${data.dependencies.length} dependencies checked`;
+        
+        // Update system status
+        const systemStatus = document.getElementById('system-status');
+        if (data.overall_score >= 9) {
+            systemStatus.textContent = 'Sovereign';
+            systemStatus.className = 'badge badge-success';
+        } else if (data.overall_score >= 7) {
+            systemStatus.textContent = 'Operational';
+            systemStatus.className = 'badge badge-warning';
+        } else {
+            systemStatus.textContent = 'Degraded';
+            systemStatus.className = 'badge badge-danger';
+        }
+        
+        // Update dependency grid
+        const grid = document.getElementById('dependency-grid');
+        grid.innerHTML = '';
+        data.dependencies.forEach(dep => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.style.padding = '12px';
+            
+            const statusColor = dep.status === 'healthy' ? 'var(--success)' : 
+                               dep.status === 'degraded' ? 'var(--warning)' : 'var(--danger)';
+            const scoreColor = dep.sovereignty_score >= 9 ? 'var(--success)' : 
+                              dep.sovereignty_score >= 7 ? 'var(--warning)' : 'var(--danger)';
+            
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <strong>${dep.name}</strong>
+                    <span class="badge" style="background: ${statusColor};">${dep.status}</span>
+                </div>
+                <div style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 8px;">
+                    ${dep.details.error || dep.details.note || 'Operating normally'}
+                </div>
+                <div style="font-size: 0.75rem; color: ${scoreColor};">
+                    Sovereignty: ${dep.sovereignty_score}/10
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+        
+        // Update recommendations
+        const recs = document.getElementById('recommendations');
+        if (data.recommendations && data.recommendations.length > 0) {
+            recs.innerHTML = '<ul>' + data.recommendations.map(r => `<li>${r}</li>`).join('') + '</ul>';
+        } else {
+            recs.innerHTML = '<p style="color: var(--text-muted);">No recommendations — system optimal</p>';
+        }
+        
+    } catch (error) {
+        console.error('Failed to load sovereignty:', error);
+        document.getElementById('system-status').textContent = 'Error';
+        document.getElementById('system-status').className = 'badge badge-danger';
+    }
+}
+
+// Load basic health
+async function loadHealth() {
+    try {
+        const response = await fetch('/health');
+        const data = await response.json();
+        
+        // Format uptime
+        const uptime = data.uptime_seconds;
+        let uptimeStr;
+        if (uptime < 60) uptimeStr = Math.floor(uptime) + 's';
+        else if (uptime < 3600) uptimeStr = Math.floor(uptime / 60) + 'm';
+        else uptimeStr = Math.floor(uptime / 3600) + 'h ' + Math.floor((uptime % 3600) / 60) + 'm';
+        
+        document.getElementById('metric-uptime').textContent = uptimeStr;
+        
+    } catch (error) {
+        console.error('Failed to load health:', error);
+    }
+}
+
+// Load swarm stats
+async function loadSwarmStats() {
+    try {
+        const response = await fetch('/swarm');
+        const data = await response.json();
+        
+        document.getElementById('metric-agents').textContent = data.agents || 0;
+        document.getElementById('metric-tasks').textContent = 
+            (data.tasks_pending || 0) + (data.tasks_running || 0);
+        
+    } catch (error) {
+        console.error('Failed to load swarm stats:', error);
+    }
+}
+
+// Load Lightning stats
+async function loadLightningStats() {
+    try {
+        const response = await fetch('/serve/status');
+        const data = await response.json();
+        
+        document.getElementById('metric-earned').textContent = data.total_earned_sats || 0;
+        
+        // Update heartbeat backend
+        document.getElementById('hb-backend').textContent = data.backend || '-';
+        document.getElementById('hb-model').textContent = 'llama3.2';  // From config
+        
+    } catch (error) {
+        console.error('Failed to load lightning stats:', error);
+        document.getElementById('metric-earned').textContent = '-';
+    }
+}
+
+// Heartbeat simulation
+let tickCount = 0;
+function updateHeartbeat() {
+    tickCount++;
+    const now = new Date().toLocaleTimeString();
+    document.getElementById('hb-tick').textContent = now;
+    document.getElementById('heartbeat-status').textContent = 'Active';
+    document.getElementById('heartbeat-status').className = 'badge badge-success';
+    
+    const log = document.getElementById('heartbeat-log');
+    const entry = document.createElement('div');
+    entry.style.marginBottom = '2px';
+    entry.innerHTML = `<span style="color: var(--text-muted);">[${now}]</span> <span style="color: var(--success);">✓</span> Tick ${tickCount}`;
+    log.appendChild(entry);
+    log.scrollTop = log.scrollHeight;
+    
+    // Keep only last 50 entries
+    while (log.children.length > 50) {
+        log.removeChild(log.firstChild);
+    }
+}
+
+// Load chat history
+async function loadChatHistory() {
+    const container = document.getElementById('chat-history');
+    container.innerHTML = '<p style="color: var(--text-muted);">Loading...</p>';
+    
+    try {
+        // Try to load from the message log endpoint if available
+        const response = await fetch('/dashboard/messages');
+        const messages = await response.json();
+        
+        if (messages.length === 0) {
+            container.innerHTML = '<p style="color: var(--text-muted);">No messages yet</p>';
+            return;
+        }
+        
+        container.innerHTML = '';
+        messages.slice(-20).forEach(msg => {
+            const div = document.createElement('div');
+            div.style.marginBottom = '12px';
+            div.style.padding = '8px';
+            div.style.background = msg.role === 'user' ? 'var(--bg-tertiary)' : 'transparent';
+            div.style.borderRadius = '4px';
+            
+            const role = document.createElement('strong');
+            role.textContent = msg.role === 'user' ? 'You: ' : 'Timmy: ';
+            role.style.color = msg.role === 'user' ? 'var(--accent)' : 'var(--success)';
+            
+            const content = document.createElement('span');
+            content.textContent = msg.content;
+            
+            div.appendChild(role);
+            div.appendChild(content);
+            container.appendChild(div);
+        });
+        
+    } catch (error) {
+        // Fallback: show placeholder
+        container.innerHTML = `
+            <div style="color: var(--text-muted); text-align: center; padding: 20px;">
+                <p>Chat history persistence coming soon</p>
+                <p style="font-size: 0.875rem;">Messages are currently in-memory only</p>
+            </div>
+        `;
+    }
+}
+
+// Initial load
+loadSovereignty();
+loadHealth();
+loadSwarmStats();
+loadLightningStats();
+loadChatHistory();
+
+// Periodic updates
+setInterval(loadSovereignty, 30000);  // Every 30s
+setInterval(loadHealth, 10000);       // Every 10s
+setInterval(loadSwarmStats, 5000);    // Every 5s
+setInterval(updateHeartbeat, 5000);   // Heartbeat every 5s
+</script>
+{% endblock %}
