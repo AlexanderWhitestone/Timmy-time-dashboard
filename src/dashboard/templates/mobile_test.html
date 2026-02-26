@@ -343,15 +343,41 @@
     const pct   = TOTAL ? Math.round((passed / TOTAL) * 100) : 0;
     const color = failed > 0 ? "var(--red)" : "var(--green)";
     
-    summaryBody.innerHTML = `
-      <div class="mt-summary-score" style="color:${color}">${passed} / ${TOTAL}</div>
-      <div class="mt-summary-pct">${pct}% pass rate</div>
-      <div style="margin-top:16px;">
-        <div class="mt-summary-row"><span>PASSED</span><span style="color:var(--green);font-weight:700;">${passed}</span></div>
-        <div class="mt-summary-row"><span>FAILED</span><span style="color:var(--red);font-weight:700;">${failed}</span></div>
-        <div class="mt-summary-row"><span>SKIPPED</span><span style="color:var(--amber);font-weight:700;">${skipped}</span></div>
-      </div>
-    `;
+    // Safely build summary UI using DOM API to avoid XSS from potentially untrusted variables
+    summaryBody.innerHTML = '';
+    
+    const scoreDiv = document.createElement('div');
+    scoreDiv.className = 'mt-summary-score';
+    scoreDiv.style.color = color;
+    scoreDiv.textContent = passed + ' / ' + TOTAL;
+    summaryBody.appendChild(scoreDiv);
+    
+    const pctDiv = document.createElement('div');
+    pctDiv.className = 'mt-summary-pct';
+    pctDiv.textContent = pct + '% pass rate';
+    summaryBody.appendChild(pctDiv);
+    
+    const statsContainer = document.createElement('div');
+    statsContainer.style.marginTop = '16px';
+    
+    const createRow = (label, value, colorVar) => {
+      const row = document.createElement('div');
+      row.className = 'mt-summary-row';
+      const labelSpan = document.createElement('span');
+      labelSpan.textContent = label;
+      const valSpan = document.createElement('span');
+      valSpan.style.color = 'var(--' + colorVar + ')';
+      valSpan.style.fontWeight = '700';
+      valSpan.textContent = value;
+      row.appendChild(labelSpan);
+      row.appendChild(valSpan);
+      return row;
+    };
+    
+    statsContainer.appendChild(createRow('PASSED', passed, 'green'));
+    statsContainer.appendChild(createRow('FAILED', failed, 'red'));
+    statsContainer.appendChild(createRow('SKIPPED', skipped, 'amber'));
+    summaryBody.appendChild(statsContainer);
     
     const statusMsg = document.createElement('p');
     statusMsg.style.marginTop = '12px';

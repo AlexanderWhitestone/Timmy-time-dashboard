@@ -13,7 +13,7 @@
 
   <div class="d-flex align-items-center gap-2 mb-1">
     <span class="status-dot {{ dot }}"></span>
-    <span class="agent-name" style="font-size:13px;">{{ agent.name | upper }}</span>
+    <span class="agent-name" style="font-size:13px;">{{ agent.name | upper | e }}</span>
   </div>
 
   <div class="agent-meta" style="margin-bottom:8px;">
@@ -21,7 +21,7 @@
     <span class="meta-val">{{ agent.status }}</span><br>
     {% if agent.capabilities %}
     <span class="meta-key">CAPS</span>
-    <span class="meta-val" style="font-size:10px;">{{ agent.capabilities }}</span><br>
+    <span class="meta-val" style="font-size:10px;">{{ agent.capabilities | e }}</span><br>
     {% endif %}
     <span class="meta-key">SEEN</span>
     <span class="meta-val" style="font-size:10px;">{{ agent.last_seen[:19].replace("T"," ") if agent.last_seen else "—" }}</span>

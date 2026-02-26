@@ -1,18 +1,18 @@
 <div class="chat-message user">
   <div class="msg-meta" style="color:var(--orange);">YOU // {{ timestamp }}</div>
-  <div class="msg-body" style="border-color:var(--border-glow);">{{ message }}</div>
+  <div class="msg-body" style="border-color:var(--border-glow);">{{ message | e }}</div>
 </div>
 
 {% if response %}
 <div class="chat-message agent">
   <div class="msg-meta" style="color:var(--purple);">{{ agent.name | upper }} // {{ timestamp }}</div>
-  <div class="msg-body" style="border-left:3px solid var(--purple);">{{ response }}</div>
+  <div class="msg-body" style="border-left:3px solid var(--purple);">{{ response | e }}</div>
 </div>
 
 {% elif error %}
 <div class="chat-message error-msg">
   <div class="msg-meta">SYSTEM // {{ timestamp }}</div>
-  <div class="msg-body" style="border-left:3px solid var(--red); color:var(--red);">{{ error }}</div>
+  <div class="msg-body" style="border-left:3px solid var(--red); color:var(--red);">{{ error | e }}</div>
 </div>
 
 {% elif task_id %}
