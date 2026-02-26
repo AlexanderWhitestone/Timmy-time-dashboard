@@ -124,14 +124,21 @@ notifier = PushNotifier()
 
 
 async def notify_briefing_ready(briefing) -> None:
-    """Placeholder: notify the owner that a new morning briefing is ready.
+    """Notify the owner that a new morning briefing is ready.
 
-    Logs to console now.  Wire to real push (APNs/Pushover) later.
+    Only triggers a native macOS popup when there are pending approval items.
+    Briefings with 0 approvals are still logged but don't interrupt the user
+    with a notification that leads to an empty-looking page.
 
     Args:
         briefing: A timmy.briefing.Briefing instance.
     """
     n_approvals = len(briefing.approval_items) if briefing.approval_items else 0
+
+    if n_approvals == 0:
+        logger.info("Briefing ready but no pending approvals — skipping native notification")
+        return
+
     message = (
         f"Your morning briefing is ready. "
         f"{n_approvals} item(s) await your approval."

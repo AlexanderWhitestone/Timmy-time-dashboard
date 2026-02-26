@@ -5,8 +5,16 @@
 {% if response %}
 <div class="chat-message agent">
   <div class="msg-meta">TIMMY // {{ timestamp }}</div>
-  <div class="msg-body">{{ response | e }}</div>
+  <div class="msg-body timmy-md">{{ response | e }}</div>
 </div>
+<script>
+  (function() {
+    var el = document.currentScript.previousElementSibling.querySelector('.timmy-md');
+    if (el && typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+      el.innerHTML = DOMPurify.sanitize(marked.parse(el.textContent));
+    }
+  })();
+</script>
 {% elif error %}
 <div class="chat-message error-msg">
   <div class="msg-meta">SYSTEM // {{ timestamp }}</div>

@@ -26,6 +26,7 @@ Tools are assigned to personas based on their specialties:
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -105,6 +106,33 @@ def get_tool_stats(agent_id: str | None = None) -> dict:
             "tools_used": list(set(u["tool"] for u in usage)),
         }
     return all_stats
+
+
+def calculator(expression: str) -> str:
+    """Evaluate a mathematical expression and return the exact result.
+
+    Use this tool for ANY arithmetic: multiplication, division, square roots,
+    exponents, percentages, logarithms, trigonometry, etc.
+
+    Args:
+        expression: A valid Python math expression, e.g. '347 * 829',
+                    'math.sqrt(17161)', '2**10', 'math.log(100, 10)'.
+
+    Returns:
+        The exact result as a string.
+    """
+    # Only expose math functions — no builtins, no file/os access
+    allowed_names = {k: getattr(math, k) for k in dir(math) if not k.startswith("_")}
+    allowed_names["math"] = math  # Support math.sqrt(), math.pi, etc.
+    allowed_names["abs"] = abs
+    allowed_names["round"] = round
+    allowed_names["min"] = min
+    allowed_names["max"] = max
+    try:
+        result = eval(expression, {"__builtins__": {}}, allowed_names)  # noqa: S307
+        return str(result)
+    except Exception as e:
+        return f"Error evaluating '{expression}': {e}"
 
 
 def create_research_tools(base_dir: str | Path | None = None):
@@ -280,13 +308,16 @@ def create_full_toolkit(base_dir: str | Path | None = None):
     toolkit.register(file_tools.save_file, name="write_file")
     toolkit.register(file_tools.list_files, name="list_files")
     
+    # Calculator — exact arithmetic (never let the LLM guess)
+    toolkit.register(calculator, name="calculator")
+
     # Memory search - semantic recall
     try:
         from timmy.semantic_memory import memory_search
         toolkit.register(memory_search, name="memory_search")
     except Exception:
         logger.debug("Memory search not available")
-    
+
     return toolkit
 
 
@@ -370,6 +401,11 @@ def get_all_available_tools() -> dict[str, dict]:
             "name": "List Files",
             "description": "List files in a directory",
             "available_in": ["echo", "seer", "forge", "quill", "mace", "helm", "timmy"],
+        },
+        "calculator": {
+            "name": "Calculator",
+            "description": "Evaluate mathematical expressions with exact results",
+            "available_in": ["timmy"],
         },
     }
 
