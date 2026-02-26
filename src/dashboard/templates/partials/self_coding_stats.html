@@ -1,0 +1,71 @@
+{# Stats cards partial for self-coding dashboard #}
+<div class="row g-3">
+  <!-- Total Attempts -->
+  <div class="col-md-3 col-6">
+    <div class="card border-0 shadow-sm stat-card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <h6 class="text-muted small mb-1">Total Attempts</h6>
+            <h3 class="mb-0">{{ metrics.total }}</h3>
+          </div>
+          <span class="fs-4">📝</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Rate -->
+  <div class="col-md-3 col-6">
+    <div class="card border-0 shadow-sm stat-card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <h6 class="text-muted small mb-1">Success Rate</h6>
+            <h3 class="mb-0 {% if metrics.overall >= 0.7 %}text-success{% elif metrics.overall >= 0.4 %}text-warning{% else %}text-danger{% endif %}">
+              {{ "%.0f"|format(metrics.overall * 100) }}%
+            </h3>
+          </div>
+          <span class="fs-4">📊</span>
+        </div>
+        <div class="progress mt-2" style="height: 4px;">
+          <div class="progress-bar {% if metrics.overall >= 0.7 %}bg-success{% elif metrics.overall >= 0.4 %}bg-warning{% else %}bg-danger{% endif %}" 
+               style="width: {{ metrics.overall * 100 }}%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Successes -->
+  <div class="col-md-3 col-6">
+    <div class="card border-0 shadow-sm stat-card h-100 border-start border-3 border-success">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <h6 class="text-muted small mb-1">Successes</h6>
+            <h3 class="mb-0 text-success">{{ metrics.success }}</h3>
+          </div>
+          <span class="fs-4">✅</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Failures -->
+  <div class="col-md-3 col-6">
+    <div class="card border-0 shadow-sm stat-card h-100 border-start border-3 border-danger">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <h6 class="text-muted small mb-1">Failures</h6>
+            <h3 class="mb-0 text-danger">{{ metrics.failure + metrics.rollback }}</h3>
+          </div>
+          <span class="fs-4">❌</span>
+        </div>
+        <small class="text-muted">
+          {{ metrics.failure }} fail / {{ metrics.rollback }} rollback
+        </small>
+      </div>
+    </div>
+  </div>
+</div>
