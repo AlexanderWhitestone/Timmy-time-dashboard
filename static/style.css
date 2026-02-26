@@ -251,24 +251,27 @@ a:hover { color: var(--orange); }
 .mc-main {
   padding: 16px;
   height: calc(100dvh - var(--header-h));
-  overflow: clip;
+  overflow: hidden;
 }
 .mc-content {
   height: 100%;
 }
 .mc-content > .row {
   height: 100%;
+  flex-wrap: nowrap;
 }
 
 /* ── Sidebar ─────────────────────────────────────── */
 .mc-sidebar {
   overflow-y: auto;
   min-height: 0;
+  max-height: 100%;
 }
 
 /* ── Chat column ─────────────────────────────────── */
 .mc-chat-panel {
   min-height: 0;
+  max-height: 100%;
 }
 .mc-chat-panel > .card {
   height: 100%;

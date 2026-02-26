@@ -121,15 +121,21 @@ async def lifespan(app: FastAPI):
     if spark_engine.enabled:
         logger.info("Spark Intelligence active — event capture enabled")
 
-    # Auto-start Telegram bot if a token is configured
+    # Auto-start chat integrations (skip silently if unconfigured)
     from telegram_bot.bot import telegram_bot
-    await telegram_bot.start()
-
-    # Auto-start Discord bot and register in platform registry
     from chat_bridge.vendors.discord import discord_bot
     from chat_bridge.registry import platform_registry
     platform_registry.register(discord_bot)
-    await discord_bot.start()
+
+    if settings.telegram_token:
+        await telegram_bot.start()
+    else:
+        logger.debug("Telegram: no token configured, skipping")
+
+    if settings.discord_token or discord_bot.load_token():
+        await discord_bot.start()
+    else:
+        logger.debug("Discord: no token configured, skipping")
 
     yield
 
