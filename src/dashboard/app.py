@@ -12,21 +12,17 @@ from fastapi.templating import Jinja2Templates
 from config import settings
 from dashboard.routes.agents import router as agents_router
 from dashboard.routes.health import router as health_router
-from dashboard.routes.mobile_test import router as mobile_test_router
 from dashboard.routes.swarm import router as swarm_router
+from dashboard.routes.swarm import internal_router as swarm_internal_router
 from dashboard.routes.marketplace import router as marketplace_router
 from dashboard.routes.voice import router as voice_router
-from dashboard.routes.voice_enhanced import router as voice_enhanced_router
 from dashboard.routes.mobile import router as mobile_router
-from dashboard.routes.swarm_ws import router as swarm_ws_router
 from dashboard.routes.briefing import router as briefing_router
 from dashboard.routes.telegram import router as telegram_router
-from dashboard.routes.swarm_internal import router as swarm_internal_router
 from dashboard.routes.tools import router as tools_router
 from dashboard.routes.spark import router as spark_router
 from dashboard.routes.creative import router as creative_router
 from dashboard.routes.discord import router as discord_router
-from dashboard.routes.self_modify import router as self_modify_router
 from dashboard.routes.events import router as events_router
 from dashboard.routes.ledger import router as ledger_router
 from dashboard.routes.memory import router as memory_router
@@ -36,6 +32,7 @@ from dashboard.routes.work_orders import router as work_orders_router
 from dashboard.routes.tasks import router as tasks_router
 from dashboard.routes.scripture import router as scripture_router
 from dashboard.routes.self_coding import router as self_coding_router
+from dashboard.routes.self_coding import self_modify_router
 from dashboard.routes.hands import router as hands_router
 from router.api import router as cascade_router
 
@@ -131,7 +128,7 @@ async def lifespan(app: FastAPI):
             logger.info("MCP auto-bootstrap: %d tools registered", len(registered))
     except Exception as exc:
         logger.warning("MCP auto-bootstrap failed: %s", exc)
-    
+
     # Initialise Spark Intelligence engine
     from spark.engine import spark_engine
     if spark_engine.enabled:
@@ -178,20 +175,18 @@ app.mount("/static", StaticFiles(directory=str(PROJECT_ROOT / "static")), name="
 
 app.include_router(health_router)
 app.include_router(agents_router)
-app.include_router(mobile_test_router)
 app.include_router(swarm_router)
+app.include_router(swarm_internal_router)
 app.include_router(marketplace_router)
 app.include_router(voice_router)
-app.include_router(voice_enhanced_router)
 app.include_router(mobile_router)
-app.include_router(swarm_ws_router)
 app.include_router(briefing_router)
 app.include_router(telegram_router)
-app.include_router(swarm_internal_router)
 app.include_router(tools_router)
 app.include_router(spark_router)
 app.include_router(creative_router)
 app.include_router(discord_router)
+app.include_router(self_coding_router)
 app.include_router(self_modify_router)
 app.include_router(events_router)
 app.include_router(ledger_router)
@@ -201,7 +196,6 @@ app.include_router(upgrades_router)
 app.include_router(work_orders_router)
 app.include_router(tasks_router)
 app.include_router(scripture_router)
-app.include_router(self_coding_router)
 app.include_router(hands_router)
 app.include_router(cascade_router)
 

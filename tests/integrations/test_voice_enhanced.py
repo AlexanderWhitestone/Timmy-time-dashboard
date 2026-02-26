@@ -1,4 +1,4 @@
-"""Tests for dashboard/routes/voice_enhanced.py — enhanced voice processing."""
+"""Tests for enhanced voice processing (merged into dashboard/routes/voice.py)."""
 
 from unittest.mock import MagicMock, patch
 
@@ -56,7 +56,7 @@ class TestVoiceEnhancedProcess:
         mock_run.content = "Hello from Timmy!"
         mock_agent.run.return_value = mock_run
 
-        with patch("dashboard.routes.voice_enhanced.create_timmy", return_value=mock_agent):
+        with patch("dashboard.routes.voice.create_timmy", return_value=mock_agent):
             resp = client.post(
                 "/voice/enhanced/process",
                 data={"text": "tell me about Bitcoin", "speak_response": "false"},
@@ -69,7 +69,7 @@ class TestVoiceEnhancedProcess:
     def test_chat_fallback_error_handling(self, client):
         """When the agent raises, the error should be captured gracefully."""
         with patch(
-            "dashboard.routes.voice_enhanced.create_timmy",
+            "dashboard.routes.voice.create_timmy",
             side_effect=RuntimeError("Ollama offline"),
         ):
             resp = client.post(

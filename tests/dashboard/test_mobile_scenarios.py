@@ -22,7 +22,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 def _css() -> str:
     """Read the main stylesheet."""
-    css_path = Path(__file__).parent.parent / "static" / "style.css"
+    css_path = Path(__file__).parent.parent.parent / "static" / "style.css"
     return css_path.read_text()
 
 
@@ -290,13 +290,13 @@ def test_M605_health_status_passes_model_to_template(client):
 
 def _mobile_html() -> str:
     """Read the mobile template source."""
-    path = Path(__file__).parent.parent / "src" / "dashboard" / "templates" / "mobile.html"
+    path = Path(__file__).parent.parent.parent / "src" / "dashboard" / "templates" / "mobile.html"
     return path.read_text()
 
 
 def _swarm_live_html() -> str:
     """Read the swarm live template source."""
-    path = Path(__file__).parent.parent / "src" / "dashboard" / "templates" / "swarm_live.html"
+    path = Path(__file__).parent.parent.parent / "src" / "dashboard" / "templates" / "swarm_live.html"
     return path.read_text()
 
 
