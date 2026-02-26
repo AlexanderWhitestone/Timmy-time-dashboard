@@ -491,9 +491,29 @@ After refactoring:
 
 ---
 
-## Next Steps
+## Execution Status
 
-1. Review this plan
-2. Pick a phase to start (recommended: Phase 1)
-3. Create a tracking issue for each phase
-4. Execute incrementally, keeping tests green at every step
+### Completed
+
+- [x] **Phase 1: Doc cleanup** — README 303→93 lines, CLAUDE.md 267→80,
+  AGENTS.md 342→72, deleted 3 session docs, archived 4 planning docs
+- [x] **Phase 4: Config/build cleanup** — fixed 11 missing wheel modules, added
+  pytest markers, updated .gitignore, moved scripts to scripts/
+- [x] **Phase 6: Token optimization** — added docstrings to 15+ __init__.py files
+- [x] **Phase 3: Test reorganization** — 97 test files organized into 13
+  subdirectories mirroring source structure
+- [x] **Phase 2a: Route consolidation** — 27 → 22 route files (merged voice,
+  swarm internal/ws, self-modify; deleted mobile_test)
+
+### Remaining
+
+- [ ] **Phase 2b: Full module consolidation** (28 → ~12 modules) — requires
+  updating hundreds of import statements. Should be done incrementally across
+  focused PRs, one module merge at a time. Candidates by import footprint:
+  - `work_orders/` → `swarm/work_orders/` (1 importer)
+  - `upgrades/` → `self_coding/upgrades/` (1 importer)
+  - `shortcuts/` → `integrations/shortcuts/` (1 importer)
+  - `events/` → `swarm/events/` (4 importers)
+  - `task_queue/` → `swarm/task_queue/` (3 importers)
+  - Larger merges: agents/ + agent_core/ + memory/ → timmy/ (many importers)
+- [ ] **Phase 5: Package extraction** — only if team grows or dep profiles diverge
