@@ -1,0 +1,30 @@
+# Ledger Hand — Treasury Tracking
+# Runs every 6 hours
+# Monitors Bitcoin and Lightning balances, transactions, flow
+
+[hand]
+name = "ledger"
+description = "Bitcoin and Lightning treasury monitoring"
+schedule = "0 */6 * * *"
+enabled = true
+version = "1.0.0"
+author = "Timmy"
+
+[tools]
+required = ["lightning_balance", "onchain_balance", "payment_audit"]
+optional = ["mempool_fetch", "fee_estimate"]
+
+[approval_gates]
+publish_report = { action = "broadcast", description = "Publish treasury report", auto_approve_after = 300 }
+rebalance = { action = "rebalance", description = "Rebalance Lightning channels", auto_approve_after = 600 }
+
+[output]
+dashboard = true
+channel = "telegram"
+format = "markdown"
+file_drop = "data/ledger_reports/"
+
+[parameters]
+alert_threshold_sats = 1000000
+min_channel_size_sats = 500000
+max_fee_rate = 100
