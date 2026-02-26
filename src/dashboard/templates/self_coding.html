@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Self-Coding — Timmy Time{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0">Self-Coding</h1>
+      <p class="text-muted small mb-0">Timmy's ability to modify its own source code</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-info" hx-get="/self-coding/stats" hx-target="#stats-container" hx-indicator="#stats-loading">
+        Refresh Stats
+      </button>
+      <button class="btn btn-sm btn-primary" hx-get="/self-coding/execute-form" hx-target="#execute-modal-content" onclick="document.getElementById('execute-modal').showModal()">
+        + New Task
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Cards -->
+  <div id="stats-container" hx-get="/self-coding/stats" hx-trigger="load">
+    <div id="stats-loading" class="htmx-indicator">
+      <div class="d-flex justify-content-center py-4">
+        <div class="spinner-border text-info" role="status">
+          <span class="visually-hidden">Loading stats...</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="row g-4 mt-2">
+    <!-- Left Column: Journal -->
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-secondary d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Modification Journal</h5>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary active" hx-get="/self-coding/journal" hx-target="#journal-container">All</button>
+            <button class="btn btn-outline-secondary" hx-get="/self-coding/journal?outcome=success" hx-target="#journal-container">Success</button>
+            <button class="btn btn-outline-secondary" hx-get="/self-coding/journal?outcome=failure" hx-target="#journal-container">Failed</button>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div id="journal-container" hx-get="/self-coding/journal" hx-trigger="load" class="journal-list">
+            <div class="d-flex justify-content-center py-5">
+              <div class="spinner-border text-info" role="status">
+                <span class="visually-hidden">Loading journal...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Quick Actions & Info -->
+    <div class="col-lg-4">
+      <!-- Quick Actions -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-secondary">
+          <h5 class="mb-0">Quick Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            <button class="btn btn-outline-info" hx-post="/self-coding/api/codebase/reindex" hx-swap="none" hx-confirm="Reindex codebase? This may take a moment.">
+              🔄 Reindex Codebase
+            </button>
+            <a href="/self-coding/api/codebase/summary" target="_blank" class="btn btn-outline-secondary">
+              📄 View Codebase Summary
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Safety Info -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-secondary">
+          <h5 class="mb-0">Safety Constraints</h5>
+        </div>
+        <div class="card-body">
+          <ul class="list-unstyled small mb-0">
+            <li class="mb-2">✓ Max 3 files per commit</li>
+            <li class="mb-2">✓ Max 100 lines changed</li>
+            <li class="mb-2">✓ Only files with test coverage</li>
+            <li class="mb-2">✓ Max 3 retries on failure</li>
+            <li class="mb-2">✓ Protected files cannot be modified</li>
+            <li>✓ All changes on feature branches</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- How It Works -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-secondary">
+          <h5 class="mb-0">How It Works</h5>
+        </div>
+        <div class="card-body">
+          <ol class="small mb-0">
+            <li class="mb-2">Receive task description</li>
+            <li class="mb-2">Find relevant files via indexer</li>
+            <li class="mb-2">Check journal for similar attempts</li>
+            <li class="mb-2">Create feature branch</li>
+            <li class="mb-2">Plan edit with LLM</li>
+            <li class="mb-2">Execute via Aider or direct edit</li>
+            <li class="mb-2">Run tests</li>
+            <li class="mb-2">Commit on success, rollback on failure</li>
+            <li>Log attempt and reflect</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Execute Modal -->
+<dialog id="execute-modal" class="rounded border-0 shadow-lg" style="max-width: 600px; width: 90%; background: var(--bs-body-bg);">
+  <div class="p-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">Execute Self-Edit Task</h5>
+      <button type="button" class="btn-close" onclick="document.getElementById('execute-modal').close()"></button>
+    </div>
+    <div id="execute-modal-content">
+      <!-- Form loaded via HTMX -->
+    </div>
+  </div>
+</dialog>
+
+<style>
+.journal-list {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.journal-entry {
+  border-left: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.journal-entry:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.journal-entry.success {
+  border-left-color: #198754;
+}
+
+.journal-entry.failure {
+  border-left-color: #dc3545;
+}
+
+.journal-entry.rollback {
+  border-left-color: #fd7e14;
+}
+
+.stat-card {
+  transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Custom scrollbar for journal */
+.journal-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.journal-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.journal-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.journal-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+</style>
+{% endblock %}
