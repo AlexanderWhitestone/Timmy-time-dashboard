@@ -1,0 +1,80 @@
+# Cascade LLM Router Configuration
+# Providers are tried in priority order (1 = highest)
+# On failure, automatically falls back to next provider
+
+cascade:
+  # Timeout settings
+  timeout_seconds: 30
+  
+  # Retry settings
+  max_retries_per_provider: 2
+  retry_delay_seconds: 1
+  
+  # Circuit breaker settings
+  circuit_breaker:
+    failure_threshold: 5        # Open circuit after 5 failures
+    recovery_timeout: 60        # Try again after 60 seconds
+    half_open_max_calls: 2      # Allow 2 test calls when half-open
+
+providers:
+  # Primary: Local Ollama (always try first for sovereignty)
+  - name: ollama-local
+    type: ollama
+    enabled: true
+    priority: 1
+    url: "http://localhost:11434"
+    models:
+      - name: llama3.2
+        default: true
+        context_window: 128000
+      - name: deepseek-r1:1.5b
+        context_window: 32000
+    
+  # Secondary: Local AirLLM (if installed)
+  - name: airllm-local
+    type: airllm
+    enabled: false  # Enable if pip install airllm
+    priority: 2
+    models:
+      - name: 70b
+        default: true
+      - name: 8b
+      - name: 405b
+    
+  # Tertiary: OpenAI (if API key available)
+  - name: openai-backup
+    type: openai
+    enabled: false  # Enable by setting OPENAI_API_KEY
+    priority: 3
+    api_key: "${OPENAI_API_KEY}"  # Loaded from environment
+    base_url: null  # Use default OpenAI endpoint
+    models:
+      - name: gpt-4o-mini
+        default: true
+        context_window: 128000
+      - name: gpt-4o
+        context_window: 128000
+    
+  # Quaternary: Anthropic (if API key available)
+  - name: anthropic-backup
+    type: anthropic
+    enabled: false  # Enable by setting ANTHROPIC_API_KEY
+    priority: 4
+    api_key: "${ANTHROPIC_API_KEY}"
+    models:
+      - name: claude-3-haiku-20240307
+        default: true
+        context_window: 200000
+      - name: claude-3-sonnet-20240229
+        context_window: 200000
+
+# Cost tracking (optional, for budget monitoring)
+cost_tracking:
+  enabled: true
+  budget_daily_usd: 10.0  # Alert if daily spend exceeds this
+  alert_threshold_percent: 80  # Alert at 80% of budget
+
+# Metrics retention
+metrics:
+  retention_hours: 168  # Keep 7 days of metrics
+  purge_interval_hours: 24
