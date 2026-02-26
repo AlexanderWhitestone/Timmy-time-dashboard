@@ -105,9 +105,13 @@
     
     <div class="mc-facts-list">
       {% if facts %}
-      <ul class="mc-fact-list">
+      <ul class="mc-fact-list" style="list-style: none; padding: 0;">
         {% for fact in facts %}
-        <li class="memory-fact">{{ fact }}</li>
+        <li class="memory-fact" id="fact-{{ fact.id }}" style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.08);">
+          <span class="fact-content" style="flex:1;">{{ fact.content }}</span>
+          <button class="mc-btn mc-btn-small" onclick="editFact('{{ fact.id }}', this)" style="font-size:0.7rem; padding:2px 8px;">EDIT</button>
+          <button class="mc-btn mc-btn-small" onclick="deleteFact('{{ fact.id }}')" style="font-size:0.7rem; padding:2px 8px; color:#ef4444;">DEL</button>
+        </li>
         {% endfor %}
       </ul>
       {% else %}
@@ -116,4 +120,40 @@
     </div>
   </div>
 </div>
+
+<script>
+function deleteFact(id) {
+  if (!confirm('Delete this fact?')) return;
+  fetch('/memory/fact/' + id, { method: 'DELETE' })
+    .then(function(r) { if (r.ok) document.getElementById('fact-' + id).remove(); });
+}
+function editFact(id, btn) {
+  var li = document.getElementById('fact-' + id);
+  var span = li.querySelector('.fact-content');
+  var current = span.textContent.trim();
+  var input = document.createElement('input');
+  input.type = 'text'; input.value = current;
+  input.className = 'mc-input'; input.style.flex = '1';
+  span.replaceWith(input);
+  btn.textContent = 'SAVE';
+  btn.onclick = function() {
+    var val = input.value.trim();
+    if (!val) return;
+    fetch('/memory/fact/' + id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: val })
+    }).then(function(r) {
+      if (r.ok) {
+        var newSpan = document.createElement('span');
+        newSpan.className = 'fact-content'; newSpan.style.flex = '1';
+        newSpan.textContent = val;
+        input.replaceWith(newSpan);
+        btn.textContent = 'EDIT';
+        btn.onclick = function() { editFact(id, btn); };
+      }
+    });
+  };
+}
+</script>
 {% endblock %}

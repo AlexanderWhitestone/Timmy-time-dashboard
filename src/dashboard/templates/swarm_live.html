@@ -440,5 +440,17 @@ function addLog(message, type) {
 }
 
 connect();
+
+// HTMX fallback: load initial data via REST if WebSocket is slow
+setTimeout(function() {
+    if (document.getElementById('stat-agents').textContent === '-') {
+        refreshStats();
+        fetch('/swarm/agents').then(function(r) { return r.json(); }).then(function(data) {
+            if (data.agents && data.agents.length > 0) {
+                updateAgentsList(data.agents);
+            }
+        }).catch(function() {});
+    }
+}, 2000);
 </script>
 {% endblock %}

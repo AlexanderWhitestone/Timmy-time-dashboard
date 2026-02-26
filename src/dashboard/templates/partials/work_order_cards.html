@@ -1,0 +1,15 @@
+{% if orders %}
+  {% for wo in orders %}
+    {% include "partials/work_order_card.html" %}
+  {% endfor %}
+{% else %}
+  <div style="color: var(--text-muted); font-size: 0.8rem; padding: 12px 0;">
+    {% if section == "pending" %}
+      No pending work orders.
+    {% elif section == "active" %}
+      No active work orders.
+    {% else %}
+      No work orders found.
+    {% endif %}
+  </div>
+{% endif %}

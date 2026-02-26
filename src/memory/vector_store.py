@@ -377,6 +377,35 @@ def recall_personal_facts(agent_id: Optional[str] = None) -> list[str]:
     return [r["content"] for r in rows]
 
 
+def recall_personal_facts_with_ids(agent_id: Optional[str] = None) -> list[dict]:
+    """Recall personal facts with their IDs for edit/delete operations."""
+    conn = _get_conn()
+    if agent_id:
+        rows = conn.execute(
+            "SELECT id, content FROM memory_entries WHERE context_type = 'fact' AND agent_id = ? ORDER BY timestamp DESC LIMIT 100",
+            (agent_id,),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT id, content FROM memory_entries WHERE context_type = 'fact' ORDER BY timestamp DESC LIMIT 100",
+        ).fetchall()
+    conn.close()
+    return [{"id": r["id"], "content": r["content"]} for r in rows]
+
+
+def update_personal_fact(memory_id: str, new_content: str) -> bool:
+    """Update a personal fact's content."""
+    conn = _get_conn()
+    cursor = conn.execute(
+        "UPDATE memory_entries SET content = ? WHERE id = ? AND context_type = 'fact'",
+        (new_content, memory_id),
+    )
+    conn.commit()
+    updated = cursor.rowcount > 0
+    conn.close()
+    return updated
+
+
 def store_personal_fact(fact: str, agent_id: Optional[str] = None) -> MemoryEntry:
     """Store a personal fact about the user or system.
     

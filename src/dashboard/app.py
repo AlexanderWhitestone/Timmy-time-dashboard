@@ -32,6 +32,8 @@ from dashboard.routes.ledger import router as ledger_router
 from dashboard.routes.memory import router as memory_router
 from dashboard.routes.router import router as router_status_router
 from dashboard.routes.upgrades import router as upgrades_router
+from dashboard.routes.work_orders import router as work_orders_router
+from dashboard.routes.tasks import router as tasks_router
 from router.api import router as cascade_router
 
 logging.basicConfig(
@@ -106,6 +108,17 @@ async def lifespan(app: FastAPI):
             logger.info("Persona agents spawned successfully")
         except Exception as exc:
             logger.error("Failed to spawn persona agents: %s", exc)
+
+    # Log system startup event so the Events page is never empty
+    try:
+        from swarm.event_log import log_event, EventType
+        log_event(
+            EventType.SYSTEM_INFO,
+            source="coordinator",
+            data={"message": "Timmy Time system started"},
+        )
+    except Exception:
+        pass
 
     # Auto-bootstrap MCP tools
     from mcp.bootstrap import auto_bootstrap, get_bootstrap_status
@@ -182,6 +195,8 @@ app.include_router(ledger_router)
 app.include_router(memory_router)
 app.include_router(router_status_router)
 app.include_router(upgrades_router)
+app.include_router(work_orders_router)
+app.include_router(tasks_router)
 app.include_router(cascade_router)
 
 

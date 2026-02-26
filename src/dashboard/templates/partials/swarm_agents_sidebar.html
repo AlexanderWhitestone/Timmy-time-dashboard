@@ -35,13 +35,11 @@
             hx-swap="outerHTML">
       CHAT
     </button>
-    <button class="mc-btn-clear flex-fill"
-            style="font-size:9px; padding:4px 6px;"
-            hx-get="/swarm/tasks/panel?agent_id={{ agent.id }}"
-            hx-target="#main-panel"
-            hx-swap="outerHTML">
+    <a class="mc-btn-clear flex-fill"
+       style="font-size:9px; padding:4px 6px; text-decoration:none; text-align:center;"
+       href="/tasks?assign={{ agent.name | urlencode }}">
       TASK
-    </button>
+    </a>
   </div>
 
 </div>

@@ -59,9 +59,13 @@
       {% endfor %}
     </div>
     {% else %}
-    <div class="mc-empty-state">
+    <div class="mc-empty-state" style="padding:2rem; text-align:center;">
       <p>No pending upgrades.</p>
-      <p class="mc-text-secondary">Proposed modifications will appear here for review.</p>
+      <p class="mc-text-secondary" style="margin-bottom:1rem;">Upgrades are proposed by the self-modification system when Timmy identifies improvements. You can also trigger them via work orders or the task queue.</p>
+      <div style="display:flex; gap:0.75rem; justify-content:center; flex-wrap:wrap;">
+        <a href="/work-orders/queue" class="mc-btn mc-btn-secondary" style="text-decoration:none;">View Work Orders</a>
+        <a href="/tasks" class="mc-btn mc-btn-secondary" style="text-decoration:none;">View Task Queue</a>
+      </div>
     </div>
     {% endif %}
   </div>

@@ -1,0 +1,105 @@
+<div id="task-{{ task.id }}" class="task-card priority-{{ task.priority.value }}">
+  <div class="task-card-title">{{ task.title | e }}</div>
+
+  {% if task.description %}
+  <div class="task-card-desc">{{ task.description | e }}</div>
+  {% endif %}
+
+  <div class="task-card-meta">
+    <span class="task-badge task-badge-{{ task.priority.value }}">{{ task.priority.value | upper }}</span>
+    <span class="task-badge task-badge-{{ task.status.value }}">{{ task.status.value | replace("_", " ") | upper }}</span>
+    <span class="task-badge">{{ task.assigned_to | e }}</span>
+    <span class="task-badge">by {{ task.created_by | e }}</span>
+  </div>
+
+  {% if task.steps %}
+  <div class="task-steps">
+    {% for step in task.steps %}
+    <div class="task-step {{ step.status if step.status else 'pending' }}">
+      {% if step.status == 'completed' %}&#10003;{% elif step.status == 'running' %}&#9654;{% else %}&#9675;{% endif %}
+      {{ step.description if step.description else step }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if task.result %}
+  <div class="task-result" title="Click to expand">{{ task.result | e }}</div>
+  {% endif %}
+
+  <!-- Action buttons based on status -->
+  {% if task.status.value == 'pending_approval' %}
+  <div class="task-actions">
+    <button class="task-btn task-btn-approve"
+            hx-post="/tasks/{{ task.id }}/approve"
+            hx-target="#task-{{ task.id }}"
+            hx-swap="outerHTML">APPROVE</button>
+    <button class="task-btn task-btn-modify"
+            onclick="toggleModify('{{ task.id }}')">MODIFY</button>
+    <button class="task-btn task-btn-veto"
+            hx-post="/tasks/{{ task.id }}/veto"
+            hx-target="#task-{{ task.id }}"
+            hx-swap="outerHTML">VETO</button>
+  </div>
+  <!-- Inline modify form (hidden by default) -->
+  <form id="modify-{{ task.id }}" style="display:none; margin-top:8px;"
+        hx-post="/tasks/{{ task.id }}/modify"
+        hx-target="#task-{{ task.id }}"
+        hx-swap="outerHTML">
+    <input type="text" name="title" value="{{ task.title | e }}" style="width:100%; padding:4px; margin-bottom:4px; background:var(--bg-tertiary); color:var(--text); border:1px solid var(--border); border-radius:4px; font-size:0.8rem;">
+    <textarea name="description" style="width:100%; padding:4px; margin-bottom:4px; background:var(--bg-tertiary); color:var(--text); border:1px solid var(--border); border-radius:4px; font-size:0.8rem; min-height:40px;">{{ task.description | e }}</textarea>
+    <button type="submit" class="task-btn task-btn-approve" style="font-size:0.65rem;">SAVE</button>
+    <button type="button" class="task-btn task-btn-cancel" style="font-size:0.65rem;" onclick="toggleModify('{{ task.id }}')">CANCEL</button>
+  </form>
+
+  {% elif task.status.value == 'approved' %}
+  <div class="task-actions">
+    <span style="font-size:0.7rem; color:var(--green);">Approved &mdash; waiting to run</span>
+    <button class="task-btn task-btn-veto"
+            hx-post="/tasks/{{ task.id }}/veto"
+            hx-target="#task-{{ task.id }}"
+            hx-swap="outerHTML">VETO</button>
+  </div>
+
+  {% elif task.status.value == 'running' %}
+  <div class="task-actions">
+    <button class="task-btn task-btn-pause"
+            hx-post="/tasks/{{ task.id }}/pause"
+            hx-target="#task-{{ task.id }}"
+            hx-swap="outerHTML">PAUSE</button>
+    <button class="task-btn task-btn-cancel"
+            hx-post="/tasks/{{ task.id }}/cancel"
+            hx-target="#task-{{ task.id }}"
+            hx-swap="outerHTML">CANCEL</button>
+  </div>
+
+  {% elif task.status.value == 'paused' %}
+  <div class="task-actions">
+    <button class="task-btn task-btn-approve"
+            hx-post="/tasks/{{ task.id }}/approve"
+            hx-target="#task-{{ task.id }}"
+            hx-swap="outerHTML">RESUME</button>
+    <button class="task-btn task-btn-cancel"
+            hx-post="/tasks/{{ task.id }}/cancel"
+            hx-target="#task-{{ task.id }}"
+            hx-swap="outerHTML">CANCEL</button>
+  </div>
+
+  {% elif task.status.value == 'failed' %}
+  <div class="task-actions">
+    <button class="task-btn task-btn-retry"
+            hx-post="/tasks/{{ task.id }}/retry"
+            hx-target="#task-{{ task.id }}"
+            hx-swap="outerHTML">RETRY</button>
+  </div>
+  {% endif %}
+
+  <div class="task-time">{{ task.created_at[:16].replace("T", " ") }}</div>
+</div>
+
+<script>
+function toggleModify(id) {
+  var form = document.getElementById('modify-' + id);
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+</script>

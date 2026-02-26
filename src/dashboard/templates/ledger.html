@@ -53,15 +53,15 @@
 
   <!-- Filters -->
   <div class="mc-filters">
-    <form method="get" action="/lightning/ledger" class="mc-filter-form">
-      <select name="tx_type" class="mc-select" onchange="this.form.submit()">
+    <form id="ledger-filter-form" class="mc-filter-form">
+      <select name="tx_type" class="mc-select" onchange="submitLedgerFilter()">
         <option value="">All Types</option>
         {% for t in tx_types %}
         <option value="{{ t }}" {% if filter_type == t %}selected{% endif %}>{{ t }}</option>
         {% endfor %}
       </select>
-      
-      <select name="status" class="mc-select" onchange="this.form.submit()">
+
+      <select name="status" class="mc-select" onchange="submitLedgerFilter()">
         <option value="">All Statuses</option>
         {% for s in tx_statuses %}
         <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ s }}</option>
@@ -69,6 +69,18 @@
       </select>
     </form>
   </div>
+  <script>
+  function submitLedgerFilter() {
+    var form = document.getElementById('ledger-filter-form');
+    var params = new URLSearchParams();
+    var txType = form.querySelector('[name="tx_type"]').value;
+    var status = form.querySelector('[name="status"]').value;
+    if (txType) params.append('tx_type', txType);
+    if (status) params.append('status', status);
+    var qs = params.toString();
+    window.location.href = '/lightning/ledger' + (qs ? '?' + qs : '');
+  }
+  </script>
 
   <!-- Transactions Table -->
   <div class="mc-table-container">
