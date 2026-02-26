@@ -37,6 +37,7 @@ reports/
 
 # Self-modify reports (auto-generated)
 data/self_modify_reports/
+src/data/
 
 # Handoff context (session-scoped)
 .handoff/
