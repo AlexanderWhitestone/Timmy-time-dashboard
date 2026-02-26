@@ -107,7 +107,7 @@ class TestEventBusIntegration:
     @pytest.mark.asyncio
     async def test_event_bus_publish_subscribe(self):
         """Test event bus publish and subscribe works."""
-        from events.bus import EventBus, Event
+        from infrastructure.events.bus import EventBus, Event
         
         bus = EventBus()
         events_received = []
@@ -135,7 +135,7 @@ class TestAgentSystemIntegration:
     
     def test_base_agent_imports(self):
         """Test that base agent can be imported."""
-        from agents.base import BaseAgent
+        from timmy.agents.base import BaseAgent
         
         assert BaseAgent is not None
     

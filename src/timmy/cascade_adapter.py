@@ -10,7 +10,7 @@ import logging
 from dataclasses import dataclass
 from typing import Optional
 
-from router.cascade import CascadeRouter
+from infrastructure.router.cascade import CascadeRouter
 from timmy.prompts import TIMMY_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)

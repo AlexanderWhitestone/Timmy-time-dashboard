@@ -1,6 +1,6 @@
 """Tests for shortcuts/siri.py — Siri Shortcuts integration."""
 
-from shortcuts.siri import get_setup_guide, SHORTCUT_ACTIONS
+from integrations.shortcuts.siri import get_setup_guide, SHORTCUT_ACTIONS
 
 
 def test_setup_guide_has_title():

@@ -306,13 +306,13 @@ class TestCreativeDirectorPipeline:
         assembly_dir.mkdir()
 
         with (
-            patch("tools.image_tools.generate_storyboard",
+            patch("creative.tools.image_tools.generate_storyboard",
                   side_effect=self._make_storyboard_stub(frames_dir)),
-            patch("tools.music_tools.generate_song",
+            patch("creative.tools.music_tools.generate_song",
                   side_effect=self._make_song_stub(audio_dir)),
-            patch("tools.video_tools.image_to_video",
+            patch("creative.tools.video_tools.image_to_video",
                   side_effect=self._make_video_stub(clips_dir)),
-            patch("tools.video_tools.generate_video_clip",
+            patch("creative.tools.video_tools.generate_video_clip",
                   side_effect=self._make_video_stub(clips_dir)),
             patch("creative.director._project_dir",
                   return_value=tmp_path / "project"),
@@ -375,7 +375,7 @@ class TestCreativeDirectorPipeline:
 
         # 2. Storyboard
         with (
-            patch("tools.image_tools.generate_storyboard",
+            patch("creative.tools.image_tools.generate_storyboard",
                   side_effect=self._make_storyboard_stub(frames_dir)),
             patch("creative.director._save_project"),
         ):
@@ -385,7 +385,7 @@ class TestCreativeDirectorPipeline:
 
         # 3. Music
         with (
-            patch("tools.music_tools.generate_song",
+            patch("creative.tools.music_tools.generate_song",
                   side_effect=self._make_song_stub(audio_dir)),
             patch("creative.director._save_project"),
         ):
@@ -400,7 +400,7 @@ class TestCreativeDirectorPipeline:
 
         # 4. Video generation (uses storyboard frames → image_to_video)
         with (
-            patch("tools.video_tools.image_to_video",
+            patch("creative.tools.video_tools.image_to_video",
                   side_effect=self._make_video_stub(clips_dir)),
             patch("creative.director._save_project"),
         ):

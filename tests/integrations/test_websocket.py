@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from ws_manager.handler import WebSocketManager, WSEvent
+from infrastructure.ws_manager.handler import WebSocketManager, WSEvent
 
 
 def test_ws_event_to_json():

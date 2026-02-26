@@ -1,6 +1,6 @@
 """Tests for voice/nlu.py — intent detection and command extraction."""
 
-from voice.nlu import detect_intent, extract_command
+from integrations.voice.nlu import detect_intent, extract_command
 
 
 # ── Intent detection ─────────────────────────────────────────────────────────

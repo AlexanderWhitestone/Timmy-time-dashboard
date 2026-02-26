@@ -1,6 +1,6 @@
 """Tests for notifications/push.py — push notification system."""
 
-from notifications.push import PushNotifier
+from infrastructure.notifications.push import PushNotifier
 
 
 def test_notify_creates_notification():

@@ -68,7 +68,7 @@ async def creative_projects_api():
 async def creative_genres_api():
     """Return supported music genres."""
     try:
-        from tools.music_tools import GENRES
+        from creative.tools.music_tools import GENRES
         return {"genres": GENRES}
     except ImportError:
         return {"genres": []}
@@ -78,7 +78,7 @@ async def creative_genres_api():
 async def creative_video_styles_api():
     """Return supported video styles and resolutions."""
     try:
-        from tools.video_tools import VIDEO_STYLES, RESOLUTION_PRESETS
+        from creative.tools.video_tools import VIDEO_STYLES, RESOLUTION_PRESETS
         return {
             "styles": VIDEO_STYLES,
             "resolutions": list(RESOLUTION_PRESETS.keys()),

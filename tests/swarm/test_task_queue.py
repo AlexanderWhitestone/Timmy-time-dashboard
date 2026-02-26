@@ -16,7 +16,7 @@ os.environ["TIMMY_TEST_MODE"] = "1"
 
 
 def test_create_task():
-    from task_queue.models import create_task, TaskStatus, TaskPriority
+    from swarm.task_queue.models import create_task, TaskStatus, TaskPriority
 
     task = create_task(
         title="Test task",
@@ -34,7 +34,7 @@ def test_create_task():
 
 
 def test_get_task():
-    from task_queue.models import create_task, get_task
+    from swarm.task_queue.models import create_task, get_task
 
     task = create_task(title="Get me", created_by="test")
     retrieved = get_task(task.id)
@@ -43,13 +43,13 @@ def test_get_task():
 
 
 def test_get_task_not_found():
-    from task_queue.models import get_task
+    from swarm.task_queue.models import get_task
 
     assert get_task("nonexistent-id") is None
 
 
 def test_list_tasks():
-    from task_queue.models import create_task, list_tasks, TaskStatus
+    from swarm.task_queue.models import create_task, list_tasks, TaskStatus
 
     create_task(title="List test 1", created_by="test")
     create_task(title="List test 2", created_by="test")
@@ -58,7 +58,7 @@ def test_list_tasks():
 
 
 def test_list_tasks_with_status_filter():
-    from task_queue.models import (
+    from swarm.task_queue.models import (
         create_task, list_tasks, update_task_status, TaskStatus,
     )
 
@@ -69,7 +69,7 @@ def test_list_tasks_with_status_filter():
 
 
 def test_update_task_status():
-    from task_queue.models import (
+    from swarm.task_queue.models import (
         create_task, update_task_status, TaskStatus,
     )
 
@@ -79,7 +79,7 @@ def test_update_task_status():
 
 
 def test_update_task_running_sets_started_at():
-    from task_queue.models import (
+    from swarm.task_queue.models import (
         create_task, update_task_status, TaskStatus,
     )
 
@@ -89,7 +89,7 @@ def test_update_task_running_sets_started_at():
 
 
 def test_update_task_completed_sets_completed_at():
-    from task_queue.models import (
+    from swarm.task_queue.models import (
         create_task, update_task_status, TaskStatus,
     )
 
@@ -100,7 +100,7 @@ def test_update_task_completed_sets_completed_at():
 
 
 def test_update_task_fields():
-    from task_queue.models import create_task, update_task
+    from swarm.task_queue.models import create_task, update_task
 
     task = create_task(title="Modify test", created_by="test")
     updated = update_task(task.id, title="Modified title", priority="high")
@@ -109,7 +109,7 @@ def test_update_task_fields():
 
 
 def test_get_counts_by_status():
-    from task_queue.models import create_task, get_counts_by_status
+    from swarm.task_queue.models import create_task, get_counts_by_status
 
     create_task(title="Count test", created_by="test")
     counts = get_counts_by_status()
@@ -117,7 +117,7 @@ def test_get_counts_by_status():
 
 
 def test_get_pending_count():
-    from task_queue.models import create_task, get_pending_count
+    from swarm.task_queue.models import create_task, get_pending_count
 
     create_task(title="Pending count test", created_by="test")
     count = get_pending_count()
@@ -125,7 +125,7 @@ def test_get_pending_count():
 
 
 def test_update_task_steps():
-    from task_queue.models import create_task, update_task_steps, get_task
+    from swarm.task_queue.models import create_task, update_task_steps, get_task
 
     task = create_task(title="Steps test", created_by="test")
     steps = [
@@ -140,14 +140,14 @@ def test_update_task_steps():
 
 
 def test_auto_approve_not_triggered_by_default():
-    from task_queue.models import create_task, TaskStatus
+    from swarm.task_queue.models import create_task, TaskStatus
 
     task = create_task(title="No auto", created_by="user", auto_approve=False)
     assert task.status == TaskStatus.PENDING_APPROVAL
 
 
 def test_get_task_summary_for_briefing():
-    from task_queue.models import create_task, get_task_summary_for_briefing
+    from swarm.task_queue.models import create_task, get_task_summary_for_briefing
 
     create_task(title="Briefing test", created_by="test")
     summary = get_task_summary_for_briefing()
@@ -272,7 +272,7 @@ def test_cancel_task_htmx(client):
 
 
 def test_retry_failed_task(client):
-    from task_queue.models import create_task, update_task_status, TaskStatus
+    from swarm.task_queue.models import create_task, update_task_status, TaskStatus
 
     task = create_task(title="To retry", created_by="test")
     update_task_status(task.id, TaskStatus.FAILED, result="Something broke")
@@ -533,7 +533,7 @@ class TestBuildQueueContext:
 
     def test_returns_string_with_counts(self):
         from dashboard.routes.agents import _build_queue_context
-        from task_queue.models import create_task
+        from swarm.task_queue.models import create_task
         create_task(title="Context test task", created_by="test")
         ctx = _build_queue_context()
         assert "[System: Task queue" in ctx
@@ -541,7 +541,7 @@ class TestBuildQueueContext:
 
     def test_returns_empty_on_error(self):
         from dashboard.routes.agents import _build_queue_context
-        with patch("task_queue.models.get_counts_by_status", side_effect=Exception("DB error")):
+        with patch("swarm.task_queue.models.get_counts_by_status", side_effect=Exception("DB error")):
             ctx = _build_queue_context()
             assert isinstance(ctx, str)
             assert ctx == ""
@@ -552,7 +552,7 @@ class TestBuildQueueContext:
 
 def test_briefing_task_queue_summary():
     """Briefing engine should include task queue data."""
-    from task_queue.models import create_task
+    from swarm.task_queue.models import create_task
     from timmy.briefing import _gather_task_queue_summary
 
     create_task(title="Briefing integration test", created_by="test")

@@ -20,8 +20,8 @@ url = settings.ollama_url   # never use os.environ.get() directly in app code
 
 ```python
 from dashboard.store import message_log
-from notifications.push import notifier
-from ws_manager.handler import ws_manager
+from infrastructure.notifications.push import notifier
+from infrastructure.ws_manager.handler import ws_manager
 from swarm.coordinator import coordinator
 ```
 
@@ -90,5 +90,26 @@ make test-cov           # With coverage (term-missing + XML)
 |---------|--------|---------|
 | `timmy` | `src/timmy/cli.py` | Chat, think, status |
 | `timmy-serve` | `src/timmy_serve/cli.py` | L402-gated API server (port 8402) |
-| `self-tdd` | `src/self_tdd/watchdog.py` | Continuous test watchdog |
-| `self-modify` | `src/self_modify/cli.py` | Self-modification CLI |
+| `self-tdd` | `src/self_coding/self_tdd/watchdog.py` | Continuous test watchdog |
+| `self-modify` | `src/self_coding/self_modify/cli.py` | Self-modification CLI |
+
+---
+
+## Module Map (14 packages)
+
+| Package | Purpose |
+|---------|---------|
+| `timmy/` | Core agent, personas, agent interface, semantic memory |
+| `dashboard/` | FastAPI web UI, routes, templates |
+| `swarm/` | Multi-agent coordinator, task queue, work orders |
+| `self_coding/` | Self-modification, test watchdog, upgrade queue |
+| `creative/` | Media generation, MCP tools |
+| `infrastructure/` | WebSocket, notifications, events, LLM router |
+| `integrations/` | Discord, Telegram, Siri Shortcuts, voice NLU |
+| `lightning/` | L402 payment gating (security-sensitive) |
+| `mcp/` | MCP tool registry and discovery |
+| `spark/` | Event capture and advisory engine |
+| `hands/` | 6 autonomous Hand agents |
+| `scripture/` | Biblical text integration |
+| `timmy_serve/` | L402-gated API server |
+| `config.py` | Pydantic settings (foundation for all modules) |

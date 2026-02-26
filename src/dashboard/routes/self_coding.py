@@ -209,7 +209,7 @@ async def api_execute(request: ExecuteRequest):
     This is the API endpoint for manual task execution.
     In production, this should require authentication and confirmation.
     """
-    from tools.self_edit import SelfEditTool
+    from creative.tools.self_edit import SelfEditTool
     
     tool = SelfEditTool()
     result = await tool.execute(request.task_description)
@@ -332,7 +332,7 @@ async def execute_task(
 ):
     """HTMX endpoint to execute a task."""
     from dashboard.app import templates
-    from tools.self_edit import SelfEditTool
+    from creative.tools.self_edit import SelfEditTool
     
     tool = SelfEditTool()
     result = await tool.execute(task_description)
@@ -388,7 +388,7 @@ async def run_self_modify(
     if not settings.self_modify_enabled:
         raise HTTPException(403, "Self-modification is disabled")
 
-    from self_modify.loop import SelfModifyLoop, ModifyRequest
+    from self_coding.self_modify.loop import SelfModifyLoop, ModifyRequest
 
     files = [f.strip() for f in target_files.split(",") if f.strip()]
     request = ModifyRequest(

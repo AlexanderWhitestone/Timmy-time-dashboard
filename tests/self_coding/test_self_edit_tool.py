@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from tools.self_edit import (
+from creative.tools.self_edit import (
     MAX_FILES_PER_COMMIT,
     MAX_RETRIES,
     PROTECTED_FILES,
@@ -81,7 +81,7 @@ def test_hello():
 @pytest.fixture(autouse=True)
 def mock_settings():
     """Mock settings to enable self-modification."""
-    with patch('tools.self_edit.settings') as mock_settings:
+    with patch('creative.tools.self_edit.settings') as mock_settings:
         mock_settings.self_modify_enabled = True
         yield mock_settings
 
@@ -343,7 +343,7 @@ class TestSelfEditGlobalTool:
     
     async def test_self_edit_tool_singleton(self, temp_repo):
         """Should use singleton pattern."""
-        from tools import self_edit as self_edit_module
+        from creative.tools import self_edit as self_edit_module
         
         # Reset singleton
         self_edit_module._self_edit_tool = None

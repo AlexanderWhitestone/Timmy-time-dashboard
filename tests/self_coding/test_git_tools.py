@@ -7,7 +7,7 @@ working tree.
 import pytest
 from pathlib import Path
 
-from tools.git_tools import (
+from creative.tools.git_tools import (
     git_init,
     git_status,
     git_add,

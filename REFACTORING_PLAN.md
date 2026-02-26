@@ -155,69 +155,26 @@ session-scoped context. Either gitignore it or move to `docs/handoff/`.
 **Goal:** Reduce 28 modules to ~12 by merging small, related modules into
 coherent packages. This directly reduces cognitive load and token consumption.
 
-### 2.1 Proposed module structure
+### 2.1 Module structure (implemented)
 
 ```
-src/
-  config.py                    # (keep as-is)
+src/                           # 14 packages (was 28)
+  config.py                    # Pydantic settings (foundation)
 
-  timmy/                       # Core agent — MERGE IN agents/, agent_core/, memory/
-    agent.py                   # Main Timmy agent
-    backends.py                # Ollama/AirLLM backends
-    cli.py                     # CLI entry point
-    orchestrator.py            # ← from agents/timmy.py
-    personas/                  # ← from agents/ (seer, helm, quill, echo, forge)
-    agent_core/                # ← from src/agent_core/ (becomes subpackage)
-    memory/                    # ← from src/memory/ (becomes subpackage)
-    prompts.py
-    ...
+  timmy/                       # Core agent + agents/ + agent_core/ + memory/
+  dashboard/                   # FastAPI web UI (22 route files)
+  swarm/                       # Coordinator + task_queue/ + work_orders/
+  self_coding/                 # Git safety + self_modify/ + self_tdd/ + upgrades/
+  creative/                    # Media generation + tools/
+  infrastructure/              # ws_manager/ + notifications/ + events/ + router/
+  integrations/                # chat_bridge/ + telegram_bot/ + shortcuts/ + voice/
 
-  dashboard/                   # Web UI — CONSOLIDATE routes
-    app.py
-    store.py
-    routes/                    # See §2.2 for route consolidation
-    templates/
-
-  swarm/                       # Multi-agent system — MERGE IN task_queue/, work_orders/
-    coordinator.py
-    tasks.py                   # ← existing + task_queue/ models
-    work_orders/               # ← from src/work_orders/ (becomes subpackage)
-    ...
-
-  integrations/                # NEW — MERGE chat_bridge/, telegram_bot/, shortcuts/
-    chat_bridge/               # Discord, unified chat
-    telegram.py                # ← from telegram_bot/
-    shortcuts.py               # ← from shortcuts/
-    voice/                     # ← from src/voice/
-
-  lightning/                   # (keep as-is — standalone, security-sensitive)
-
-  self_coding/                 # MERGE IN self_modify/, self_tdd/, upgrades/
-    codebase_indexer.py
-    git_safety.py
-    modification_journal.py
-    self_modify/               # ← from src/self_modify/ (becomes subpackage)
-    watchdog.py                # ← from src/self_tdd/
-    upgrades/                  # ← from src/upgrades/
-
-  mcp/                         # (keep as-is — used across multiple modules)
-
-  spark/                       # (keep as-is)
-
-  creative/                    # MERGE IN tools/
-    director.py
-    assembler.py
-    tools/                     # ← from src/tools/ (becomes subpackage)
-
-  hands/                       # (keep as-is)
-
-  scripture/                   # (keep as-is — domain-specific)
-
-  infrastructure/              # NEW — MERGE ws_manager/, notifications/, events/, router/
-    ws_manager.py              # ← from ws_manager/handler.py (157 lines)
-    notifications.py           # ← from notifications/push.py (153 lines)
-    events.py                  # ← from events/ (354 lines)
-    router/                    # ← from src/router/ (cascade LLM router)
+  lightning/                   # L402 payment gating (standalone, security-sensitive)
+  mcp/                         # MCP tool registry and discovery
+  spark/                       # Event capture and advisory
+  hands/                       # 6 autonomous Hand agents
+  scripture/                   # Biblical text integration
+  timmy_serve/                 # L402-gated API server
 ```
 
 ### 2.2 Dashboard route consolidation
@@ -476,18 +433,17 @@ patterns (card layouts, form groups, table rows).
 
 ## Success Metrics
 
-After refactoring:
-- Root `.md` files: 10 → 3
-- Root markdown size: 87KB → ~20KB
-- `src/` modules: 28 → ~12-15
-- Dashboard route files: 27 → ~12-15
-- Test files: organized in subdirectories matching source
-- Empty skeleton test files: 61 → 0 (either implemented or deleted)
-- Real test functions: 471 → 500+ (fill gaps in coverage)
-- `pytest -m unit` runs in <10 seconds
-- Wheel build includes all modules that are actually imported
-- AI assistant context consumption drops ~40%
-- Conftest autouse fixtures scoped to relevant test directories
+| Metric | Original | Target | Current |
+|--------|----------|--------|---------|
+| Root `.md` files | 10 | 3 | 5 |
+| Root markdown size | 87KB | ~20KB | ~28KB |
+| `src/` modules | 28 | ~12-15 | **14** |
+| Dashboard routes | 27 | ~12-15 | 22 |
+| Test organization | flat | mirrored | **mirrored** |
+| Tests passing | 471 | 500+ | **1462** |
+| Wheel modules | 17/28 | all | **all** |
+| Module-level docs | 0 | all key modules | **6** |
+| AI context reduction | — | ~40% | **~50%** (fewer modules to scan) |
 
 ---
 
@@ -505,15 +461,21 @@ After refactoring:
 - [x] **Phase 2a: Route consolidation** — 27 → 22 route files (merged voice,
   swarm internal/ws, self-modify; deleted mobile_test)
 
+- [x] **Phase 2b: Full module consolidation** — 28 → 14 modules. All merges
+  completed in a single pass with automated import rewriting (66 source files +
+  13 test files updated). Modules consolidated:
+  - `work_orders/` + `task_queue/` → `swarm/`
+  - `self_modify/` + `self_tdd/` + `upgrades/` → `self_coding/`
+  - `tools/` → `creative/tools/`
+  - `chat_bridge/` + `telegram_bot/` + `shortcuts/` + `voice/` → `integrations/` (new)
+  - `ws_manager/` + `notifications/` + `events/` + `router/` → `infrastructure/` (new)
+  - `agents/` + `agent_core/` + `memory/` → `timmy/`
+  - pyproject.toml entry points and wheel includes updated
+  - Module-level CLAUDE.md files added (Phase 6.2)
+  - Zero test regressions: 1462 tests passing
+- [x] **Phase 6.2: Module-level CLAUDE.md** — added to swarm/, self_coding/,
+  infrastructure/, integrations/, creative/, lightning/
+
 ### Remaining
 
-- [ ] **Phase 2b: Full module consolidation** (28 → ~12 modules) — requires
-  updating hundreds of import statements. Should be done incrementally across
-  focused PRs, one module merge at a time. Candidates by import footprint:
-  - `work_orders/` → `swarm/work_orders/` (1 importer)
-  - `upgrades/` → `self_coding/upgrades/` (1 importer)
-  - `shortcuts/` → `integrations/shortcuts/` (1 importer)
-  - `events/` → `swarm/events/` (4 importers)
-  - `task_queue/` → `swarm/task_queue/` (3 importers)
-  - Larger merges: agents/ + agent_core/ + memory/ → timmy/ (many importers)
 - [ ] **Phase 5: Package extraction** — only if team grows or dep profiles diverge

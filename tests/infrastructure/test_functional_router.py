@@ -10,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from router.cascade import CascadeRouter, Provider, ProviderStatus, CircuitState
+from infrastructure.router.cascade import CascadeRouter, Provider, ProviderStatus, CircuitState
 
 
 class TestCascadeRouterFunctional:

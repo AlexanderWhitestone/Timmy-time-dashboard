@@ -8,7 +8,7 @@ import logging
 
 from fastapi import APIRouter, Form
 
-from voice.nlu import detect_intent, extract_command
+from integrations.voice.nlu import detect_intent, extract_command
 from timmy.agent import create_timmy
 
 logger = logging.getLogger(__name__)
@@ -104,7 +104,7 @@ async def process_voice_input(
                 )
             else:
                 import asyncio
-                from self_modify.loop import SelfModifyLoop, ModifyRequest
+                from self_coding.self_modify.loop import SelfModifyLoop, ModifyRequest
 
                 target_files = []
                 if "target_file" in intent.entities:

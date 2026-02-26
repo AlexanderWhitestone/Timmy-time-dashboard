@@ -7,7 +7,7 @@ metadata tests run in CI.
 import pytest
 from unittest.mock import patch, MagicMock
 
-from tools.music_tools import (
+from creative.tools.music_tools import (
     MUSIC_TOOL_CATALOG,
     GENRES,
     list_genres,
@@ -50,8 +50,8 @@ class TestGenres:
 
 class TestGenerateSongInterface:
     def test_raises_without_ace_step(self):
-        with patch("tools.music_tools._model", None):
-            with patch("tools.music_tools._get_model", side_effect=ImportError("no ace-step")):
+        with patch("creative.tools.music_tools._model", None):
+            with patch("creative.tools.music_tools._get_model", side_effect=ImportError("no ace-step")):
                 with pytest.raises(ImportError):
                     generate_song("la la la")
 
@@ -63,9 +63,9 @@ class TestGenerateSongInterface:
         mock_model = MagicMock()
         mock_model.generate.return_value = mock_audio
 
-        with patch("tools.music_tools._get_model", return_value=mock_model):
-            with patch("tools.music_tools._output_dir", return_value=MagicMock()):
-                with patch("tools.music_tools._save_metadata"):
+        with patch("creative.tools.music_tools._get_model", return_value=mock_model):
+            with patch("creative.tools.music_tools._output_dir", return_value=MagicMock()):
+                with patch("creative.tools.music_tools._save_metadata"):
                     # Should clamp 5 to 30
                     generate_song("lyrics", duration=5)
                     call_kwargs = mock_model.generate.call_args[1]
@@ -78,8 +78,8 @@ class TestGenerateSongInterface:
         mock_model = MagicMock()
         mock_model.generate.return_value = mock_audio
 
-        with patch("tools.music_tools._get_model", return_value=mock_model):
-            with patch("tools.music_tools._output_dir", return_value=tmp_path):
+        with patch("creative.tools.music_tools._get_model", return_value=mock_model):
+            with patch("creative.tools.music_tools._output_dir", return_value=tmp_path):
                 result = generate_song(
                     "hello world", genre="rock", duration=60, title="Test Song"
                 )
@@ -98,8 +98,8 @@ class TestGenerateInstrumentalInterface:
         mock_model = MagicMock()
         mock_model.generate.return_value = mock_audio
 
-        with patch("tools.music_tools._get_model", return_value=mock_model):
-            with patch("tools.music_tools._output_dir", return_value=tmp_path):
+        with patch("creative.tools.music_tools._get_model", return_value=mock_model):
+            with patch("creative.tools.music_tools._output_dir", return_value=tmp_path):
                 result = generate_instrumental("epic orchestral", genre="cinematic")
 
         assert result["success"]
@@ -115,8 +115,8 @@ class TestGenerateVocalsInterface:
         mock_model = MagicMock()
         mock_model.generate.return_value = mock_audio
 
-        with patch("tools.music_tools._get_model", return_value=mock_model):
-            with patch("tools.music_tools._output_dir", return_value=tmp_path):
+        with patch("creative.tools.music_tools._get_model", return_value=mock_model):
+            with patch("creative.tools.music_tools._output_dir", return_value=tmp_path):
                 result = generate_vocals("do re mi", style="jazz")
 
         assert result["success"]

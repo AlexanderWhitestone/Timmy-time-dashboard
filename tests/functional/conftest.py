@@ -112,7 +112,7 @@ def serve_runner():
 def self_tdd_runner():
     """Typer CLI runner for self-tdd CLI tests."""
     from typer.testing import CliRunner
-    from self_tdd.cli import app
+    from self_coding.self_tdd.cli import app
     yield CliRunner(), app
 
 
@@ -142,9 +142,9 @@ def serve_client():
 @pytest.fixture
 def tdd_runner():
     """Alias for self_tdd_runner fixture."""
-    pytest.importorskip("self_tdd.cli", reason="self_tdd CLI not available")
+    pytest.importorskip("self_coding.self_tdd.cli", reason="self_tdd CLI not available")
     from typer.testing import CliRunner
-    from self_tdd.cli import app
+    from self_coding.self_tdd.cli import app
     yield CliRunner(), app
 
 

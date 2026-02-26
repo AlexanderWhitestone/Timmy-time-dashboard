@@ -143,7 +143,7 @@ def log_event(
     
     # Broadcast to WebSocket clients for real-time activity feed
     try:
-        from events.broadcaster import event_broadcaster
+        from infrastructure.events.broadcaster import event_broadcaster
         event_broadcaster.broadcast_sync(entry)
     except Exception:
         # Don't fail if broadcaster unavailable

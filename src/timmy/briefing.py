@@ -169,7 +169,7 @@ def _gather_swarm_summary(since: datetime) -> str:
 def _gather_task_queue_summary() -> str:
     """Pull task queue stats for the briefing.  Graceful if unavailable."""
     try:
-        from task_queue.models import get_task_summary_for_briefing
+        from swarm.task_queue.models import get_task_summary_for_briefing
         stats = get_task_summary_for_briefing()
         parts = []
         if stats["pending_approval"]:

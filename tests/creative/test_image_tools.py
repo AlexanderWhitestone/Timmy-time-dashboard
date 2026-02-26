@@ -8,7 +8,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 from pathlib import Path
 
-from tools.image_tools import (
+from creative.tools.image_tools import (
     IMAGE_TOOL_CATALOG,
     generate_image,
     generate_storyboard,
@@ -47,8 +47,8 @@ class TestSaveMetadata:
 class TestGenerateImageInterface:
     def test_raises_without_creative_deps(self):
         """generate_image raises ImportError when diffusers not available."""
-        with patch("tools.image_tools._pipeline", None):
-            with patch("tools.image_tools._get_pipeline", side_effect=ImportError("no diffusers")):
+        with patch("creative.tools.image_tools._pipeline", None):
+            with patch("creative.tools.image_tools._get_pipeline", side_effect=ImportError("no diffusers")):
                 with pytest.raises(ImportError):
                     generate_image("a cat")
 
@@ -67,8 +67,8 @@ class TestGenerateImageInterface:
         mock_torch.Generator.return_value = MagicMock()
 
         with patch.dict(sys.modules, {"torch": mock_torch}):
-            with patch("tools.image_tools._get_pipeline", return_value=mock_pipe):
-                with patch("tools.image_tools._output_dir", return_value=tmp_path):
+            with patch("creative.tools.image_tools._get_pipeline", return_value=mock_pipe):
+                with patch("creative.tools.image_tools._output_dir", return_value=tmp_path):
                     result = generate_image("a cat", width=512, height=512, steps=1)
 
         assert result["success"]
@@ -90,7 +90,7 @@ class TestGenerateStoryboardInterface:
                 "id": str(call_count), "prompt": prompt,
             }
 
-        with patch("tools.image_tools.generate_image", side_effect=mock_gen_image):
+        with patch("creative.tools.image_tools.generate_image", side_effect=mock_gen_image):
             result = generate_storyboard(
                 ["sunrise", "mountain peak", "sunset"],
                 steps=1,
@@ -112,7 +112,7 @@ class TestImageVariationsInterface:
                 "seed": kwargs.get("seed"),
             }
 
-        with patch("tools.image_tools.generate_image", side_effect=mock_gen_image):
+        with patch("creative.tools.image_tools.generate_image", side_effect=mock_gen_image):
             result = image_variations("a dog", count=3, steps=1)
 
         assert result["success"]

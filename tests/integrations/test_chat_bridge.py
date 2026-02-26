@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from chat_bridge.base import (
+from integrations.chat_bridge.base import (
     ChatMessage,
     ChatPlatform,
     ChatThread,
@@ -11,7 +11,7 @@ from chat_bridge.base import (
     PlatformState,
     PlatformStatus,
 )
-from chat_bridge.registry import PlatformRegistry
+from integrations.chat_bridge.registry import PlatformRegistry
 
 
 # ── Base dataclass tests ───────────────────────────────────────────────────────
@@ -206,7 +206,7 @@ class TestPlatformRegistry:
 
 class TestInviteParser:
     def test_parse_text_discord_gg(self):
-        from chat_bridge.invite_parser import invite_parser
+        from integrations.chat_bridge.invite_parser import invite_parser
 
         result = invite_parser.parse_text("Join us at https://discord.gg/abc123!")
         assert result is not None
@@ -215,7 +215,7 @@ class TestInviteParser:
         assert result.source == "text"
 
     def test_parse_text_discord_com_invite(self):
-        from chat_bridge.invite_parser import invite_parser
+        from integrations.chat_bridge.invite_parser import invite_parser
 
         result = invite_parser.parse_text(
             "Link: https://discord.com/invite/myServer2024"
@@ -224,7 +224,7 @@ class TestInviteParser:
         assert result.code == "myServer2024"
 
     def test_parse_text_discordapp(self):
-        from chat_bridge.invite_parser import invite_parser
+        from integrations.chat_bridge.invite_parser import invite_parser
 
         result = invite_parser.parse_text(
             "https://discordapp.com/invite/test-code"
@@ -233,13 +233,13 @@ class TestInviteParser:
         assert result.code == "test-code"
 
     def test_parse_text_no_invite(self):
-        from chat_bridge.invite_parser import invite_parser
+        from integrations.chat_bridge.invite_parser import invite_parser
 
         result = invite_parser.parse_text("Hello world, no links here")
         assert result is None
 
     def test_parse_text_bare_discord_gg(self):
-        from chat_bridge.invite_parser import invite_parser
+        from integrations.chat_bridge.invite_parser import invite_parser
 
         result = invite_parser.parse_text("discord.gg/xyz789")
         assert result is not None
@@ -248,7 +248,7 @@ class TestInviteParser:
     @pytest.mark.asyncio
     async def test_parse_image_no_deps(self):
         """parse_image returns None when pyzbar/Pillow are not installed."""
-        from chat_bridge.invite_parser import InviteParser
+        from integrations.chat_bridge.invite_parser import InviteParser
 
         parser = InviteParser()
         # With mocked pyzbar, this should gracefully return None
@@ -258,7 +258,7 @@ class TestInviteParser:
 
 class TestExtractDiscordCode:
     def test_various_formats(self):
-        from chat_bridge.invite_parser import _extract_discord_code
+        from integrations.chat_bridge.invite_parser import _extract_discord_code
 
         assert _extract_discord_code("discord.gg/abc") == "abc"
         assert _extract_discord_code("https://discord.gg/test") == "test"

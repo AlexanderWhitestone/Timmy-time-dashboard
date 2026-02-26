@@ -1,6 +1,6 @@
 """Tests for the work order system."""
 
-from work_orders.models import (
+from swarm.work_orders.models import (
     WorkOrder,
     WorkOrderCategory,
     WorkOrderPriority,
@@ -12,7 +12,7 @@ from work_orders.models import (
     list_work_orders,
     update_work_order_status,
 )
-from work_orders.risk import compute_risk_score, should_auto_execute
+from swarm.work_orders.risk import compute_risk_score, should_auto_execute
 
 
 # ── Model CRUD tests ──────────────────────────────────────────────────────────

@@ -20,7 +20,7 @@ from swarm import learner as swarm_learner
 from swarm import registry
 from swarm.coordinator import coordinator
 from swarm.tasks import TaskStatus, update_task
-from ws_manager.handler import ws_manager
+from infrastructure.ws_manager.handler import ws_manager
 
 logger = logging.getLogger(__name__)
 

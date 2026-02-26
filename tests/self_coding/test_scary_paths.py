@@ -274,7 +274,7 @@ class TestWebSocketResilience:
     
     def test_websocket_manager_handles_no_connections(self):
         """WebSocket manager handles zero connected clients."""
-        from ws_manager.handler import ws_manager
+        from infrastructure.ws_manager.handler import ws_manager
         
         # Should not crash when broadcasting with no connections
         try:
@@ -297,7 +297,7 @@ class TestVoiceNLUEdgeCases:
     
     def test_nlu_empty_string(self):
         """Empty string doesn't crash NLU."""
-        from voice.nlu import detect_intent
+        from integrations.voice.nlu import detect_intent
         
         result = detect_intent("")
         assert result is not None
@@ -306,14 +306,14 @@ class TestVoiceNLUEdgeCases:
     
     def test_nlu_all_punctuation(self):
         """String of only punctuation is handled."""
-        from voice.nlu import detect_intent
+        from integrations.voice.nlu import detect_intent
         
         result = detect_intent("...!!!???")
         assert result is not None
     
     def test_nlu_very_long_input(self):
         """10k character input doesn't crash or hang."""
-        from voice.nlu import detect_intent
+        from integrations.voice.nlu import detect_intent
         
         long_input = "word " * 2000  # ~10k chars
         
@@ -327,7 +327,7 @@ class TestVoiceNLUEdgeCases:
     
     def test_nlu_non_english_text(self):
         """Non-English Unicode text is handled."""
-        from voice.nlu import detect_intent
+        from integrations.voice.nlu import detect_intent
         
         # Test various Unicode scripts
         test_inputs = [
@@ -343,7 +343,7 @@ class TestVoiceNLUEdgeCases:
     
     def test_nlu_special_characters(self):
         """Special characters don't break parsing."""
-        from voice.nlu import detect_intent
+        from integrations.voice.nlu import detect_intent
         
         special_inputs = [
             "<script>alert('xss')</script>",
