@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+
+{% block title %}Task Queue - Timmy Time{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .tasks-container { max-width: 1400px; margin: 0 auto; }
+  .tasks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .tasks-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-bright);
+    letter-spacing: 0.08em;
+  }
+  .tasks-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 992px) {
+    .tasks-columns { grid-template-columns: 1fr; }
+  }
+  .task-column-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .task-column-title {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+  }
+  .task-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    margin-bottom: 10px;
+    background: rgba(24, 10, 45, 0.6);
+    transition: border-color 0.2s;
+  }
+  .task-card:hover { border-color: rgba(124, 58, 237, 0.3); }
+  .task-card.priority-urgent { border-left: 3px solid var(--red, #ef4444); }
+  .task-card.priority-high   { border-left: 3px solid var(--amber, #f59e0b); }
+  .task-card.priority-normal { border-left: 3px solid var(--info, #4ea8de); }
+  .task-card.priority-low    { border-left: 3px solid var(--text-dim); }
+  .task-card-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-bright);
+    margin-bottom: 4px;
+  }
+  .task-card-desc {
+    font-size: 0.8rem;
+    color: var(--text);
+    margin-bottom: 6px;
+    max-height: 3em;
+    overflow: hidden;
+  }
+  .task-card-meta {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .task-badge {
+    font-size: 0.65rem;
+    padding: 0.15em 0.5em;
+    border-radius: 3px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    background: var(--bg-tertiary);
+    color: var(--text);
+  }
+  .task-badge-urgent { background: rgba(239,68,68,0.2); color: var(--red, #ef4444); }
+  .task-badge-high   { background: rgba(245,158,11,0.2); color: var(--amber, #f59e0b); }
+  .task-badge-running { background: rgba(59,130,246,0.2); color: #60a5fa; }
+  .task-badge-completed { background: rgba(16,185,129,0.2); color: var(--green, #10b981); }
+  .task-badge-failed { background: rgba(239,68,68,0.2); color: var(--red, #ef4444); }
+  .task-badge-vetoed { background: rgba(107,114,128,0.2); color: #9ca3af; }
+  .task-badge-paused { background: rgba(245,158,11,0.2); color: var(--amber, #f59e0b); }
+  .task-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .task-btn {
+    font-size: 0.7rem;
+    padding: 4px 12px;
+    border: none;
+    border-radius: var(--radius-sm, 4px);
+    cursor: pointer;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    font-family: var(--font);
+  }
+  .task-btn-approve { background: var(--green, #10b981); color: #000; }
+  .task-btn-approve:hover { opacity: 0.85; }
+  .task-btn-modify { background: var(--purple, #7c3aed); color: #fff; }
+  .task-btn-modify:hover { opacity: 0.85; }
+  .task-btn-veto { background: var(--red, #ef4444); color: #fff; }
+  .task-btn-veto:hover { opacity: 0.85; }
+  .task-btn-pause { background: var(--amber, #f59e0b); color: #000; }
+  .task-btn-cancel { background: var(--bg-tertiary); color: var(--text); border: 1px solid var(--border); }
+  .task-btn-retry { background: var(--info, #4ea8de); color: #000; }
+  .task-result {
+    font-size: 0.75rem;
+    color: var(--text);
+    margin-top: 6px;
+    padding: 6px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 4px;
+    max-height: 4em;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .task-result.expanded { max-height: none; }
+  .task-steps {
+    margin-top: 6px;
+    font-size: 0.7rem;
+  }
+  .task-step { padding: 2px 0; color: var(--text-dim); }
+  .task-step.running { color: #60a5fa; }
+  .task-step.completed { color: var(--green, #10b981); }
+  .task-time {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    font-family: var(--font);
+    margin-top: 4px;
+  }
+  /* Create modal */
+  .task-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .task-modal-overlay.open { display: flex; }
+  .task-modal {
+    background: var(--bg-secondary, #1a0a2e);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    max-width: 480px;
+    width: 90%;
+  }
+  .task-modal h3 {
+    margin: 0 0 16px;
+    font-size: 1rem;
+    color: var(--text-bright);
+  }
+  .task-modal label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    letter-spacing: 0.05em;
+  }
+  .task-modal input, .task-modal textarea, .task-modal select {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg-tertiary, #0a0f1e);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.85rem;
+  }
+  .task-modal textarea { min-height: 80px; resize: vertical; }
+  .task-modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+  .empty-column {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="tasks-container py-3">
+
+  <div class="tasks-header">
+    <div class="tasks-title">TASK QUEUE</div>
+    <button class="task-btn task-btn-approve" onclick="openCreateModal()" style="padding:6px 16px; font-size:0.8rem;">+ ADD TASK</button>
+  </div>
+
+  <div class="tasks-columns">
+    <!-- PENDING APPROVAL -->
+    <div class="card mc-panel">
+      <div class="card-header mc-panel-header task-column-header">
+        <span class="task-column-title">// PENDING APPROVAL</span>
+        <span class="badge badge-warning" id="pending-count">{{ pending_count }}</span>
+      </div>
+      <div class="card-body p-2" id="pending-list"
+           hx-get="/tasks/pending" hx-trigger="every 15s" hx-swap="innerHTML">
+        {% if pending %}
+          {% for task in pending %}
+            {% include "partials/task_card.html" %}
+          {% endfor %}
+        {% else %}
+          <div class="empty-column">No pending tasks</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ACTIVE -->
+    <div class="card mc-panel">
+      <div class="card-header mc-panel-header task-column-header">
+        <span class="task-column-title">// ACTIVE</span>
+        <span class="badge badge-info" id="active-count">{{ active | length }}</span>
+      </div>
+      <div class="card-body p-2" id="active-list"
+           hx-get="/tasks/active" hx-trigger="every 10s" hx-swap="innerHTML">
+        {% if active %}
+          {% for task in active %}
+            {% include "partials/task_card.html" %}
+          {% endfor %}
+        {% else %}
+          <div class="empty-column">No active tasks</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- COMPLETED -->
+    <div class="card mc-panel">
+      <div class="card-header mc-panel-header task-column-header">
+        <span class="task-column-title">// COMPLETED</span>
+        <span class="badge badge-secondary" id="completed-count">{{ completed | length }}</span>
+      </div>
+      <div class="card-body p-2" id="completed-list" style="max-height: 70vh; overflow-y: auto;"
+           hx-get="/tasks/completed" hx-trigger="every 30s" hx-swap="innerHTML">
+        {% if completed %}
+          {% for task in completed %}
+            {% include "partials/task_card.html" %}
+          {% endfor %}
+        {% else %}
+          <div class="empty-column">No completed tasks yet</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Create Task Modal -->
+<div class="task-modal-overlay" id="create-modal">
+  <div class="task-modal">
+    <h3>Create Task</h3>
+    <form id="create-task-form" hx-post="/tasks/create" hx-target="#pending-list" hx-swap="afterbegin" hx-on::after-request="closeCreateModal()">
+      <label>Title</label>
+      <input type="text" name="title" required placeholder="Short description of the task">
+
+      <label>Description</label>
+      <textarea name="description" placeholder="Full task details (optional)"></textarea>
+
+      <label>Assign To</label>
+      <select name="assigned_to" id="modal-assigned-to">
+        {% for agent in agents %}
+        <option value="{{ agent.name }}" {% if pre_assign == agent.name %}selected{% endif %}>{{ agent.name }}</option>
+        {% endfor %}
+      </select>
+
+      <label>Priority</label>
+      <select name="priority">
+        <option value="low">Low</option>
+        <option value="normal" selected>Normal</option>
+        <option value="high">High</option>
+        <option value="urgent">Urgent</option>
+      </select>
+
+      <div class="task-modal-actions">
+        <button type="button" class="task-btn task-btn-cancel" onclick="closeCreateModal()">CANCEL</button>
+        <button type="submit" class="task-btn task-btn-approve">CREATE</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function openCreateModal(agentName) {
+  document.getElementById('create-modal').classList.add('open');
+  if (agentName) {
+    var sel = document.getElementById('modal-assigned-to');
+    for (var i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === agentName) { sel.selectedIndex = i; break; }
+    }
+  }
+}
+function closeCreateModal() {
+  document.getElementById('create-modal').classList.remove('open');
+  document.getElementById('create-task-form').reset();
+}
+// Close on overlay click
+document.getElementById('create-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeCreateModal();
+});
+// Close on Escape
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeCreateModal();
+});
+
+// Toggle result expansion
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('task-result')) {
+    e.target.classList.toggle('expanded');
+  }
+});
+
+// WebSocket live updates for task events
+(function() {
+  var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  var ws;
+  function connectTaskWs() {
+    try {
+      ws = new WebSocket(protocol + '//' + window.location.host + '/ws');
+      ws.onmessage = function(event) {
+        try {
+          var msg = JSON.parse(event.data);
+          if (msg.type === 'task_event') {
+            // Refresh the relevant column
+            htmx.trigger('#pending-list', 'htmx:trigger');
+            htmx.trigger('#active-list', 'htmx:trigger');
+            htmx.trigger('#completed-list', 'htmx:trigger');
+          }
+        } catch(e) {}
+      };
+      ws.onclose = function() {
+        setTimeout(connectTaskWs, 5000);
+      };
+    } catch(e) {}
+  }
+  connectTaskWs();
+})();
+
+// Open create modal from URL param (?assign=timmy)
+var params = new URLSearchParams(window.location.search);
+if (params.get('assign')) {
+  openCreateModal(params.get('assign'));
+}
+</script>
+{% endblock %}

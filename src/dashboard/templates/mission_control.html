@@ -187,16 +187,24 @@ async function loadHealth() {
     try {
         const response = await fetch('/health');
         const data = await response.json();
-        
+
         // Format uptime
         const uptime = data.uptime_seconds;
         let uptimeStr;
         if (uptime < 60) uptimeStr = Math.floor(uptime) + 's';
         else if (uptime < 3600) uptimeStr = Math.floor(uptime / 60) + 'm';
         else uptimeStr = Math.floor(uptime / 3600) + 'h ' + Math.floor((uptime % 3600) / 60) + 'm';
-        
+
         document.getElementById('metric-uptime').textContent = uptimeStr;
-        
+
+        // LLM backend and model from /health response
+        if (data.llm_backend) {
+            document.getElementById('hb-backend').textContent = data.llm_backend;
+        }
+        if (data.llm_model) {
+            document.getElementById('hb-model').textContent = data.llm_model;
+        }
+
     } catch (error) {
         console.error('Failed to load health:', error);
     }
@@ -207,11 +215,22 @@ async function loadSwarmStats() {
     try {
         const response = await fetch('/swarm');
         const data = await response.json();
-        
-        document.getElementById('metric-agents').textContent = data.agents || 0;
-        document.getElementById('metric-tasks').textContent = 
+
+        var agentCount = data.agents || 0;
+        // Fallback: if /swarm returns 0, try /swarm/agents for a direct count
+        if (agentCount === 0) {
+            try {
+                const agentResp = await fetch('/swarm/agents');
+                const agentData = await agentResp.json();
+                if (Array.isArray(agentData.agents)) {
+                    agentCount = agentData.agents.length;
+                }
+            } catch (e) { /* ignore fallback failure */ }
+        }
+        document.getElementById('metric-agents').textContent = agentCount;
+        document.getElementById('metric-tasks').textContent =
             (data.tasks_pending || 0) + (data.tasks_running || 0);
-        
+
     } catch (error) {
         console.error('Failed to load swarm stats:', error);
     }
@@ -222,16 +241,12 @@ async function loadLightningStats() {
     try {
         const response = await fetch('/serve/status');
         const data = await response.json();
-        
+
         document.getElementById('metric-earned').textContent = data.total_earned_sats || 0;
-        
-        // Update heartbeat backend
-        document.getElementById('hb-backend').textContent = data.backend || '-';
-        document.getElementById('hb-model').textContent = 'llama3.2';  // From config
-        
+
     } catch (error) {
-        console.error('Failed to load lightning stats:', error);
-        document.getElementById('metric-earned').textContent = '-';
+        // /serve may not be running — default to 0 instead of '-'
+        document.getElementById('metric-earned').textContent = '0';
     }
 }
 

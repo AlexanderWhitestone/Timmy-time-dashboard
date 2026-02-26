@@ -84,6 +84,12 @@ class Settings(BaseSettings):
     self_modify_allowed_dirs: str = "src,tests"
     self_modify_backend: str = "auto"  # "ollama", "anthropic", or "auto"
 
+    # ── Work Orders ──────────────────────────────────────────────────
+    # External users and agents can submit work orders for improvements.
+    work_orders_enabled: bool = True
+    work_orders_auto_execute: bool = False  # Master switch for auto-execution
+    work_orders_auto_threshold: str = "low"  # Max priority that auto-executes: "low" | "medium" | "high" | "none"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

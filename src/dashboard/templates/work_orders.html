@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Work Orders — Timmy Time{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="max-width: 1200px; padding: 24px;">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center" style="margin-bottom: 24px;">
+    <div>
+      <h2 style="margin: 0; font-size: 1.5rem;">WORK ORDERS</h2>
+      <div style="font-size: 0.75rem; color: var(--text-muted); letter-spacing: 0.1em; margin-top: 4px;">
+        SUBMIT &middot; REVIEW &middot; EXECUTE
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <span class="badge" style="background: var(--amber); color: #000; font-size: 0.75rem;">
+        {{ pending_count }} PENDING
+      </span>
+      <button class="btn mc-btn-send" style="font-size: 0.75rem; padding: 6px 16px;"
+              onclick="document.getElementById('submit-form').style.display = document.getElementById('submit-form').style.display === 'none' ? 'block' : 'none'">
+        + NEW
+      </button>
+    </div>
+  </div>
+
+  <!-- Submit Form (hidden by default) -->
+  <div id="submit-form" class="card" style="display: none; margin-bottom: 24px; padding: 20px;">
+    <h3 style="font-size: 0.875rem; margin-bottom: 16px; letter-spacing: 0.1em;">SUBMIT WORK ORDER</h3>
+    <form hx-post="/work-orders/submit"
+          hx-target="#submit-result"
+          hx-swap="innerHTML"
+          hx-on::after-request="if(event.detail.successful){this.reset(); setTimeout(()=>htmx.trigger('#pending-section','load'),500);}"
+          class="d-flex flex-column gap-3">
+
+      <div>
+        <label style="font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.15em;">TITLE</label>
+        <input type="text" name="title" class="form-control mc-input" placeholder="Brief title for this work order" required />
+      </div>
+
+      <div>
+        <label style="font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.15em;">DESCRIPTION</label>
+        <textarea name="description" class="form-control mc-input" rows="3" placeholder="Detailed description..."></textarea>
+      </div>
+
+      <div class="d-flex gap-3">
+        <div style="flex: 1;">
+          <label style="font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.15em;">PRIORITY</label>
+          <select name="priority" class="form-control mc-input">
+            {% for p in priorities %}
+            <option value="{{ p }}" {{ "selected" if p == "medium" else "" }}>{{ p | upper }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="flex: 1;">
+          <label style="font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.15em;">CATEGORY</label>
+          <select name="category" class="form-control mc-input">
+            {% for c in categories %}
+            <option value="{{ c }}" {{ "selected" if c == "suggestion" else "" }}>{{ c | upper }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="flex: 1;">
+          <label style="font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.15em;">SUBMITTER</label>
+          <input type="text" name="submitter" class="form-control mc-input" value="dashboard" />
+        </div>
+      </div>
+
+      <div>
+        <label style="font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.15em;">RELATED FILES (comma-separated)</label>
+        <input type="text" name="related_files" class="form-control mc-input" placeholder="src/timmy/agent.py, src/config.py" />
+      </div>
+
+      <input type="hidden" name="submitter_type" value="user" />
+
+      <div class="d-flex justify-content-between align-items-center">
+        <div id="submit-result" style="font-size: 0.75rem;"></div>
+        <button type="submit" class="btn mc-btn-send" style="padding: 8px 24px;">SUBMIT</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Pending Queue -->
+  <div class="card" style="margin-bottom: 24px; padding: 20px;">
+    <h3 style="font-size: 0.875rem; margin-bottom: 16px; letter-spacing: 0.1em;">
+      INCOMING QUEUE
+    </h3>
+    <div id="pending-section"
+         hx-get="/work-orders/queue/pending"
+         hx-trigger="load, every 30s"
+         hx-swap="innerHTML">
+      {% if pending %}
+        {% for wo in pending %}
+          {% include "partials/work_order_card.html" %}
+        {% endfor %}
+      {% else %}
+        <div style="color: var(--text-muted); font-size: 0.8rem; padding: 12px 0;">
+          No pending work orders. Use the + NEW button or the API to submit one.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Active Work -->
+  <div class="card" style="margin-bottom: 24px; padding: 20px;">
+    <h3 style="font-size: 0.875rem; margin-bottom: 16px; letter-spacing: 0.1em;">
+      ACTIVE WORK
+    </h3>
+    <div id="active-section"
+         hx-get="/work-orders/queue/active"
+         hx-trigger="load, every 15s"
+         hx-swap="innerHTML">
+      {% if active %}
+        {% for wo in active %}
+          {% include "partials/work_order_card.html" %}
+        {% endfor %}
+      {% else %}
+        <div style="color: var(--text-muted); font-size: 0.8rem; padding: 12px 0;">
+          No work orders currently in progress.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- History -->
+  <div class="card" style="padding: 20px;">
+    <h3 style="font-size: 0.875rem; margin-bottom: 16px; letter-spacing: 0.1em;">
+      HISTORY
+    </h3>
+    {% if completed or rejected %}
+      {% for wo in completed %}
+        {% include "partials/work_order_card.html" %}
+      {% endfor %}
+      {% for wo in rejected %}
+        {% include "partials/work_order_card.html" %}
+      {% endfor %}
+    {% else %}
+      <div style="color: var(--text-muted); font-size: 0.8rem; padding: 12px 0;">
+        No completed or rejected work orders yet.
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

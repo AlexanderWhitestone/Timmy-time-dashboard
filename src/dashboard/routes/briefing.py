@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
 from timmy.briefing import engine as briefing_engine
@@ -68,3 +68,14 @@ async def reject_item(request: Request, item_id: str):
         "partials/approval_card_single.html",
         {"item": item},
     )
+
+
+@router.post("/regenerate", response_class=JSONResponse)
+async def regenerate_briefing():
+    """Force-regenerate today's briefing."""
+    try:
+        briefing = briefing_engine.generate()
+        return JSONResponse({"success": True, "generated_at": str(briefing.generated_at)})
+    except Exception as exc:
+        logger.exception("Failed to regenerate briefing")
+        return JSONResponse({"success": False, "error": str(exc)}, status_code=500)

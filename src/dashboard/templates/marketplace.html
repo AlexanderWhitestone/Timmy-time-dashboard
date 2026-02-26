@@ -113,6 +113,11 @@
             <div class="price-label">min bid</div>
             <div class="price-stat">{{ agent.tasks_completed }} tasks won</div>
             <div class="price-stat"><span class="earned">{{ agent.total_earned }} sats</span> earned</div>
+            <a href="/tasks?assign={{ agent.name | urlencode }}"
+               class="btn btn-sm"
+               style="margin-top:8px; background:var(--purple); color:#fff; border:none; border-radius:var(--radius-sm); padding:6px 16px; font-size:0.75rem; font-weight:600; letter-spacing:0.05em; display:inline-block; text-decoration:none;">
+              HIRE
+            </a>
           </div>
         </div>
         {% endfor %}

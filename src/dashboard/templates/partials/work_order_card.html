@@ -1,0 +1,84 @@
+<div id="wo-{{ wo.id }}" class="card" style="padding: 14px; margin-bottom: 12px; border-left: 3px solid {% if wo.priority.value == 'critical' %}var(--danger){% elif wo.priority.value == 'high' %}var(--amber){% elif wo.priority.value == 'medium' %}var(--info, #4ea8de){% else %}var(--text-dim){% endif %};">
+
+  <div class="d-flex justify-content-between align-items-start" style="margin-bottom: 8px;">
+    <div>
+      <strong style="font-size: 0.9rem;">{{ wo.title | e }}</strong>
+      <div style="margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap;">
+        <span class="badge" style="font-size: 0.65rem; background: {% if wo.priority.value == 'critical' %}var(--danger){% elif wo.priority.value == 'high' %}var(--amber){% elif wo.priority.value == 'medium' %}var(--info, #4ea8de){% else %}var(--bg-tertiary){% endif %}; color: {% if wo.priority.value in ('critical', 'high') %}#000{% else %}var(--text-primary, #fff){% endif %};">
+          {{ wo.priority.value | upper }}
+        </span>
+        <span class="badge" style="font-size: 0.65rem; background: var(--bg-tertiary);">
+          {{ wo.category.value | upper }}
+        </span>
+        <span class="badge" style="font-size: 0.65rem; background: var(--bg-tertiary);">
+          {{ wo.submitter | e }}
+        </span>
+        {% if wo.execution_mode %}
+        <span class="badge" style="font-size: 0.65rem; background: {% if wo.execution_mode == 'auto' %}var(--success){% else %}var(--bg-tertiary){% endif %}; color: {% if wo.execution_mode == 'auto' %}#000{% else %}var(--text-primary, #fff){% endif %};">
+          {{ wo.execution_mode | upper }}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+    <div style="font-size: 0.65rem; color: var(--text-muted); text-align: right; white-space: nowrap;">
+      {{ wo.status.value | upper }}<br>
+      {{ wo.created_at[:16].replace("T", " ") }}
+    </div>
+  </div>
+
+  {% if wo.description %}
+  <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; max-height: 3em; overflow: hidden;">
+    {{ wo.description | e }}
+  </div>
+  {% endif %}
+
+  {% if wo.related_files %}
+  <div style="font-size: 0.7rem; font-family: monospace; color: var(--text-dim); margin-bottom: 8px;">
+    {{ wo.related_files | join(", ") | e }}
+  </div>
+  {% endif %}
+
+  {% if wo.result %}
+  <div style="font-size: 0.75rem; color: var(--success); margin-bottom: 8px;">
+    {{ wo.result | e }}
+  </div>
+  {% endif %}
+
+  {% if wo.rejection_reason %}
+  <div style="font-size: 0.75rem; color: var(--danger); margin-bottom: 8px;">
+    Rejected: {{ wo.rejection_reason | e }}
+  </div>
+  {% endif %}
+
+  <!-- Action buttons based on status -->
+  {% if wo.status.value in ('submitted', 'triaged') %}
+  <div class="d-flex gap-2" style="margin-top: 8px;">
+    <button class="btn mc-btn-send" style="font-size: 0.7rem; padding: 4px 16px;"
+            hx-post="/work-orders/{{ wo.id }}/approve"
+            hx-target="#wo-{{ wo.id }}"
+            hx-swap="outerHTML">
+      APPROVE
+    </button>
+    <button class="btn" style="font-size: 0.7rem; padding: 4px 16px; background: var(--danger); color: #fff; border: none; border-radius: var(--radius-md, 4px);"
+            hx-post="/work-orders/{{ wo.id }}/reject"
+            hx-target="#wo-{{ wo.id }}"
+            hx-swap="outerHTML">
+      REJECT
+    </button>
+  </div>
+  {% elif wo.status.value == 'approved' %}
+  <div style="margin-top: 8px;">
+    <button class="btn mc-btn-send" style="font-size: 0.7rem; padding: 4px 16px;"
+            hx-post="/work-orders/{{ wo.id }}/execute"
+            hx-target="#wo-{{ wo.id }}"
+            hx-swap="outerHTML">
+      EXECUTE
+    </button>
+  </div>
+  {% elif wo.status.value == 'in_progress' %}
+  <div style="margin-top: 8px; font-size: 0.7rem; color: var(--amber);">
+    Executing...
+  </div>
+  {% endif %}
+
+</div>

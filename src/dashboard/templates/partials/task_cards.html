@@ -1,0 +1,9 @@
+{% if tasks %}
+  {% for task in tasks %}
+    {% include "partials/task_card.html" %}
+  {% endfor %}
+{% else %}
+  <div class="empty-column">
+    {% if section == 'pending' %}No pending tasks{% elif section == 'active' %}No active tasks{% else %}No completed tasks yet{% endif %}
+  </div>
+{% endif %}

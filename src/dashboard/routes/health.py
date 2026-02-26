@@ -243,6 +243,8 @@ async def health_check():
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "version": "2.0.0",
         "uptime_seconds": uptime,
+        "llm_backend": settings.timmy_model_backend,
+        "llm_model": settings.ollama_model,
     }
 
 

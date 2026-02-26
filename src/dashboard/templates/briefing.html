@@ -151,14 +151,19 @@
 <div class="container briefing-container py-4">
 
   <div class="briefing-header mb-4">
-    <div class="briefing-greeting">Good morning.</div>
-    <div class="briefing-timestamp">
-      Briefing generated
-      <span class="briefing-ts-val">{{ briefing.generated_at.strftime('%Y-%m-%d %H:%M UTC') }}</span>
-      &mdash; covering
-      <span class="briefing-ts-val">{{ briefing.period_start.strftime('%H:%M') }}</span>
-      to
-      <span class="briefing-ts-val">{{ briefing.period_end.strftime('%H:%M UTC') }}</span>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <div class="briefing-greeting">Good morning.</div>
+        <div class="briefing-timestamp">
+          Briefing generated
+          <span class="briefing-ts-val">{{ briefing.generated_at.strftime('%Y-%m-%d %H:%M UTC') }}</span>
+          &mdash; covering
+          <span class="briefing-ts-val">{{ briefing.period_start.strftime('%H:%M') }}</span>
+          to
+          <span class="briefing-ts-val">{{ briefing.period_end.strftime('%H:%M UTC') }}</span>
+        </div>
+      </div>
+      <button class="btn-refresh" id="btn-regenerate" onclick="regenerateBriefing()">REGENERATE</button>
     </div>
   </div>
 
@@ -184,4 +189,24 @@
   </div>
 
 </div>
+
+<script>
+async function regenerateBriefing() {
+  var btn = document.getElementById('btn-regenerate');
+  btn.textContent = 'REGENERATING...';
+  btn.disabled = true;
+  try {
+    var resp = await fetch('/briefing/regenerate', { method: 'POST' });
+    if (resp.ok) {
+      window.location.reload();
+    } else {
+      btn.textContent = 'FAILED';
+      setTimeout(function() { btn.textContent = 'REGENERATE'; btn.disabled = false; }, 2000);
+    }
+  } catch (e) {
+    btn.textContent = 'ERROR';
+    setTimeout(function() { btn.textContent = 'REGENERATE'; btn.disabled = false; }, 2000);
+  }
+}
+</script>
 {% endblock %}
