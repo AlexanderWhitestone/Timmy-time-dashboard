@@ -5,6 +5,8 @@ Uses the three-tier memory system and MCP tools.
 """
 
 import logging
+from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Optional
 
 from agno.agent import Agent
@@ -17,8 +19,166 @@ from mcp.registry import tool_registry
 
 logger = logging.getLogger(__name__)
 
+# Dynamic context that gets built at startup
+_timmy_context: dict[str, Any] = {
+    "git_log": "",
+    "agents": [],
+    "hands": [],
+    "memory": "",
+}
 
-TIMMY_ORCHESTRATOR_PROMPT = """You are Timmy, a sovereign AI orchestrator running locally on this Mac.
+
+async def _load_hands_async() -> list[dict]:
+    """Async helper to load hands."""
+    try:
+        from hands.registry import HandRegistry
+        reg = HandRegistry()
+        hands_dict = await reg.load_all()
+        return [
+            {"name": h.name, "schedule": h.schedule.cron if h.schedule else "manual", "enabled": h.enabled}
+            for h in hands_dict.values()
+        ]
+    except Exception as exc:
+        logger.warning("Could not load hands for context: %s", exc)
+        return []
+
+
+def build_timmy_context_sync() -> dict[str, Any]:
+    """Build Timmy's self-awareness context at startup (synchronous version).
+    
+    This function gathers:
+    - Recent git commits (last 20)
+    - Active sub-agents
+    - Hot memory from MEMORY.md
+    
+    Note: Hands are loaded separately in async context.
+    
+    Returns a dict that can be formatted into the system prompt.
+    """
+    global _timmy_context
+    
+    ctx: dict[str, Any] = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "repo_root": settings.repo_root,
+        "git_log": "",
+        "agents": [],
+        "hands": [],
+        "memory": "",
+    }
+    
+    # 1. Get recent git commits
+    try:
+        from tools.git_tools import git_log
+        result = git_log(max_count=20)
+        if result.get("success"):
+            commits = result.get("commits", [])
+            ctx["git_log"] = "\n".join([
+                f"{c['short_sha']} {c['message'].split(chr(10))[0]}"
+                for c in commits[:20]
+            ])
+    except Exception as exc:
+        logger.warning("Could not load git log for context: %s", exc)
+        ctx["git_log"] = "(Git log unavailable)"
+    
+    # 2. Get active sub-agents
+    try:
+        from swarm import registry as swarm_registry
+        conn = swarm_registry._get_conn()
+        rows = conn.execute(
+            "SELECT id, name, status, capabilities FROM agents ORDER BY name"
+        ).fetchall()
+        ctx["agents"] = [
+            {"id": r["id"], "name": r["name"], "status": r["status"], "capabilities": r["capabilities"]}
+            for r in rows
+        ]
+        conn.close()
+    except Exception as exc:
+        logger.warning("Could not load agents for context: %s", exc)
+        ctx["agents"] = []
+    
+    # 3. Read hot memory
+    try:
+        memory_path = Path(settings.repo_root) / "MEMORY.md"
+        if memory_path.exists():
+            ctx["memory"] = memory_path.read_text()[:2000]  # First 2000 chars
+        else:
+            ctx["memory"] = "(MEMORY.md not found)"
+    except Exception as exc:
+        logger.warning("Could not load memory for context: %s", exc)
+        ctx["memory"] = "(Memory unavailable)"
+    
+    _timmy_context.update(ctx)
+    logger.info("Timmy context built (sync): %d agents", len(ctx["agents"]))
+    return ctx
+
+
+async def build_timmy_context_async() -> dict[str, Any]:
+    """Build complete Timmy context including hands (async version)."""
+    ctx = build_timmy_context_sync()
+    ctx["hands"] = await _load_hands_async()
+    _timmy_context.update(ctx)
+    logger.info("Timmy context built (async): %d agents, %d hands", len(ctx["agents"]), len(ctx["hands"]))
+    return ctx
+
+
+# Keep old name for backwards compatibility
+build_timmy_context = build_timmy_context_sync
+
+
+def format_timmy_prompt(base_prompt: str, context: dict[str, Any]) -> str:
+    """Format the system prompt with dynamic context."""
+    
+    # Format agents list
+    agents_list = "\n".join([
+        f"| {a['name']} | {a['capabilities'] or 'general'} | {a['status']} |"
+        for a in context.get("agents", [])
+    ]) or "(No agents registered yet)"
+    
+    # Format hands list
+    hands_list = "\n".join([
+        f"| {h['name']} | {h['schedule']} | {'enabled' if h['enabled'] else 'disabled'} |"
+        for h in context.get("hands", [])
+    ]) or "(No hands configured)"
+    
+    repo_root = context.get('repo_root', settings.repo_root)
+    
+    context_block = f"""
+## Current System Context (as of {context.get('timestamp', datetime.now(timezone.utc).isoformat())})
+
+### Repository
+**Root:** `{repo_root}`
+
+### Recent Commits (last 20):
+```
+{context.get('git_log', '(unavailable)')}
+```
+
+### Active Sub-Agents:
+| Name | Capabilities | Status |
+|------|--------------|--------|
+{agents_list}
+
+### Hands (Scheduled Tasks):
+| Name | Schedule | Status |
+|------|----------|--------|
+{hands_list}
+
+### Hot Memory:
+{context.get('memory', '(unavailable)')[:1000]}
+"""
+    
+    # Replace {REPO_ROOT} placeholder with actual path
+    base_prompt = base_prompt.replace("{REPO_ROOT}", repo_root)
+    
+    # Insert context after the first line (You are Timmy...)
+    lines = base_prompt.split("\n")
+    if lines:
+        return lines[0] + "\n" + context_block + "\n" + "\n".join(lines[1:])
+    return base_prompt
+
+
+# Base prompt with anti-hallucination hard rules
+TIMMY_ORCHESTRATOR_PROMPT_BASE = """You are Timmy, a sovereign AI orchestrator running locally on this Mac.
 
 ## Your Role
 
@@ -62,6 +222,20 @@ You have three tiers of memory:
 
 Use `memory_search` when the user refers to past conversations.
 
+## Hard Rules — Non-Negotiable
+
+1. **NEVER fabricate tool output.** If you need data from a tool, call the tool and wait for the real result. Do not write what you think the result might be.
+
+2. **If a tool call returns an error, report the exact error message.** Do not retry with invented data.
+
+3. **If you do not know something about your own system, say:** "I don't have that information — let me check." Then use a tool. Do not guess.
+
+4. **Never say "I'll wait for the output" and then immediately provide fake output.** These are contradictory. Wait means wait — no output until the tool returns.
+
+5. **When corrected, use memory_write to save the correction immediately.**
+
+6. **Your source code lives at the repository root shown above.** When using git tools, you don't need to specify a path — they automatically run from {REPO_ROOT}.
+
 ## Principles
 
 1. **Sovereignty** — Everything local, no cloud
@@ -78,21 +252,31 @@ class TimmyOrchestrator(BaseAgent):
     """Main orchestrator agent that coordinates the swarm."""
     
     def __init__(self) -> None:
+        # Build initial context (sync) and format prompt
+        # Full context including hands will be loaded on first async call
+        context = build_timmy_context_sync()
+        formatted_prompt = format_timmy_prompt(TIMMY_ORCHESTRATOR_PROMPT_BASE, context)
+        
         super().__init__(
             agent_id="timmy",
             name="Timmy",
             role="orchestrator",
-            system_prompt=TIMMY_ORCHESTRATOR_PROMPT,
-            tools=["web_search", "read_file", "write_file", "python", "memory_search"],
+            system_prompt=formatted_prompt,
+            tools=["web_search", "read_file", "write_file", "python", "memory_search", "memory_write"],
         )
         
         # Sub-agent registry
         self.sub_agents: dict[str, BaseAgent] = {}
         
+        # Session tracking for init behavior
+        self._session_initialized = False
+        self._session_context: dict[str, Any] = {}
+        self._context_fully_loaded = False
+        
         # Connect to event bus
         self.connect_event_bus(event_bus)
         
-        logger.info("Timmy Orchestrator initialized")
+        logger.info("Timmy Orchestrator initialized with context-aware prompt")
     
     def register_sub_agent(self, agent: BaseAgent) -> None:
         """Register a sub-agent with the orchestrator."""
@@ -100,11 +284,102 @@ class TimmyOrchestrator(BaseAgent):
         agent.connect_event_bus(event_bus)
         logger.info("Registered sub-agent: %s", agent.name)
     
+    async def _session_init(self) -> None:
+        """Initialize session context on first user message.
+        
+        Silently reads git log and AGENTS.md to ground self-description in real data.
+        This runs once per session before the first response.
+        
+        The git log is prepended to Timmy's context so he can answer "what's new?"
+        from actual commit data rather than hallucinating.
+        """
+        if self._session_initialized:
+            return
+        
+        logger.debug("Running session init...")
+        
+        # Load full context including hands if not already done
+        if not self._context_fully_loaded:
+            await build_timmy_context_async()
+            self._context_fully_loaded = True
+        
+        # Read recent git log --oneline -15 from repo root
+        try:
+            from tools.git_tools import git_log
+            git_result = git_log(max_count=15)
+            if git_result.get("success"):
+                commits = git_result.get("commits", [])
+                self._session_context["git_log_commits"] = commits
+                # Format as oneline for easy reading
+                self._session_context["git_log_oneline"] = "\n".join([
+                    f"{c['short_sha']} {c['message'].split(chr(10))[0]}"
+                    for c in commits
+                ])
+                logger.debug(f"Session init: loaded {len(commits)} commits from git log")
+            else:
+                self._session_context["git_log_oneline"] = "Git log unavailable"
+        except Exception as exc:
+            logger.warning("Session init: could not read git log: %s", exc)
+            self._session_context["git_log_oneline"] = "Git log unavailable"
+        
+        # Read AGENTS.md for self-awareness
+        try:
+            agents_md_path = Path(settings.repo_root) / "AGENTS.md"
+            if agents_md_path.exists():
+                self._session_context["agents_md"] = agents_md_path.read_text()[:3000]
+        except Exception as exc:
+            logger.warning("Session init: could not read AGENTS.md: %s", exc)
+        
+        # Read CHANGELOG for recent changes
+        try:
+            changelog_path = Path(settings.repo_root) / "docs" / "CHANGELOG_2026-02-26.md"
+            if changelog_path.exists():
+                self._session_context["changelog"] = changelog_path.read_text()[:2000]
+        except Exception:
+            pass  # Changelog is optional
+        
+        # Build session-specific context block for the prompt
+        recent_changes = self._session_context.get("git_log_oneline", "")
+        if recent_changes and recent_changes != "Git log unavailable":
+            self._session_context["recent_changes_block"] = f"""
+## Recent Changes to Your Codebase (last 15 commits):
+```
+{recent_changes}
+```
+When asked "what's new?" or similar, refer to these commits for actual changes.
+"""
+        else:
+            self._session_context["recent_changes_block"] = ""
+        
+        self._session_initialized = True
+        logger.debug("Session init complete")
+    
+    def _get_enhanced_system_prompt(self) -> str:
+        """Get system prompt enhanced with session-specific context.
+        
+        This prepends the recent git log to the system prompt so Timmy
+        can answer questions about what's new from real data.
+        """
+        base = self.system_prompt
+        
+        # Add recent changes block if available
+        recent_changes = self._session_context.get("recent_changes_block", "")
+        if recent_changes:
+            # Insert after the first line
+            lines = base.split("\n")
+            if lines:
+                return lines[0] + "\n" + recent_changes + "\n" + "\n".join(lines[1:])
+        
+        return base
+    
     async def orchestrate(self, user_request: str) -> str:
         """Main entry point for user requests.
         
         Analyzes the request and either handles directly or delegates.
         """
+        # Run session init on first message (loads git log, etc.)
+        await self._session_init()
+        
         # Quick classification
         request_lower = user_request.lower()
         
@@ -171,7 +446,7 @@ def create_timmy_swarm() -> TimmyOrchestrator:
     from agents.echo import EchoAgent
     from agents.helm import HelmAgent
     
-    # Create orchestrator
+    # Create orchestrator (builds context automatically)
     timmy = TimmyOrchestrator()
     
     # Register sub-agents
@@ -182,3 +457,18 @@ def create_timmy_swarm() -> TimmyOrchestrator:
     timmy.register_sub_agent(HelmAgent())
     
     return timmy
+
+
+# Convenience functions for refreshing context (called by /api/timmy/refresh-context)
+def refresh_timmy_context_sync() -> dict[str, Any]:
+    """Refresh Timmy's context (sync version)."""
+    return build_timmy_context_sync()
+
+
+async def refresh_timmy_context_async() -> dict[str, Any]:
+    """Refresh Timmy's context including hands (async version)."""
+    return await build_timmy_context_async()
+
+
+# Keep old name for backwards compatibility
+refresh_timmy_context = refresh_timmy_context_sync
