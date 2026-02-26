@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Hands — Timmy Time{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h3 mb-0">Hands</h1>
+      <p class="text-muted small mb-0">Autonomous scheduled agents</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm btn-outline-info" hx-get="/hands/list" hx-target="#hands-container">
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="row g-4">
+    <!-- Left Column: Hands List -->
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-secondary d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Active Hands</h5>
+          <span class="badge bg-info" hx-get="/hands/api/hands" hx-trigger="every 30s" hx-swap="none">
+            Auto-refresh
+          </span>
+        </div>
+        <div class="card-body p-0">
+          <div id="hands-container" hx-get="/hands/list" hx-trigger="load">
+            <div class="d-flex justify-content-center py-5">
+              <div class="spinner-border text-info" role="status">
+                <span class="visually-hidden">Loading Hands...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Executions -->
+      <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-transparent border-secondary">
+          <h5 class="mb-0">Recent Executions</h5>
+        </div>
+        <div class="card-body p-0">
+          <div id="executions-container" hx-get="/hands/executions" hx-trigger="load">
+            <div class="d-flex justify-content-center py-3">
+              <div class="spinner-border spinner-border-sm text-muted" role="status"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Approvals & Info -->
+    <div class="col-lg-4">
+      <!-- Pending Approvals -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-secondary d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Pending Approvals</h5>
+          <span class="badge bg-warning text-dark" id="approval-count">-</span>
+        </div>
+        <div class="card-body p-0">
+          <div id="approvals-container" hx-get="/hands/approvals" hx-trigger="load, every 10s">
+            <div class="d-flex justify-content-center py-3">
+              <div class="spinner-border spinner-border-sm text-muted" role="status"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- What are Hands -->
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-transparent border-secondary">
+          <h5 class="mb-0">What are Hands?</h5>
+        </div>
+        <div class="card-body">
+          <p class="small mb-2">Hands are autonomous agents that run on schedules:</p>
+          <ul class="list-unstyled small mb-0">
+            <li class="mb-1">🔮 <strong>Oracle</strong> — Bitcoin intelligence</li>
+            <li class="mb-1">🔍 <strong>Scout</strong> — OSINT monitoring</li>
+            <li class="mb-1">✍️ <strong>Scribe</strong> — Content production</li>
+            <li class="mb-1">💰 <strong>Ledger</strong> — Treasury tracking</li>
+            <li class="mb-1">🔧 <strong>Forge</strong> — Model management</li>
+            <li class="mb-1">🎨 <strong>Weaver</strong> — Creative pipeline</li>
+            <li class="mb-1">🛡️ <strong>Sentinel</strong> — System health</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.hand-card {
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.hand-card:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.hand-card.running {
+  border-left-color: #0dcaf0;
+}
+
+.hand-card.scheduled {
+  border-left-color: #198754;
+}
+
+.hand-card.paused {
+  border-left-color: #ffc107;
+}
+
+.hand-card.error {
+  border-left-color: #dc3545;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-dot.running { background-color: #0dcaf0; animation: pulse 1.5s infinite; }
+.status-dot.scheduled { background-color: #198754; }
+.status-dot.paused { background-color: #ffc107; }
+.status-dot.error { background-color: #dc3545; }
+.status-dot.idle { background-color: #6c757d; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+</style>
+{% endblock %}

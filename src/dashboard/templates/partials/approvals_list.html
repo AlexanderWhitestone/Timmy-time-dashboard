@@ -1,0 +1,44 @@
+{# Approvals list partial #}
+{% if approvals %}
+  <div class="list-group list-group-flush" id="approval-list">
+    {% for approval in approvals %}
+    <div class="list-group-item p-3" id="approval-{{ approval.id }}">
+      <div class="d-flex justify-content-between align-items-start mb-2">
+        <div>
+          <h6 class="mb-0">{{ approval.hand_name }}</h6>
+          <small class="text-muted">{{ approval.action }}</small>
+        </div>
+        <span class="badge bg-warning text-dark">PENDING</span>
+      </div>
+      
+      <p class="small mb-2">{{ approval.description }}</p>
+      
+      <div class="d-flex justify-content-between align-items-center">
+        <small class="text-muted">
+          {{ approval.created_at.strftime('%H:%M') if approval.created_at else 'Unknown' }}
+        </small>
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-success"
+                  hx-post="/hands/api/approvals/{{ approval.id }}/approve"
+                  hx-target="#approvals-container"
+                  hx-swap="outerHTML">
+            ✓ Approve
+          </button>
+          <button class="btn btn-danger"
+                  hx-post="/hands/api/approvals/{{ approval.id }}/reject"
+                  hx-target="#approvals-container"
+                  hx-swap="outerHTML">
+            ✗ Reject
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  <script>document.getElementById('approval-count').textContent = '{{ approvals|length }}';</script>
+{% else %}
+  <div class="text-center py-4 text-muted">
+    <p class="mb-0 small">No pending approvals.</p>
+  </div>
+  <script>document.getElementById('approval-count').textContent = '0';</script>
+{% endif %}
