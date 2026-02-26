@@ -2,9 +2,9 @@
   <div class="card mc-panel flex-grow-1 d-flex flex-column min-h-0">
 
     <div class="card-header mc-panel-header d-flex justify-content-between align-items-center">
-      <span>
+      <span class="d-flex align-items-center gap-2">
         {% if agent %}
-          <span class="status-dot {{ 'green' if agent.status == 'idle' else 'amber' }}" style="margin-right:6px;"></span>
+          <span class="status-dot {{ 'green' if agent.status == 'idle' else 'amber' }}"></span>
         {% endif %}
         // TIMMY INTERFACE
       </span>
@@ -28,7 +28,8 @@
             hx-indicator="#send-indicator"
             hx-sync="this:drop"
             hx-disabled-elt="find button"
-            hx-on::after-request="if(event.detail.successful){this.querySelector('[name=message]').value=''; scrollChat()}"
+            hx-on::after-settle="scrollChat()"
+            hx-on::after-request="if(event.detail.successful){this.querySelector('[name=message]').value='';}"
             class="d-flex gap-2">
         <input type="text"
                name="message"
@@ -42,7 +43,7 @@
                required />
         <button type="submit" class="btn mc-btn-send">
           SEND
-          <span id="send-indicator" class="htmx-indicator">▋</span>
+          <span id="send-indicator" class="htmx-indicator">&#x25FC;</span>
         </button>
       </form>
     </div>
@@ -52,8 +53,12 @@
 
 <script>
   function scrollChat() {
-    const log = document.getElementById('chat-log');
-    if (log) log.scrollTop = log.scrollHeight;
+    var log = document.getElementById('chat-log');
+    if (log) {
+      requestAnimationFrame(function() {
+        log.scrollTop = log.scrollHeight;
+      });
+    }
   }
   scrollChat();
 </script>
