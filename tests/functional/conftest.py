@@ -80,6 +80,74 @@ def live_server():
     print("✅ Server stopped")
 
 
+@pytest.fixture
+def app_client():
+    """FastAPI test client for functional tests.
+    
+    Same as the 'client' fixture in root conftest but available here.
+    """
+    from fastapi.testclient import TestClient
+    from dashboard.app import app
+    with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture
+def timmy_runner():
+    """Typer CLI runner for timmy CLI tests."""
+    from typer.testing import CliRunner
+    from timmy.cli import app
+    yield CliRunner(), app
+
+
+@pytest.fixture
+def serve_runner():
+    """Typer CLI runner for timmy-serve CLI tests."""
+    from typer.testing import CliRunner
+    from timmy_serve.cli import app
+    yield CliRunner(), app
+
+
+@pytest.fixture
+def self_tdd_runner():
+    """Typer CLI runner for self-tdd CLI tests."""
+    from typer.testing import CliRunner
+    from self_tdd.cli import app
+    yield CliRunner(), app
+
+
+@pytest.fixture
+def docker_stack():
+    """Docker stack URL for container-level tests.
+    
+    Skips if FUNCTIONAL_DOCKER env var is not set to "1".
+    """
+    import os
+    if os.environ.get("FUNCTIONAL_DOCKER") != "1":
+        pytest.skip("Set FUNCTIONAL_DOCKER=1 to run Docker tests")
+    yield "http://localhost:18000"
+
+
+@pytest.fixture
+def serve_client():
+    """FastAPI test client for timmy-serve app."""
+    pytest.importorskip("timmy_serve.app", reason="timmy_serve not available")
+    from timmy_serve.app import create_timmy_serve_app
+    from fastapi.testclient import TestClient
+    app = create_timmy_serve_app()
+    with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture
+def tdd_runner():
+    """Alias for self_tdd_runner fixture."""
+    pytest.importorskip("self_tdd.cli", reason="self_tdd CLI not available")
+    from typer.testing import CliRunner
+    from self_tdd.cli import app
+    yield CliRunner(), app
+
+
 # Add custom pytest option for headed mode
 def pytest_addoption(parser):
     parser.addoption(
