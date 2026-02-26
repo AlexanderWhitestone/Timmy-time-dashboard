@@ -1,0 +1,54 @@
+{# Journal entry detail partial #}
+<div class="card mt-3 bg-dark-subtle border-0">
+  <div class="card-body">
+    <h6 class="card-subtitle mb-3 text-muted">Attempt Details</h6>
+    
+    {% if entry.approach %}
+    <div class="mb-3">
+      <small class="text-muted">Approach:</small>
+      <p class="mb-0">{{ entry.approach }}</p>
+    </div>
+    {% endif %}
+    
+    {% if entry.files_modified %}
+    <div class="mb-3">
+      <small class="text-muted">Files Modified:</small>
+      <ul class="list-unstyled mb-0">
+        {% for file in entry.files_modified %}
+        <li><code class="small">{{ file }}</code></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    
+    {% if entry.diff %}
+    <div class="mb-3">
+      <small class="text-muted">Diff:</small>
+      <pre class="small bg-black p-2 rounded overflow-auto" style="max-height: 200px;"><code>{{ entry.diff[:500] }}{% if entry.diff|length > 500 %}...{% endif %}</code></pre>
+    </div>
+    {% endif %}
+    
+    {% if entry.test_results %}
+    <div class="mb-3">
+      <small class="text-muted">Test Results:</small>
+      <pre class="small bg-black p-2 rounded overflow-auto" style="max-height: 150px;"><code>{{ entry.test_results[:500] }}{% if entry.test_results|length > 500 %}...{% endif %}</code></pre>
+    </div>
+    {% endif %}
+    
+    {% if entry.failure_analysis %}
+    <div class="mb-3">
+      <small class="text-danger">Failure Analysis:</small>
+      <p class="mb-0 text-danger-emphasis">{{ entry.failure_analysis }}</p>
+    </div>
+    {% endif %}
+    
+    {% if entry.reflection %}
+    <div class="mb-0">
+      <small class="text-info">Reflection:</small>
+      <div class="p-2 bg-info-subtle rounded">
+        {{ entry.reflection|markdown }}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>

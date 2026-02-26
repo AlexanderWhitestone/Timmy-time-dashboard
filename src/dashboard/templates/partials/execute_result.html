@@ -1,0 +1,58 @@
+{# Execute task result partial #}
+<div class="alert {% if result.success %}alert-success{% else %}alert-danger{% endif %} mb-0">
+  <div class="d-flex align-items-start gap-2">
+    <span class="fs-5">{% if result.success %}✅{% else %}❌{% endif %}</span>
+    <div>
+      <h6 class="alert-heading mb-1">
+        {% if result.success %}Success!{% else %}Failed{% endif %}
+      </h6>
+      <p class="mb-0 small">{{ result.message }}</p>
+      
+      {% if result.success %}
+        {% if result.files_modified %}
+        <div class="mt-2">
+          <small class="text-muted">Files modified:</small>
+          <ul class="list-unstyled mb-0 small">
+            {% for file in result.files_modified %}
+            <li><code>{{ file }}</code></li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+        
+        {% if result.commit_hash %}
+        <div class="mt-2 small">
+          <span class="text-muted">Commit:</span>
+          <code>{{ result.commit_hash[:8] }}</code>
+        </div>
+        {% endif %}
+        
+        {% if result.attempt_id %}
+        <div class="mt-2">
+          <a href="/self-coding#journal-{{ result.attempt_id }}" class="btn btn-sm btn-outline-success">
+            View in Journal
+          </a>
+        </div>
+        {% endif %}
+      {% else %}
+        {% if result.test_results %}
+        <div class="mt-2">
+          <small class="text-muted">Test output:</small>
+          <pre class="small bg-black bg-opacity-25 p-2 rounded mb-0 mt-1 overflow-auto" style="max-height: 150px;"><code>{{ result.test_results[:500] }}{% if result.test_results|length > 500 %}...{% endif %}</code></pre>
+        </div>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{# Refresh journal and stats after execution #}
+{% if result.success %}
+<script>
+  // Refresh journal and stats after successful execution
+  setTimeout(() => {
+    htmx.ajax('GET', '/self-coding/journal', { target: '#journal-container' });
+    htmx.ajax('GET', '/self-coding/stats', { target: '#stats-container' });
+  }, 500);
+</script>
+{% endif %}
