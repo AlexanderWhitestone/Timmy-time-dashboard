@@ -130,7 +130,6 @@ markers = [
 source = ["src"]
 omit = [
     "*/tests/*",
-    "src/dashboard/routes/mobile_test.py",
 ]
 
 [tool.coverage.report]
