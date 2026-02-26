@@ -90,6 +90,17 @@ class Settings(BaseSettings):
     work_orders_auto_execute: bool = False  # Master switch for auto-execution
     work_orders_auto_threshold: str = "low"  # Max priority that auto-executes: "low" | "medium" | "high" | "none"
 
+    # ── Scripture / Biblical Integration ──────────────────────────────
+    # Enable the sovereign biblical text module.  When enabled, Timmy
+    # loads the local ESV text corpus and runs meditation workflows.
+    scripture_enabled: bool = True
+    # Primary translation for retrieval and citation.
+    scripture_translation: str = "ESV"
+    # Meditation mode: sequential | thematic | lectionary
+    scripture_meditation_mode: str = "sequential"
+    # Background meditation interval in seconds (0 = disabled).
+    scripture_meditation_interval: int = 0
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

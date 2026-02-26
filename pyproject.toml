@@ -99,6 +99,7 @@ include = [
     "src/agent_core",
     "src/lightning",
     "src/self_modify",
+    "src/scripture",
 ]
 
 [tool.pytest.ini_options]
