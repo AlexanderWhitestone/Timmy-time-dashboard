@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 
 # ── Index ─────────────────────────────────────────────────────────────────────
@@ -74,12 +74,7 @@ def test_agents_list_timmy_metadata(client):
 # ── Chat ──────────────────────────────────────────────────────────────────────
 
 def test_chat_timmy_success(client):
-    mock_agent = MagicMock()
-    mock_run = MagicMock()
-    mock_run.content = "I am Timmy, operational and sovereign."
-    mock_agent.run.return_value = mock_run
-
-    with patch("dashboard.routes.agents.create_timmy", return_value=mock_agent):
+    with patch("dashboard.routes.agents.timmy_chat", return_value="I am Timmy, operational and sovereign."):
         response = client.post("/agents/timmy/chat", data={"message": "status?"})
 
     assert response.status_code == 200
@@ -88,17 +83,14 @@ def test_chat_timmy_success(client):
 
 
 def test_chat_timmy_shows_user_message(client):
-    mock_agent = MagicMock()
-    mock_agent.run.return_value = MagicMock(content="Acknowledged.")
-
-    with patch("dashboard.routes.agents.create_timmy", return_value=mock_agent):
+    with patch("dashboard.routes.agents.timmy_chat", return_value="Acknowledged."):
         response = client.post("/agents/timmy/chat", data={"message": "hello there"})
 
     assert "hello there" in response.text
 
 
 def test_chat_timmy_ollama_offline(client):
-    with patch("dashboard.routes.agents.create_timmy", side_effect=Exception("connection refused")):
+    with patch("dashboard.routes.agents.timmy_chat", side_effect=Exception("connection refused")):
         response = client.post("/agents/timmy/chat", data={"message": "ping"})
 
     assert response.status_code == 200
@@ -120,10 +112,7 @@ def test_history_empty_shows_init_message(client):
 
 
 def test_history_records_user_and_agent_messages(client):
-    mock_agent = MagicMock()
-    mock_agent.run.return_value = MagicMock(content="I am operational.")
-
-    with patch("dashboard.routes.agents.create_timmy", return_value=mock_agent):
+    with patch("dashboard.routes.agents.timmy_chat", return_value="I am operational."):
         client.post("/agents/timmy/chat", data={"message": "status check"})
 
     response = client.get("/agents/timmy/history")
@@ -132,7 +121,7 @@ def test_history_records_user_and_agent_messages(client):
 
 
 def test_history_records_error_when_offline(client):
-    with patch("dashboard.routes.agents.create_timmy", side_effect=Exception("refused")):
+    with patch("dashboard.routes.agents.timmy_chat", side_effect=Exception("refused")):
         client.post("/agents/timmy/chat", data={"message": "ping"})
 
     response = client.get("/agents/timmy/history")
@@ -141,10 +130,7 @@ def test_history_records_error_when_offline(client):
 
 
 def test_history_clear_resets_to_init_message(client):
-    mock_agent = MagicMock()
-    mock_agent.run.return_value = MagicMock(content="Acknowledged.")
-
-    with patch("dashboard.routes.agents.create_timmy", return_value=mock_agent):
+    with patch("dashboard.routes.agents.timmy_chat", return_value="Acknowledged."):
         client.post("/agents/timmy/chat", data={"message": "hello"})
 
     response = client.delete("/agents/timmy/history")
@@ -153,10 +139,7 @@ def test_history_clear_resets_to_init_message(client):
 
 
 def test_history_empty_after_clear(client):
-    mock_agent = MagicMock()
-    mock_agent.run.return_value = MagicMock(content="OK.")
-
-    with patch("dashboard.routes.agents.create_timmy", return_value=mock_agent):
+    with patch("dashboard.routes.agents.timmy_chat", return_value="OK."):
         client.post("/agents/timmy/chat", data={"message": "test"})
 
     client.delete("/agents/timmy/history")

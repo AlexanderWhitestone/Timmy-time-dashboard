@@ -1,5 +1,12 @@
 """Multi-layer memory system for Timmy.
 
+.. deprecated::
+    This module is deprecated and unused.  The active memory system lives in
+    ``timmy.memory_system`` (three-tier: Hot/Vault/Handoff) and
+    ``timmy.conversation`` (working conversation context).
+
+    This file is retained for reference only.  Do not import from it.
+
 Implements four distinct memory layers:
 
 1. WORKING MEMORY (Context Window)
@@ -24,6 +31,15 @@ Implements four distinct memory layers:
 
 All layers work together to provide contextual, personalized responses.
 """
+
+import warnings as _warnings
+
+_warnings.warn(
+    "timmy.memory_layers is deprecated. Use timmy.memory_system and "
+    "timmy.conversation instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 import json
 import logging
@@ -417,5 +433,5 @@ class MemoryManager:
         return [f.content for f in facts]
 
 
-# Module-level singleton
-memory_manager = MemoryManager()
+# Singleton removed — this module is deprecated.
+# Use timmy.memory_system.memory_system or timmy.conversation.conversation_manager.

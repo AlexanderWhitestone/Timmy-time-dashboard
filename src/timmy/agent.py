@@ -2,12 +2,13 @@
 
 Memory Architecture:
 - Tier 1 (Hot): MEMORY.md — always loaded, ~300 lines
-- Tier 2 (Vault): memory/ — structured markdown, append-only  
-- Tier 3 (Semantic): Vector search (future)
+- Tier 2 (Vault): memory/ — structured markdown, append-only
+- Tier 3 (Semantic): Vector search over vault files
 
 Handoff Protocol maintains continuity across sessions.
 """
 
+import logging
 from typing import TYPE_CHECKING, Union
 
 from agno.agent import Agent
@@ -15,14 +16,42 @@ from agno.db.sqlite import SqliteDb
 from agno.models.ollama import Ollama
 
 from config import settings
-from timmy.prompts import TIMMY_SYSTEM_PROMPT
+from timmy.prompts import get_system_prompt
 from timmy.tools import create_full_toolkit
 
 if TYPE_CHECKING:
     from timmy.backends import TimmyAirLLMAgent
 
+logger = logging.getLogger(__name__)
+
 # Union type for callers that want to hint the return type.
 TimmyAgent = Union[Agent, "TimmyAirLLMAgent"]
+
+# Models known to be too small for reliable tool calling.
+# These hallucinate tool calls as text, invoke tools randomly,
+# and leak raw JSON into responses.
+_SMALL_MODEL_PATTERNS = (
+    "llama3.2",
+    "phi-3",
+    "gemma:2b",
+    "tinyllama",
+    "qwen2:0.5b",
+    "qwen2:1.5b",
+)
+
+
+def _model_supports_tools(model_name: str) -> bool:
+    """Check if the configured model can reliably handle tool calling.
+
+    Small models (< 7B) tend to hallucinate tool calls as text or invoke
+    them randomly.  For these models, it's better to run tool-free and let
+    the model answer directly from its training data.
+    """
+    model_lower = model_name.lower()
+    for pattern in _SMALL_MODEL_PATTERNS:
+        if pattern in model_lower:
+            return False
+    return True
 
 
 def _resolve_backend(requested: str | None) -> str:
@@ -73,38 +102,43 @@ def create_timmy(
         return TimmyAirLLMAgent(model_size=size)
 
     # Default: Ollama via Agno.
-    # Add tools for sovereign agent capabilities
-    tools = create_full_toolkit()
-    
-    # Build enhanced system prompt with memory context
-    base_prompt = TIMMY_SYSTEM_PROMPT
-    
+    model_name = settings.ollama_model
+    use_tools = _model_supports_tools(model_name)
+
+    # Conditionally include tools — small models get none
+    tools = create_full_toolkit() if use_tools else None
+    if not use_tools:
+        logger.info("Tools disabled for model %s (too small for reliable tool calling)", model_name)
+
+    # Select prompt tier based on tool capability
+    base_prompt = get_system_prompt(tools_enabled=use_tools)
+
     # Try to load memory context
     try:
         from timmy.memory_system import memory_system
         memory_context = memory_system.get_system_context()
         if memory_context:
             # Truncate if too long (keep under token limit)
-            if len(memory_context) > 8000:
-                memory_context = memory_context[:8000] + "\n... [truncated]"
+            max_context = 4000 if not use_tools else 8000
+            if len(memory_context) > max_context:
+                memory_context = memory_context[:max_context] + "\n... [truncated]"
             full_prompt = f"{base_prompt}\n\n## Memory Context\n\n{memory_context}"
         else:
             full_prompt = base_prompt
     except Exception as exc:
-        # Fall back to base prompt if memory system fails
-        import logging
-        logging.getLogger(__name__).warning("Failed to load memory context: %s", exc)
+        logger.warning("Failed to load memory context: %s", exc)
         full_prompt = base_prompt
-    
+
     return Agent(
         name="Timmy",
-        model=Ollama(id=settings.ollama_model, host=settings.ollama_url),
+        model=Ollama(id=model_name, host=settings.ollama_url),
         db=SqliteDb(db_file=db_file),
         description=full_prompt,
         add_history_to_context=True,
         num_history_runs=20,
         markdown=True,
         tools=[tools] if tools else None,
+        show_tool_calls=False,
         telemetry=settings.telemetry_enabled,
     )
 
