@@ -29,9 +29,24 @@ def _require_git() -> None:
         )
 
 
-def _open_repo(repo_path: str | Path) -> "Repo":
-    """Open an existing git repo at *repo_path*."""
+def _default_repo_path() -> Path:
+    """Return the default repository root path from config.
+    
+    This ensures git tools run from the correct working directory
+    without Timmy needing to know the absolute path.
+    """
+    from config import settings
+    return Path(settings.repo_root)
+
+
+def _open_repo(repo_path: str | Path | None = None) -> "Repo":
+    """Open an existing git repo at *repo_path*.
+    
+    If repo_path is None, uses the default repo_root from settings.
+    """
     _require_git()
+    if repo_path is None:
+        repo_path = _default_repo_path()
     return Repo(str(repo_path))
 
 
@@ -61,8 +76,11 @@ def git_init(path: str | Path) -> dict:
 
 # ── Status / inspection ──────────────────────────────────────────────────────
 
-def git_status(repo_path: str | Path) -> dict:
-    """Return working-tree status: modified, staged, untracked files."""
+def git_status(repo_path: str | Path | None = None) -> dict:
+    """Return working-tree status: modified, staged, untracked files.
+    
+    If repo_path is not provided, uses the default repo_root from settings.
+    """
     repo = _open_repo(repo_path)
     return {
         "success": True,
@@ -75,13 +93,14 @@ def git_status(repo_path: str | Path) -> dict:
 
 
 def git_diff(
-    repo_path: str | Path,
+    repo_path: str | Path | None = None,
     staged: bool = False,
     file_path: Optional[str] = None,
 ) -> dict:
     """Show diff of working tree or staged changes.
 
     If *file_path* is given, scope diff to that file only.
+    If repo_path is not provided, uses the default repo_root from settings.
     """
     repo = _open_repo(repo_path)
     args: list[str] = []
@@ -94,11 +113,14 @@ def git_diff(
 
 
 def git_log(
-    repo_path: str | Path,
+    repo_path: str | Path | None = None,
     max_count: int = 20,
     branch: Optional[str] = None,
 ) -> dict:
-    """Return recent commit history as a list of dicts."""
+    """Return recent commit history as a list of dicts.
+    
+    If repo_path is not provided, uses the default repo_root from settings.
+    """
     repo = _open_repo(repo_path)
     ref = branch or repo.active_branch.name
     commits = []
@@ -114,8 +136,11 @@ def git_log(
     return {"success": True, "branch": ref, "commits": commits}
 
 
-def git_blame(repo_path: str | Path, file_path: str) -> dict:
-    """Show line-by-line authorship for a file."""
+def git_blame(repo_path: str | Path | None = None, file_path: str = "") -> dict:
+    """Show line-by-line authorship for a file.
+    
+    If repo_path is not provided, uses the default repo_root from settings.
+    """
     repo = _open_repo(repo_path)
     blame_text = repo.git.blame(file_path)
     return {"success": True, "file": file_path, "blame": blame_text}
@@ -124,11 +149,14 @@ def git_blame(repo_path: str | Path, file_path: str) -> dict:
 # ── Branching ─────────────────────────────────────────────────────────────────
 
 def git_branch(
-    repo_path: str | Path,
+    repo_path: str | Path | None = None,
     create: Optional[str] = None,
     switch: Optional[str] = None,
 ) -> dict:
-    """List branches, optionally create or switch to one."""
+    """List branches, optionally create or switch to one.
+    
+    If repo_path is not provided, uses the default repo_root from settings.
+    """
     repo = _open_repo(repo_path)
 
     if create:
@@ -149,8 +177,14 @@ def git_branch(
 
 # ── Staging & committing ─────────────────────────────────────────────────────
 
-def git_add(repo_path: str | Path, paths: list[str] | None = None) -> dict:
-    """Stage files for commit.  *paths* defaults to all modified files."""
+def git_add(
+    repo_path: str | Path | None = None,
+    paths: list[str] | None = None,
+) -> dict:
+    """Stage files for commit.  *paths* defaults to all modified files.
+    
+    If repo_path is not provided, uses the default repo_root from settings.
+    """
     repo = _open_repo(repo_path)
     if paths:
         repo.index.add(paths)
@@ -161,8 +195,14 @@ def git_add(repo_path: str | Path, paths: list[str] | None = None) -> dict:
     return {"success": True, "staged": staged}
 
 
-def git_commit(repo_path: str | Path, message: str) -> dict:
-    """Create a commit with the given message."""
+def git_commit(
+    repo_path: str | Path | None = None,
+    message: str = "",
+) -> dict:
+    """Create a commit with the given message.
+    
+    If repo_path is not provided, uses the default repo_root from settings.
+    """
     repo = _open_repo(repo_path)
     commit = repo.index.commit(message)
     return {
@@ -176,11 +216,14 @@ def git_commit(repo_path: str | Path, message: str) -> dict:
 # ── Remote operations ─────────────────────────────────────────────────────────
 
 def git_push(
-    repo_path: str | Path,
+    repo_path: str | Path | None = None,
     remote: str = "origin",
     branch: Optional[str] = None,
 ) -> dict:
-    """Push the current (or specified) branch to the remote."""
+    """Push the current (or specified) branch to the remote.
+    
+    If repo_path is not provided, uses the default repo_root from settings.
+    """
     repo = _open_repo(repo_path)
     ref = branch or repo.active_branch.name
     info = repo.remotes[remote].push(ref)
@@ -189,11 +232,14 @@ def git_push(
 
 
 def git_pull(
-    repo_path: str | Path,
+    repo_path: str | Path | None = None,
     remote: str = "origin",
     branch: Optional[str] = None,
 ) -> dict:
-    """Pull from the remote into the working tree."""
+    """Pull from the remote into the working tree.
+    
+    If repo_path is not provided, uses the default repo_root from settings.
+    """
     repo = _open_repo(repo_path)
     ref = branch or repo.active_branch.name
     info = repo.remotes[remote].pull(ref)
@@ -204,11 +250,14 @@ def git_pull(
 # ── Stashing ──────────────────────────────────────────────────────────────────
 
 def git_stash(
-    repo_path: str | Path,
+    repo_path: str | Path | None = None,
     pop: bool = False,
     message: Optional[str] = None,
 ) -> dict:
-    """Stash or pop working-tree changes."""
+    """Stash or pop working-tree changes.
+    
+    If repo_path is not provided, uses the default repo_root from settings.
+    """
     repo = _open_repo(repo_path)
     if pop:
         repo.git.stash("pop")

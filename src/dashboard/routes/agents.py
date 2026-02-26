@@ -205,6 +205,44 @@ async def clear_history(request: Request):
     )
 
 
+@router.post("/timmy/refresh-context")
+async def refresh_timmy_context_api():
+    """Refresh Timmy's self-awareness context.
+    
+    Re-reads git log, agents, hands, and memory to update
+    Timmy's system prompt with current information.
+    """
+    try:
+        from agents.timmy import refresh_timmy_context_async
+        context = await refresh_timmy_context_async()
+        return {
+            "success": True,
+            "timestamp": context.get("timestamp"),
+            "agents_count": len(context.get("agents", [])),
+            "hands_count": len(context.get("hands", [])),
+            "message": "Context refreshed successfully",
+        }
+    except Exception as exc:
+        logger.error("Failed to refresh context: %s", exc)
+        return {"success": False, "error": str(exc)}
+
+
+@router.get("/timmy/context")
+async def get_timmy_context():
+    """Get Timmy's current context (for debugging)."""
+    try:
+        from agents.timmy import _timmy_context
+        return {
+            "timestamp": _timmy_context.get("timestamp"),
+            "repo_root": _timmy_context.get("repo_root"),
+            "git_log_lines": len(_timmy_context.get("git_log", "").split("\n")),
+            "agents": _timmy_context.get("agents", []),
+            "hands": _timmy_context.get("hands", []),
+        }
+    except Exception as exc:
+        return {"error": str(exc)}
+
+
 @router.post("/timmy/chat", response_class=HTMLResponse)
 async def chat_timmy(request: Request, message: str = Form(...)):
     timestamp = datetime.now().strftime("%H:%M:%S")

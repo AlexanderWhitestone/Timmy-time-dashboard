@@ -1,9 +1,31 @@
+import os
+from pathlib import Path
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def _detect_repo_root() -> str:
+    """Auto-detect the repository root by looking for .git directory.
+    
+    Walks up from this file's location until it finds a .git directory.
+    Falls back to the parent of the src/ directory.
+    """
+    current = Path(__file__).parent.absolute()
+    
+    # Walk up looking for .git
+    for parent in [current] + list(current.parents):
+        if (parent / ".git").exists():
+            return str(parent)
+    
+    # Fallback: assume we're in src/, go up one level
+    return str(current.parent)
+
+
 class Settings(BaseSettings):
+    # Repository root — auto-detected, used for git tools and file operations
+    repo_root: str = _detect_repo_root()
+    
     # Ollama host — override with OLLAMA_URL env var or .env file
     ollama_url: str = "http://localhost:11434"
 

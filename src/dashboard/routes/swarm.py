@@ -28,6 +28,27 @@ async def swarm_status():
     return coordinator.status()
 
 
+@router.get("/status")
+async def swarm_status_detailed():
+    """Return detailed swarm status with all agents and their state."""
+    agents = coordinator.list_swarm_agents()
+    return {
+        "coordinator": coordinator.status(),
+        "agents": [
+            {
+                "id": a.id,
+                "name": a.name,
+                "status": a.status,
+                "capabilities": a.capabilities,
+                "last_seen": a.last_seen,
+            }
+            for a in agents
+        ],
+        "agent_count": len(agents),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 @router.get("/live", response_class=HTMLResponse)
 async def swarm_live_page(request: Request):
     """Render the live swarm dashboard page."""
