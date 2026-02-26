@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Event Log - Timmy Time{% endblock %}
+
+{% block content %}
+<div class="mc-panel">
+  <div class="mc-panel-header">
+    <h1 class="page-title">Event Log</h1>
+    <p class="mc-text-secondary">System audit trail and activity history</p>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="mc-stats-row">
+    {% for event_type, count in summary.items() %}
+    <div class="mc-stat-card">
+      <div class="mc-stat-value">{{ count }}</div>
+      <div class="mc-stat-label">{{ event_type }}</div>
+    </div>
+    {% endfor %}
+    {% if not summary %}
+    <div class="mc-stat-card">
+      <div class="mc-stat-value">-</div>
+      <div class="mc-stat-label">No events (last hour)</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Filters -->
+  <div class="mc-filters">
+    <form method="get" action="/swarm/events" class="mc-filter-form">
+      <select name="event_type" class="mc-select" onchange="this.form.submit()">
+        <option value="">All Event Types</option>
+        {% for et in event_types %}
+        <option value="{{ et }}" {% if filter_type == et %}selected{% endif %}>{{ et }}</option>
+        {% endfor %}
+      </select>
+      
+      {% if filter_task %}
+      <input type="hidden" name="task_id" value="{{ filter_task }}">
+      <span class="mc-filter-tag">Task: {{ filter_task[:8] }}... <a href="/swarm/events">✕</a></span>
+      {% endif %}
+      
+      {% if filter_agent %}
+      <input type="hidden" name="agent_id" value="{{ filter_agent }}">
+      <span class="mc-filter-tag">Agent: {{ filter_agent[:8] }}... <a href="/swarm/events">✕</a></span>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Events Table -->
+  <div class="mc-table-container">
+    {% if events %}
+    <table class="mc-table events-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Type</th>
+          <th>Source</th>
+          <th>Task</th>
+          <th>Agent</th>
+          <th>Data</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for event in events %}
+        <tr class="event-row" data-type="{{ event.event_type.value }}">
+          <td class="event-time">{{ event.timestamp[11:19] }}</td>
+          <td>
+            <span class="mc-badge mc-badge-{{ event.event_type.value.split('.')[0] }}">
+              {{ event.event_type.value }}
+            </span>
+          </td>
+          <td>{{ event.source }}</td>
+          <td>
+            {% if event.task_id %}
+            <a href="/swarm/events?task_id={{ event.task_id }}">{{ event.task_id[:8] }}...</a>
+            {% endif %}
+          </td>
+          <td>
+            {% if event.agent_id %}
+            <a href="/swarm/events?agent_id={{ event.agent_id }}">{{ event.agent_id[:8] }}...</a>
+            {% endif %}
+          </td>
+          <td class="event-data">
+            {% if event.data %}
+            <code>{{ event.data[:60] }}{% if event.data|length > 60 %}...{% endif %}</code>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="mc-empty-state">
+      <p>No events found.</p>
+      {% if filter_type or filter_task or filter_agent %}
+      <p><a href="/swarm/events" class="mc-link">Clear filters</a></p>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

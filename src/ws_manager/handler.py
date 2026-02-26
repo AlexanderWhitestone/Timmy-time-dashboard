@@ -119,6 +119,34 @@ class WebSocketManager:
     def connection_count(self) -> int:
         return len(self._connections)
 
+    async def broadcast_json(self, data: dict) -> int:
+        """Broadcast raw JSON data to all connected clients.
+        
+        Args:
+            data: Dictionary to send as JSON
+            
+        Returns:
+            Number of clients notified
+        """
+        import json
+        
+        message = json.dumps(data)
+        disconnected = []
+        count = 0
+        
+        for ws in self._connections:
+            try:
+                await ws.send_text(message)
+                count += 1
+            except Exception:
+                disconnected.append(ws)
+        
+        # Clean up dead connections
+        for ws in disconnected:
+            self.disconnect(ws)
+        
+        return count
+
     @property
     def event_history(self) -> list[WSEvent]:
         return list(self._event_history)

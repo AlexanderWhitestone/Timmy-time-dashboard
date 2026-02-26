@@ -28,6 +28,10 @@ from swarm.tasks import (
     list_tasks,
     update_task,
 )
+from swarm.event_log import (
+    EventType,
+    log_event,
+)
 
 # Spark Intelligence integration — lazy import to avoid circular deps
 def _get_spark():
@@ -92,6 +96,14 @@ class SwarmCoordinator:
 
         aid = agent_id or str(__import__("uuid").uuid4())
         node = PersonaNode(persona_id=persona_id, agent_id=aid, comms=self.comms)
+        
+        # Log agent join event
+        log_event(
+            EventType.AGENT_JOINED,
+            source="coordinator",
+            agent_id=aid,
+            data={"persona_id": persona_id, "name": node.name},
+        )
 
         def _bid_and_register(msg):
             task_id = msg.data.get("task_id")
@@ -209,6 +221,18 @@ class SwarmCoordinator:
         self.auctions.open_auction(task.id)
         self.comms.post_task(task.id, description)
         logger.info("Task posted: %s (%s)", task.id, description[:50])
+        # Log task creation event
+        log_event(
+            EventType.TASK_CREATED,
+            source="coordinator",
+            task_id=task.id,
+            data={"description": description[:200]},
+        )
+        log_event(
+            EventType.TASK_BIDDING,
+            source="coordinator",
+            task_id=task.id,
+        )
         # Broadcast task posted via WebSocket
         self._broadcast(self._broadcast_task_posted, task.id, description)
         # Spark: capture task-posted event with candidate agents
@@ -280,6 +304,14 @@ class SwarmCoordinator:
                 "Task %s assigned to %s at %d sats",
                 task_id, winner.agent_id, winner.bid_sats,
             )
+            # Log task assignment event
+            log_event(
+                EventType.TASK_ASSIGNED,
+                source="coordinator",
+                task_id=task_id,
+                agent_id=winner.agent_id,
+                data={"bid_sats": winner.bid_sats},
+            )
             # Broadcast task assigned via WebSocket
             self._broadcast(self._broadcast_task_assigned, task_id, winner.agent_id)
             # Spark: capture assignment
@@ -289,6 +321,13 @@ class SwarmCoordinator:
         else:
             update_task(task_id, status=TaskStatus.FAILED)
             logger.warning("Task %s: no bids received, marked as failed", task_id)
+            # Log task failure event
+            log_event(
+                EventType.TASK_FAILED,
+                source="coordinator",
+                task_id=task_id,
+                data={"reason": "no bids received"},
+            )
         return winner
 
     def complete_task(self, task_id: str, result: str) -> Optional[Task]:
@@ -308,6 +347,14 @@ class SwarmCoordinator:
             self.comms.complete_task(task_id, task.assigned_agent, result)
             # Record success in learner
             swarm_learner.record_task_result(task_id, task.assigned_agent, succeeded=True)
+            # Log task completion event
+            log_event(
+                EventType.TASK_COMPLETED,
+                source="coordinator",
+                task_id=task_id,
+                agent_id=task.assigned_agent,
+                data={"result_preview": result[:500]},
+            )
             # Broadcast task completed via WebSocket
             self._broadcast(
                 self._broadcast_task_completed,
@@ -335,6 +382,14 @@ class SwarmCoordinator:
             registry.update_status(task.assigned_agent, "idle")
             # Record failure in learner
             swarm_learner.record_task_result(task_id, task.assigned_agent, succeeded=False)
+            # Log task failure event
+            log_event(
+                EventType.TASK_FAILED,
+                source="coordinator",
+                task_id=task_id,
+                agent_id=task.assigned_agent,
+                data={"reason": reason},
+            )
             # Spark: capture failure
             spark = _get_spark()
             if spark:

@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block title %}Lightning Ledger - Timmy Time{% endblock %}
+
+{% block content %}
+<div class="mc-panel">
+  <div class="mc-panel-header">
+    <h1 class="page-title">Lightning Ledger</h1>
+    <p class="mc-text-secondary">Bitcoin Lightning Network transaction history</p>
+  </div>
+
+  <!-- Balance Cards -->
+  <div class="mc-stats-row balance-row">
+    <div class="mc-stat-card sats-balance">
+      <div class="mc-stat-label">Available Balance</div>
+      <div class="mc-stat-value">{{ balance.available_sats }} <small>sats</small></div>
+    </div>
+    <div class="mc-stat-card">
+      <div class="mc-stat-label">Total Received</div>
+      <div class="mc-stat-value">{{ balance.incoming_total_sats }} <small>sats</small></div>
+    </div>
+    <div class="mc-stat-card">
+      <div class="mc-stat-label">Total Sent</div>
+      <div class="mc-stat-value">{{ balance.outgoing_total_sats }} <small>sats</small></div>
+    </div>
+    <div class="mc-stat-card">
+      <div class="mc-stat-label">Fees Paid</div>
+      <div class="mc-stat-value">{{ balance.fees_paid_sats }} <small>sats</small></div>
+    </div>
+    <div class="mc-stat-card net-balance">
+      <div class="mc-stat-label">Net</div>
+      <div class="mc-stat-value {% if balance.net_sats >= 0 %}positive{% else %}negative{% endif %}">
+        {{ balance.net_sats }} <small>sats</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pending Summary -->
+  {% if balance.pending_incoming_sats > 0 or balance.pending_outgoing_sats > 0 %}
+  <div class="mc-pending-row">
+    {% if balance.pending_incoming_sats > 0 %}
+    <span class="mc-pending-badge incoming">
+      Pending incoming: {{ balance.pending_incoming_sats }} sats
+    </span>
+    {% endif %}
+    {% if balance.pending_outgoing_sats > 0 %}
+    <span class="mc-pending-badge outgoing">
+      Pending outgoing: {{ balance.pending_outgoing_sats }} sats
+    </span>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Filters -->
+  <div class="mc-filters">
+    <form method="get" action="/lightning/ledger" class="mc-filter-form">
+      <select name="tx_type" class="mc-select" onchange="this.form.submit()">
+        <option value="">All Types</option>
+        {% for t in tx_types %}
+        <option value="{{ t }}" {% if filter_type == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+      
+      <select name="status" class="mc-select" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        {% for s in tx_statuses %}
+        <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+
+  <!-- Transactions Table -->
+  <div class="mc-table-container">
+    {% if transactions %}
+    <table class="mc-table transactions-table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Amount</th>
+          <th>Hash</th>
+          <th>Memo</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tx in transactions %}
+        <tr class="transaction-row" data-type="{{ tx.tx_type.value }}" data-status="{{ tx.status.value }}">
+          <td>{{ tx.created_at[11:19] }}</td>
+          <td>
+            <span class="mc-badge mc-badge-{{ tx.tx_type.value }}">
+              {{ tx.tx_type.value }}
+            </span>
+          </td>
+          <td>
+            <span class="mc-status mc-status-{{ tx.status.value }}">
+              {{ tx.status.value }}
+            </span>
+          </td>
+          <td class="amount {% if tx.tx_type.value == 'incoming' %}positive{% else %}negative{% endif %}">
+            {% if tx.tx_type.value == 'incoming' %}+{% endif %}{{ tx.amount_sats }} sats
+          </td>
+          <td class="mono">{{ tx.payment_hash[:16] }}...</td>
+          <td>{{ tx.memo }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="mc-empty-state">
+      <p>No transactions yet.</p>
+      <p class="mc-text-secondary">Invoices and payments will appear here.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Weekly Stats -->
+  {% if stats %}
+  <div class="mc-stats-section">
+    <h3>Activity (Last 7 Days)</h3>
+    <div class="mc-mini-chart">
+      {% for date, day_stats in stats.items() %}
+      <div class="mc-chart-bar" title="{{ date }}">
+        <div class="bar incoming" style="height: {{ day_stats.incoming.count * 10 }}px"></div>
+        <div class="bar outgoing" style="height: {{ day_stats.outgoing.count * 10 }}px"></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
