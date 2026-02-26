@@ -166,6 +166,30 @@ def _gather_swarm_summary(since: datetime) -> str:
         return "Swarm data unavailable."
 
 
+def _gather_task_queue_summary() -> str:
+    """Pull task queue stats for the briefing.  Graceful if unavailable."""
+    try:
+        from task_queue.models import get_task_summary_for_briefing
+        stats = get_task_summary_for_briefing()
+        parts = []
+        if stats["pending_approval"]:
+            parts.append(f"{stats['pending_approval']} task(s) pending approval")
+        if stats["running"]:
+            parts.append(f"{stats['running']} task(s) running")
+        if stats["completed"]:
+            parts.append(f"{stats['completed']} task(s) completed")
+        if stats["failed"]:
+            parts.append(f"{stats['failed']} task(s) failed")
+            for fail in stats.get("recent_failures", []):
+                parts.append(f"  - Failed: {fail['title']}")
+        if stats["vetoed"]:
+            parts.append(f"{stats['vetoed']} task(s) vetoed")
+        return "; ".join(parts) if parts else "No tasks in the queue."
+    except Exception as exc:
+        logger.debug("Task queue summary error: %s", exc)
+        return "Task queue data unavailable."
+
+
 def _gather_chat_summary(since: datetime) -> str:
     """Pull recent chat messages from the in-memory log."""
     try:
@@ -213,16 +237,20 @@ class BriefingEngine:
 
         swarm_info = _gather_swarm_summary(period_start)
         chat_info = _gather_chat_summary(period_start)
+        task_info = _gather_task_queue_summary()
 
         prompt = (
             "You are Timmy, a sovereign local AI companion.\n"
             "Here is what happened since the last briefing:\n\n"
             f"SWARM ACTIVITY:\n{swarm_info}\n\n"
+            f"TASK QUEUE:\n{task_info}\n\n"
             f"RECENT CONVERSATIONS:\n{chat_info}\n\n"
             "Summarize the last period of activity into a 5-minute morning briefing. "
             "Be concise, warm, and direct. "
             "Use plain prose — no bullet points. "
             "Maximum 300 words. "
+            "If there are tasks pending approval, mention them prominently. "
+            "If there are failed tasks, flag them as needing attention. "
             "End with a short paragraph listing any items that need the owner's approval, "
             "or say 'No approvals needed today.' if there are none."
         )

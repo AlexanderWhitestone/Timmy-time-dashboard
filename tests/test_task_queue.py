@@ -304,3 +304,81 @@ def test_api_approve_nonexistent(client):
 def test_api_veto_nonexistent(client):
     resp = client.patch("/api/tasks/nonexistent/veto")
     assert resp.status_code == 404
+
+
+# ── Chat → Task Queue Integration ─────────────────────────────────────────
+
+
+def test_chat_queue_detection_add_to_queue():
+    """'add X to the queue' should be detected as a task request."""
+    from dashboard.routes.agents import _extract_task_from_message
+
+    result = _extract_task_from_message("add run the tests to the task queue")
+    assert result is not None
+    assert "title" in result
+    assert "description" in result
+
+
+def test_chat_queue_detection_schedule():
+    """'schedule this' should be detected as a task request."""
+    from dashboard.routes.agents import _extract_task_from_message
+
+    result = _extract_task_from_message("schedule this for later")
+    assert result is not None
+
+
+def test_chat_queue_detection_create_task():
+    """'create a task' should be detected."""
+    from dashboard.routes.agents import _extract_task_from_message
+
+    result = _extract_task_from_message("create a task to refactor the login page")
+    assert result is not None
+    assert "refactor" in result["title"].lower()
+
+
+def test_chat_queue_detection_normal_message():
+    """Normal messages should NOT be detected as task requests."""
+    from dashboard.routes.agents import _extract_task_from_message
+
+    assert _extract_task_from_message("hello how are you") is None
+    assert _extract_task_from_message("what is the weather today") is None
+    assert _extract_task_from_message("tell me a joke") is None
+
+
+def test_chat_creates_task_on_queue_request(client):
+    """Posting 'add X to the queue' via chat should create a task."""
+    with patch("dashboard.routes.agents.timmy_chat") as mock_chat:
+        mock_chat.return_value = "Sure, I'll do that."
+        resp = client.post(
+            "/agents/timmy/chat",
+            data={"message": "add deploy the new feature to the task queue"},
+        )
+    assert resp.status_code == 200
+    assert "Task queued" in resp.text or "task queue" in resp.text.lower()
+    # timmy_chat should NOT have been called — task was intercepted
+    mock_chat.assert_not_called()
+
+
+def test_chat_normal_message_uses_timmy(client):
+    """Normal messages should go through to Timmy as usual."""
+    with patch("dashboard.routes.agents.timmy_chat") as mock_chat:
+        mock_chat.return_value = "Hello there!"
+        resp = client.post(
+            "/agents/timmy/chat",
+            data={"message": "hello how are you"},
+        )
+    assert resp.status_code == 200
+    mock_chat.assert_called_once()
+
+
+# ── Briefing Integration ──────────────────────────────────────────────────
+
+
+def test_briefing_task_queue_summary():
+    """Briefing engine should include task queue data."""
+    from task_queue.models import create_task
+    from timmy.briefing import _gather_task_queue_summary
+
+    create_task(title="Briefing integration test", created_by="test")
+    summary = _gather_task_queue_summary()
+    assert "pending" in summary.lower() or "task" in summary.lower()
