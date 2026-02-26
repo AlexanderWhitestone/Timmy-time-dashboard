@@ -1,0 +1,30 @@
+# Scribe Hand — Content Production
+# Runs daily at 9am
+# Produces blog posts, documentation, and social content
+
+[hand]
+name = "scribe"
+description = "Content production and documentation maintenance"
+schedule = "0 9 * * *"
+enabled = true
+version = "1.0.0"
+author = "Timmy"
+
+[tools]
+required = ["file_read", "file_write", "git_tools"]
+optional = ["web_search", "codebase_indexer"]
+
+[approval_gates]
+publish_blog = { action = "publish", description = "Publish blog post", auto_approve_after = 600 }
+commit_docs = { action = "commit", description = "Commit documentation changes", auto_approve_after = 300 }
+
+[output]
+dashboard = true
+channel = "telegram"
+format = "markdown"
+file_drop = "data/scribe_drafts/"
+
+[parameters]
+content_types = ["blog", "docs", "changelog"]
+target_word_count = 800
+draft_retention_days = 30

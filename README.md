@@ -23,6 +23,7 @@ A local-first, sovereign AI agent system.  Talk to Timmy, watch his swarm, gate 
 | **WebSocket** | Real-time swarm live feed |
 | **Mobile** | Responsive layout with full iOS safe-area and touch support |
 | **Telegram** | Bridge Telegram messages to Timmy |
+| **Hands** | 6 autonomous scheduled agents — Oracle, Sentinel, Scout, Scribe, Ledger, Weaver |
 | **CLI** | `timmy`, `timmy-serve`, `self-tdd` entry points |
 
 **Full test suite, 100% passing.**
@@ -119,6 +120,43 @@ Mobile-specific routes:
 
 ---
 
+## Hands — Autonomous Agents
+
+Hands are scheduled, autonomous agents that run on cron schedules. Each Hand has a `HAND.toml` manifest, `SYSTEM.md` prompt, and optional `skills/` directory.
+
+**Built-in Hands:**
+
+| Hand | Schedule | Purpose |
+|------|----------|---------|
+| **Oracle** | 7am, 7pm UTC | Bitcoin intelligence — price, on-chain, macro analysis |
+| **Sentinel** | Every 15 min | System health — dashboard, agents, database, resources |
+| **Scout** | Every hour | OSINT monitoring — HN, Reddit, RSS for Bitcoin/sovereign AI |
+| **Scribe** | Daily 9am | Content production — blog posts, docs, changelog |
+| **Ledger** | Every 6 hours | Treasury tracking — Bitcoin/Lightning balances, payment audit |
+| **Weaver** | Sunday 10am | Creative pipeline — orchestrates Pixel+Lyra+Reel for video |
+
+**Dashboard:** `/hands` — manage, trigger, approve actions
+
+**Example HAND.toml:**
+```toml
+[hand]
+name = "oracle"
+schedule = "0 7,19 * * *"  # Twice daily
+enabled = true
+
+[tools]
+required = ["mempool_fetch", "price_fetch"]
+
+[approval_gates]
+broadcast = { action = "broadcast", description = "Post to dashboard" }
+
+[output]
+dashboard = true
+channel = "telegram"
+```
+
+---
+
 ## AirLLM — big brain backend
 
 Run 70B or 405B models locally with no GPU, using AirLLM's layer-by-layer loading.
@@ -203,6 +241,7 @@ External:    Ollama :11434, optional Redis, optional LND gRPC
 src/
   config.py           # pydantic-settings — all env vars live here
   timmy/              # Core agent (agent.py, backends.py, cli.py, prompts.py)
+  hands/              # Autonomous scheduled agents (registry, scheduler, runner)
   dashboard/          # FastAPI app, routes, Jinja2 templates
   swarm/              # Multi-agent: coordinator, registry, bidder, tasks, comms
   timmy_serve/        # L402 proxy, payment handler, TTS, serve CLI
@@ -217,6 +256,7 @@ src/
   shortcuts/          # Siri Shortcuts endpoints
   telegram_bot/       # Telegram bridge
   self_tdd/           # Continuous test watchdog
+hands/                # Hand manifests — oracle/, sentinel/, etc.
 tests/                # one test file per module, all mocked
 static/style.css      # Dark mission-control theme (JetBrains Mono)
 docs/                 # GitHub Pages landing page
@@ -259,5 +299,5 @@ patterns, coding conventions, and the v2→v3 roadmap.
 | Version | Name       | Status      | Milestone |
 |---------|------------|-------------|-----------|
 | 1.0.0   | Genesis    | ✅ Complete | Agno + Ollama + SQLite + Dashboard |
-| 2.0.0   | Exodus     | 🔄 In progress | Swarm + L402 + Voice + Marketplace |
+| 2.0.0   | Exodus     | 🔄 In progress | Swarm + L402 + Voice + Marketplace + Hands |
 | 3.0.0   | Revelation | 📋 Planned  | Lightning treasury + single `.app` bundle |
