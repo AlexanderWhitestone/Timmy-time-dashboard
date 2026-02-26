@@ -37,7 +37,7 @@ async def memory_page(
         )
     
     stats = get_memory_stats()
-    facts = recall_personal_facts(limit=10)
+    facts = recall_personal_facts()[:10]
     
     return templates.TemplateResponse(
         request,
@@ -88,7 +88,7 @@ async def add_fact(
     store_personal_fact(fact, agent_id=agent_id)
     
     # Return updated facts list
-    facts = recall_personal_facts(limit=10)
+    facts = recall_personal_facts()[:10]
     return templates.TemplateResponse(
         request,
         "partials/memory_facts.html",
