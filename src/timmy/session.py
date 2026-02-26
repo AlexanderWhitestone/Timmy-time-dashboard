@@ -32,7 +32,7 @@ _TOOL_CALL_JSON = re.compile(
 
 # Matches function-call-style text: memory_search(query="...") etc.
 _FUNC_CALL_TEXT = re.compile(
-    r'\b(?:memory_search|web_search|shell|python|read_file|write_file|list_files)'
+    r'\b(?:memory_search|web_search|shell|python|read_file|write_file|list_files|calculator)'
     r'\s*\([^)]*\)',
 )
 
