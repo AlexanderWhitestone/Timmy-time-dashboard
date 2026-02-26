@@ -81,25 +81,35 @@ self-modify = "self_modify.cli:main"
 [tool.hatch.build.targets.wheel]
 sources = {"src" = ""}
 include = [
+    "src/config.py",
+    "src/agent_core",
+    "src/agents",
+    "src/chat_bridge",
+    "src/creative",
+    "src/dashboard",
+    "src/events",
+    "src/hands",
+    "src/lightning",
+    "src/mcp",
+    "src/memory",
+    "src/notifications",
+    "src/router",
+    "src/scripture",
+    "src/self_coding",
+    "src/self_modify",
+    "src/self_tdd",
+    "src/shortcuts",
+    "src/spark",
+    "src/swarm",
+    "src/task_queue",
+    "src/telegram_bot",
     "src/timmy",
     "src/timmy_serve",
-    "src/dashboard",
-    "src/config.py",
-    "src/self_tdd",
-    "src/swarm",
-    "src/ws_manager",
-    "src/voice",
-    "src/notifications",
-    "src/shortcuts",
-    "src/telegram_bot",
-    "src/chat_bridge",
-    "src/spark",
     "src/tools",
-    "src/creative",
-    "src/agent_core",
-    "src/lightning",
-    "src/self_modify",
-    "src/scripture",
+    "src/upgrades",
+    "src/voice",
+    "src/work_orders",
+    "src/ws_manager",
 ]
 
 [tool.pytest.ini_options]
@@ -108,6 +118,13 @@ pythonpath = ["src", "tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 addopts = "-v --tb=short"
+markers = [
+    "unit: Unit tests (fast, no I/O)",
+    "integration: Integration tests (may use SQLite)",
+    "dashboard: Dashboard route tests",
+    "swarm: Swarm coordinator tests",
+    "slow: Tests that take >1 second",
+]
 
 [tool.coverage.run]
 source = ["src"]
