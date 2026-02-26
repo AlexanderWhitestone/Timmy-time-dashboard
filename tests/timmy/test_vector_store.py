@@ -1,7 +1,7 @@
 """Tests for vector store (semantic memory) system."""
 
 import pytest
-from memory.vector_store import (
+from timmy.memory.vector_store import (
     store_memory,
     search_memories,
     get_memory_context,

@@ -7,7 +7,7 @@ resolution preset tests run in CI.
 import pytest
 from unittest.mock import patch, MagicMock
 
-from tools.video_tools import (
+from creative.tools.video_tools import (
     VIDEO_TOOL_CATALOG,
     RESOLUTION_PRESETS,
     VIDEO_STYLES,
@@ -55,8 +55,8 @@ class TestListVideoStyles:
 
 class TestGenerateVideoClipInterface:
     def test_raises_without_creative_deps(self):
-        with patch("tools.video_tools._t2v_pipeline", None):
-            with patch("tools.video_tools._get_t2v_pipeline", side_effect=ImportError("no diffusers")):
+        with patch("creative.tools.video_tools._t2v_pipeline", None):
+            with patch("creative.tools.video_tools._get_t2v_pipeline", side_effect=ImportError("no diffusers")):
                 with pytest.raises(ImportError):
                     generate_video_clip("a sunset")
 
@@ -77,17 +77,17 @@ class TestGenerateVideoClipInterface:
         out_dir.__truediv__ = MagicMock(return_value=MagicMock(__str__=lambda s: "/fake/clip.mp4"))
 
         with patch.dict(sys.modules, {"torch": mock_torch}):
-            with patch("tools.video_tools._get_t2v_pipeline", return_value=mock_pipe):
-                with patch("tools.video_tools._export_frames_to_mp4"):
-                    with patch("tools.video_tools._output_dir", return_value=out_dir):
-                        with patch("tools.video_tools._save_metadata"):
+            with patch("creative.tools.video_tools._get_t2v_pipeline", return_value=mock_pipe):
+                with patch("creative.tools.video_tools._export_frames_to_mp4"):
+                    with patch("creative.tools.video_tools._output_dir", return_value=out_dir):
+                        with patch("creative.tools.video_tools._save_metadata"):
                             result = generate_video_clip("test", duration=50)
                             assert result["duration"] == 10  # clamped
 
 
 class TestImageToVideoInterface:
     def test_raises_without_creative_deps(self):
-        with patch("tools.video_tools._t2v_pipeline", None):
-            with patch("tools.video_tools._get_t2v_pipeline", side_effect=ImportError("no diffusers")):
+        with patch("creative.tools.video_tools._t2v_pipeline", None):
+            with patch("creative.tools.video_tools._get_t2v_pipeline", side_effect=ImportError("no diffusers")):
                 with pytest.raises(ImportError):
                     image_to_video("/fake/image.png", "animate")

@@ -113,7 +113,7 @@ class TestRunStoryboard:
                 {"path": "/fake/3.png", "scene_index": 2, "prompt": "sunset"},
             ],
         }
-        with patch("tools.image_tools.generate_storyboard", return_value=mock_result):
+        with patch("creative.tools.image_tools.generate_storyboard", return_value=mock_result):
             with patch("creative.director._save_project"):
                 result = run_storyboard(sample_project)
         assert result["success"]
@@ -130,7 +130,7 @@ class TestRunMusic:
             "success": True, "path": "/fake/song.wav",
             "genre": "pop", "duration": 60,
         }
-        with patch("tools.music_tools.generate_song", return_value=mock_result):
+        with patch("creative.tools.music_tools.generate_song", return_value=mock_result):
             with patch("creative.director._save_project"):
                 result = run_music(sample_project, genre="pop")
         assert result["success"]
@@ -147,8 +147,8 @@ class TestRunVideoGeneration:
             "success": True, "path": "/fake/clip.mp4",
             "duration": 5,
         }
-        with patch("tools.video_tools.generate_video_clip", return_value=mock_clip):
-            with patch("tools.video_tools.image_to_video", return_value=mock_clip):
+        with patch("creative.tools.video_tools.generate_video_clip", return_value=mock_clip):
+            with patch("creative.tools.video_tools.image_to_video", return_value=mock_clip):
                 with patch("creative.director._save_project"):
                     result = run_video_generation(sample_project)
         assert result["success"]

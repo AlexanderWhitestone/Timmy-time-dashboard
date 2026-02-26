@@ -34,7 +34,7 @@ from dashboard.routes.scripture import router as scripture_router
 from dashboard.routes.self_coding import router as self_coding_router
 from dashboard.routes.self_coding import self_modify_router
 from dashboard.routes.hands import router as hands_router
-from router.api import router as cascade_router
+from infrastructure.router.api import router as cascade_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -57,7 +57,7 @@ async def _briefing_scheduler() -> None:
     exists (< 30 min old).
     """
     from timmy.briefing import engine as briefing_engine
-    from notifications.push import notify_briefing_ready
+    from infrastructure.notifications.push import notify_briefing_ready
 
     await asyncio.sleep(2)  # Let server finish starting before first run
 
@@ -135,9 +135,9 @@ async def lifespan(app: FastAPI):
         logger.info("Spark Intelligence active — event capture enabled")
 
     # Auto-start chat integrations (skip silently if unconfigured)
-    from telegram_bot.bot import telegram_bot
-    from chat_bridge.vendors.discord import discord_bot
-    from chat_bridge.registry import platform_registry
+    from integrations.telegram_bot.bot import telegram_bot
+    from integrations.chat_bridge.vendors.discord import discord_bot
+    from integrations.chat_bridge.registry import platform_registry
     platform_registry.register(discord_bot)
 
     if settings.telegram_token:
@@ -208,5 +208,5 @@ async def index(request: Request):
 @app.get("/shortcuts/setup")
 async def shortcuts_setup():
     """Siri Shortcuts setup guide."""
-    from shortcuts.siri import get_setup_guide
+    from integrations.shortcuts.siri import get_setup_guide
     return get_setup_guide()

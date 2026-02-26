@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from agent_core.interface import (
+from timmy.agent_core.interface import (
     ActionType,
     AgentCapability,
     AgentEffect,
@@ -303,14 +303,14 @@ class TestOllamaAgent:
 
     @pytest.fixture
     def agent(self):
-        with patch("agent_core.ollama_adapter.create_timmy") as mock_ct:
+        with patch("timmy.agent_core.ollama_adapter.create_timmy") as mock_ct:
             mock_timmy = MagicMock()
             mock_run = MagicMock()
             mock_run.content = "Mocked LLM response"
             mock_timmy.run.return_value = mock_run
             mock_ct.return_value = mock_timmy
 
-            from agent_core.ollama_adapter import OllamaAgent
+            from timmy.agent_core.ollama_adapter import OllamaAgent
             identity = AgentIdentity.generate("TestTimmy")
             return OllamaAgent(identity, effect_log="/tmp/test_effects")
 
@@ -433,10 +433,10 @@ class TestOllamaAgent:
         assert log[2]["type"] == "act"
 
     def test_no_effect_log_when_disabled(self):
-        with patch("agent_core.ollama_adapter.create_timmy") as mock_ct:
+        with patch("timmy.agent_core.ollama_adapter.create_timmy") as mock_ct:
             mock_timmy = MagicMock()
             mock_ct.return_value = mock_timmy
-            from agent_core.ollama_adapter import OllamaAgent
+            from timmy.agent_core.ollama_adapter import OllamaAgent
             identity = AgentIdentity.generate("NoLog")
             agent = OllamaAgent(identity)  # no effect_log
             assert agent.get_effect_log() is None

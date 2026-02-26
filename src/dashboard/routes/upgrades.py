@@ -6,8 +6,8 @@ from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
-from upgrades.models import list_upgrades, get_upgrade, UpgradeStatus, get_pending_count
-from upgrades.queue import UpgradeQueue
+from self_coding.upgrades.models import list_upgrades, get_upgrade, UpgradeStatus, get_pending_count
+from self_coding.upgrades.queue import UpgradeQueue
 
 router = APIRouter(prefix="/self-modify", tags=["upgrades"])
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))

@@ -66,8 +66,8 @@ make docker-agent       # add a worker
 |---------|-----------|
 | New route | `src/dashboard/routes/<name>.py` + register in `app.py` |
 | New template | `src/dashboard/templates/<name>.html` extends `base.html` |
-| New subsystem | `src/<name>/` with `__init__.py` |
-| New test | `tests/test_<module>.py` |
+| New subsystem | Add to existing `src/<package>/` — see module map in CLAUDE.md |
+| New test | `tests/<module>/test_<feature>.py` (mirror source structure) |
 | Secrets | Via `config.settings` + startup warning if default |
 | DB files | Project root or `data/` — never in `src/` |
 

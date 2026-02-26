@@ -5,8 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from router.cascade import CircuitState, Provider, ProviderStatus
-from router.api import router, get_cascade_router
+from infrastructure.router.cascade import CircuitState, Provider, ProviderStatus
+from infrastructure.router.api import router, get_cascade_router
 
 
 def make_mock_router():

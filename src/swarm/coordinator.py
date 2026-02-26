@@ -422,7 +422,7 @@ class SwarmCoordinator:
     async def _broadcast_agent_joined(self, agent_id: str, name: str) -> None:
         """Broadcast agent joined event via WebSocket."""
         try:
-            from ws_manager.handler import ws_manager
+            from infrastructure.ws_manager.handler import ws_manager
             await ws_manager.broadcast_agent_joined(agent_id, name)
         except Exception as exc:
             logger.debug("WebSocket broadcast failed (agent_joined): %s", exc)
@@ -430,7 +430,7 @@ class SwarmCoordinator:
     async def _broadcast_bid(self, task_id: str, agent_id: str, bid_sats: int) -> None:
         """Broadcast bid submitted event via WebSocket."""
         try:
-            from ws_manager.handler import ws_manager
+            from infrastructure.ws_manager.handler import ws_manager
             await ws_manager.broadcast_bid_submitted(task_id, agent_id, bid_sats)
         except Exception as exc:
             logger.debug("WebSocket broadcast failed (bid): %s", exc)
@@ -438,7 +438,7 @@ class SwarmCoordinator:
     async def _broadcast_task_posted(self, task_id: str, description: str) -> None:
         """Broadcast task posted event via WebSocket."""
         try:
-            from ws_manager.handler import ws_manager
+            from infrastructure.ws_manager.handler import ws_manager
             await ws_manager.broadcast_task_posted(task_id, description)
         except Exception as exc:
             logger.debug("WebSocket broadcast failed (task_posted): %s", exc)
@@ -446,7 +446,7 @@ class SwarmCoordinator:
     async def _broadcast_task_assigned(self, task_id: str, agent_id: str) -> None:
         """Broadcast task assigned event via WebSocket."""
         try:
-            from ws_manager.handler import ws_manager
+            from infrastructure.ws_manager.handler import ws_manager
             await ws_manager.broadcast_task_assigned(task_id, agent_id)
         except Exception as exc:
             logger.debug("WebSocket broadcast failed (task_assigned): %s", exc)
@@ -456,7 +456,7 @@ class SwarmCoordinator:
     ) -> None:
         """Broadcast task completed event via WebSocket."""
         try:
-            from ws_manager.handler import ws_manager
+            from infrastructure.ws_manager.handler import ws_manager
             await ws_manager.broadcast_task_completed(task_id, agent_id, result)
         except Exception as exc:
             logger.debug("WebSocket broadcast failed (task_completed): %s", exc)

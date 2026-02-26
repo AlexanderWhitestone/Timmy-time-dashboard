@@ -17,7 +17,7 @@ async def setup_telegram(payload: TokenPayload):
     Send a POST with JSON body: {"token": "<your-bot-token>"}
     Get the token from @BotFather on Telegram.
     """
-    from telegram_bot.bot import telegram_bot
+    from integrations.telegram_bot.bot import telegram_bot
 
     token = payload.token.strip()
     if not token:
@@ -43,7 +43,7 @@ async def setup_telegram(payload: TokenPayload):
 @router.get("/status")
 async def telegram_status():
     """Return the current state of the Telegram bot."""
-    from telegram_bot.bot import telegram_bot
+    from integrations.telegram_bot.bot import telegram_bot
 
     return {
         "running": telegram_bot.is_running,

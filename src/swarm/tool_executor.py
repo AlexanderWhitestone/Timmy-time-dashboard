@@ -302,7 +302,7 @@ class DirectToolExecutor(ToolExecutor):
                 if not cfg.self_modify_enabled:
                     return self.execute_task(task_description)
 
-                from self_modify.loop import SelfModifyLoop, ModifyRequest
+                from self_coding.self_modify.loop import SelfModifyLoop, ModifyRequest
 
                 loop = SelfModifyLoop()
                 result = loop.run(ModifyRequest(instruction=task_description))

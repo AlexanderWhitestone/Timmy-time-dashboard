@@ -411,7 +411,7 @@ def get_all_available_tools() -> dict[str, dict]:
 
     # ── Git tools ─────────────────────────────────────────────────────────────
     try:
-        from tools.git_tools import GIT_TOOL_CATALOG
+        from creative.tools.git_tools import GIT_TOOL_CATALOG
         for tool_id, info in GIT_TOOL_CATALOG.items():
             catalog[tool_id] = {
                 "name": info["name"],
@@ -423,7 +423,7 @@ def get_all_available_tools() -> dict[str, dict]:
 
     # ── Image tools (Pixel) ───────────────────────────────────────────────────
     try:
-        from tools.image_tools import IMAGE_TOOL_CATALOG
+        from creative.tools.image_tools import IMAGE_TOOL_CATALOG
         for tool_id, info in IMAGE_TOOL_CATALOG.items():
             catalog[tool_id] = {
                 "name": info["name"],
@@ -435,7 +435,7 @@ def get_all_available_tools() -> dict[str, dict]:
 
     # ── Music tools (Lyra) ────────────────────────────────────────────────────
     try:
-        from tools.music_tools import MUSIC_TOOL_CATALOG
+        from creative.tools.music_tools import MUSIC_TOOL_CATALOG
         for tool_id, info in MUSIC_TOOL_CATALOG.items():
             catalog[tool_id] = {
                 "name": info["name"],
@@ -447,7 +447,7 @@ def get_all_available_tools() -> dict[str, dict]:
 
     # ── Video tools (Reel) ────────────────────────────────────────────────────
     try:
-        from tools.video_tools import VIDEO_TOOL_CATALOG
+        from creative.tools.video_tools import VIDEO_TOOL_CATALOG
         for tool_id, info in VIDEO_TOOL_CATALOG.items():
             catalog[tool_id] = {
                 "name": info["name"],

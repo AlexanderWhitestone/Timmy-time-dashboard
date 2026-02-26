@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from self_modify.loop import SelfModifyLoop, ModifyRequest, ModifyResult
+from self_coding.self_modify.loop import SelfModifyLoop, ModifyRequest, ModifyResult
 
 
 # ── Dataclass tests ───────────────────────────────────────────────────────────
@@ -75,7 +75,7 @@ class TestSelfModifyLoop:
         assert loop._autonomous is True
         assert loop._max_autonomous_cycles == 5
 
-    @patch("self_modify.loop.settings")
+    @patch("self_coding.self_modify.loop.settings")
     def test_run_disabled(self, mock_settings):
         mock_settings.self_modify_enabled = False
         loop = SelfModifyLoop()
@@ -83,8 +83,8 @@ class TestSelfModifyLoop:
         assert not result.success
         assert "disabled" in result.error.lower()
 
-    @patch("self_modify.loop.os.environ", {"SELF_MODIFY_SKIP_BRANCH": "1"})
-    @patch("self_modify.loop.settings")
+    @patch("self_coding.self_modify.loop.os.environ", {"SELF_MODIFY_SKIP_BRANCH": "1"})
+    @patch("self_coding.self_modify.loop.settings")
     def test_run_no_target_files(self, mock_settings):
         mock_settings.self_modify_enabled = True
         mock_settings.self_modify_max_retries = 0
@@ -96,8 +96,8 @@ class TestSelfModifyLoop:
         assert not result.success
         assert "no target files" in result.error.lower()
 
-    @patch("self_modify.loop.os.environ", {"SELF_MODIFY_SKIP_BRANCH": "1"})
-    @patch("self_modify.loop.settings")
+    @patch("self_coding.self_modify.loop.os.environ", {"SELF_MODIFY_SKIP_BRANCH": "1"})
+    @patch("self_coding.self_modify.loop.settings")
     def test_run_success_path(self, mock_settings):
         mock_settings.self_modify_enabled = True
         mock_settings.self_modify_max_retries = 2
@@ -125,8 +125,8 @@ class TestSelfModifyLoop:
         loop._run_tests.assert_called_once()
         loop._git_commit.assert_called_once()
 
-    @patch("self_modify.loop.os.environ", {"SELF_MODIFY_SKIP_BRANCH": "1"})
-    @patch("self_modify.loop.settings")
+    @patch("self_coding.self_modify.loop.os.environ", {"SELF_MODIFY_SKIP_BRANCH": "1"})
+    @patch("self_coding.self_modify.loop.settings")
     def test_run_test_failure_reverts(self, mock_settings):
         mock_settings.self_modify_enabled = True
         mock_settings.self_modify_max_retries = 0
@@ -151,8 +151,8 @@ class TestSelfModifyLoop:
         assert not result.test_passed
         loop._revert_files.assert_called()
 
-    @patch("self_modify.loop.os.environ", {"SELF_MODIFY_SKIP_BRANCH": "1"})
-    @patch("self_modify.loop.settings")
+    @patch("self_coding.self_modify.loop.os.environ", {"SELF_MODIFY_SKIP_BRANCH": "1"})
+    @patch("self_coding.self_modify.loop.settings")
     def test_dry_run(self, mock_settings):
         mock_settings.self_modify_enabled = True
         mock_settings.self_modify_max_retries = 2
@@ -207,8 +207,8 @@ class TestSyntaxValidation:
         errors = loop._validate_syntax({"README.md": "this is not python {{{}"})
         assert errors == {}
 
-    @patch("self_modify.loop.os.environ", {"SELF_MODIFY_SKIP_BRANCH": "1"})
-    @patch("self_modify.loop.settings")
+    @patch("self_coding.self_modify.loop.os.environ", {"SELF_MODIFY_SKIP_BRANCH": "1"})
+    @patch("self_coding.self_modify.loop.settings")
     def test_syntax_error_skips_write(self, mock_settings):
         """When LLM produces invalid syntax, we skip writing and retry."""
         mock_settings.self_modify_enabled = True
@@ -264,8 +264,8 @@ class TestBackendResolution:
 
 
 class TestAutonomousLoop:
-    @patch("self_modify.loop.os.environ", {"SELF_MODIFY_SKIP_BRANCH": "1"})
-    @patch("self_modify.loop.settings")
+    @patch("self_coding.self_modify.loop.os.environ", {"SELF_MODIFY_SKIP_BRANCH": "1"})
+    @patch("self_coding.self_modify.loop.settings")
     def test_autonomous_retries_after_failure(self, mock_settings):
         mock_settings.self_modify_enabled = True
         mock_settings.self_modify_max_retries = 0
@@ -371,43 +371,43 @@ class TestFileInference:
 
 class TestCodeIntent:
     def test_detects_modify_code(self):
-        from voice.nlu import detect_intent
+        from integrations.voice.nlu import detect_intent
 
         intent = detect_intent("modify the code in config.py")
         assert intent.name == "code"
 
     def test_detects_self_modify(self):
-        from voice.nlu import detect_intent
+        from integrations.voice.nlu import detect_intent
 
         intent = detect_intent("self-modify to add a new endpoint")
         assert intent.name == "code"
 
     def test_detects_edit_source(self):
-        from voice.nlu import detect_intent
+        from integrations.voice.nlu import detect_intent
 
         intent = detect_intent("edit the source to fix the bug")
         assert intent.name == "code"
 
     def test_detects_update_your_code(self):
-        from voice.nlu import detect_intent
+        from integrations.voice.nlu import detect_intent
 
         intent = detect_intent("update your code to handle errors")
         assert intent.name == "code"
 
     def test_detects_fix_function(self):
-        from voice.nlu import detect_intent
+        from integrations.voice.nlu import detect_intent
 
         intent = detect_intent("fix the function that calculates totals")
         assert intent.name == "code"
 
     def test_does_not_match_general_chat(self):
-        from voice.nlu import detect_intent
+        from integrations.voice.nlu import detect_intent
 
         intent = detect_intent("tell me about the weather today")
         assert intent.name == "chat"
 
     def test_extracts_target_file_entity(self):
-        from voice.nlu import detect_intent
+        from integrations.voice.nlu import detect_intent
 
         intent = detect_intent("modify file src/config.py to add debug flag")
         assert intent.entities.get("target_file") == "src/config.py"

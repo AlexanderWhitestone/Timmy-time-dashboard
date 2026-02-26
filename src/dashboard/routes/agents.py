@@ -125,7 +125,7 @@ def _extract_task_from_message(message: str) -> dict | None:
 def _build_queue_context() -> str:
     """Build a concise task queue summary for context injection."""
     try:
-        from task_queue.models import get_counts_by_status, list_tasks, TaskStatus
+        from swarm.task_queue.models import get_counts_by_status, list_tasks, TaskStatus
         counts = get_counts_by_status()
         pending = counts.get("pending_approval", 0)
         running = counts.get("running", 0)
@@ -215,7 +215,7 @@ async def chat_timmy(request: Request, message: str = Form(...)):
     task_info = _extract_task_from_message(message)
     if task_info:
         try:
-            from task_queue.models import create_task
+            from swarm.task_queue.models import create_task
             task = create_task(
                 title=task_info["title"],
                 description=task_info["description"],

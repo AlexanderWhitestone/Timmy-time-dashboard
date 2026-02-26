@@ -72,10 +72,10 @@ class ToolDiscovery:
         discovery = ToolDiscovery()
         
         # Discover from a module
-        tools = discovery.discover_module("tools.git")
-        
+        tools = discovery.discover_module("creative.tools.git")
+
         # Auto-register with registry
-        discovery.auto_register("tools")
+        discovery.auto_register("creative.tools")
         
         # Discover from all installed packages
         tools = discovery.discover_all_packages()
@@ -89,7 +89,7 @@ class ToolDiscovery:
         """Discover all MCP tools in a module.
         
         Args:
-            module_name: Dotted path to module (e.g., "tools.git")
+            module_name: Dotted path to module (e.g., "creative.tools.git")
         
         Returns:
             List of discovered tools

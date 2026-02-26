@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import yaml
 
-from router.cascade import (
+from infrastructure.router.cascade import (
     CascadeRouter,
     CircuitState,
     Provider,
@@ -451,7 +451,7 @@ class TestProviderAvailabilityCheck:
         )
         
         # When requests is None, assume available
-        import router.cascade as cascade_module
+        import infrastructure.router.cascade as cascade_module
         old_requests = cascade_module.requests
         cascade_module.requests = None
         try:

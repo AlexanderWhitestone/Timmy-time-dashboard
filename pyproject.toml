@@ -75,41 +75,26 @@ creative = [
 [project.scripts]
 timmy = "timmy.cli:main"
 timmy-serve = "timmy_serve.cli:main"
-self-tdd = "self_tdd.watchdog:main"
-self-modify = "self_modify.cli:main"
+self-tdd = "self_coding.self_tdd.watchdog:main"
+self-modify = "self_coding.self_modify.cli:main"
 
 [tool.hatch.build.targets.wheel]
 sources = {"src" = ""}
 include = [
     "src/config.py",
-    "src/agent_core",
-    "src/agents",
-    "src/chat_bridge",
     "src/creative",
     "src/dashboard",
-    "src/events",
     "src/hands",
+    "src/infrastructure",
+    "src/integrations",
     "src/lightning",
     "src/mcp",
-    "src/memory",
-    "src/notifications",
-    "src/router",
     "src/scripture",
     "src/self_coding",
-    "src/self_modify",
-    "src/self_tdd",
-    "src/shortcuts",
     "src/spark",
     "src/swarm",
-    "src/task_queue",
-    "src/telegram_bot",
     "src/timmy",
     "src/timmy_serve",
-    "src/tools",
-    "src/upgrades",
-    "src/voice",
-    "src/work_orders",
-    "src/ws_manager",
 ]
 
 [tool.pytest.ini_options]

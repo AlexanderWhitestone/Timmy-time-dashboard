@@ -24,7 +24,7 @@ from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
-from task_queue.models import (
+from swarm.task_queue.models import (
     QueueTask,
     TaskPriority,
     TaskStatus,
@@ -49,7 +49,7 @@ def _broadcast_task_event(event_type: str, task: QueueTask):
     """Best-effort broadcast a task event to connected WebSocket clients."""
     try:
         import asyncio
-        from ws_manager.handler import ws_manager
+        from infrastructure.ws_manager.handler import ws_manager
 
         payload = {
             "type": "task_event",
@@ -461,7 +461,7 @@ def _task_to_dict(task: QueueTask) -> dict:
 
 def _notify_task_created(task: QueueTask):
     try:
-        from notifications.push import notifier
+        from infrastructure.notifications.push import notifier
         notifier.notify(
             title="New Task",
             message=f"{task.created_by} created: {task.title}",

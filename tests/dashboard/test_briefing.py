@@ -235,11 +235,11 @@ def test_call_agent_falls_back_on_exception(engine):
 @pytest.mark.asyncio
 async def test_notify_briefing_ready_skips_when_no_approvals(caplog):
     """notify_briefing_ready should NOT fire native notification with 0 approvals."""
-    from notifications.push import notify_briefing_ready
+    from infrastructure.notifications.push import notify_briefing_ready
 
     b = _make_briefing()  # approval_items=[]
 
-    with patch("notifications.push.notifier") as mock_notifier:
+    with patch("infrastructure.notifications.push.notifier") as mock_notifier:
         await notify_briefing_ready(b)
         mock_notifier.notify.assert_not_called()
 
@@ -247,7 +247,7 @@ async def test_notify_briefing_ready_skips_when_no_approvals(caplog):
 @pytest.mark.asyncio
 async def test_notify_briefing_ready_fires_when_approvals_exist():
     """notify_briefing_ready should fire when there are pending approval items."""
-    from notifications.push import notify_briefing_ready
+    from infrastructure.notifications.push import notify_briefing_ready
     from timmy.briefing import ApprovalItem
 
     b = _make_briefing()
@@ -263,7 +263,7 @@ async def test_notify_briefing_ready_fires_when_approvals_exist():
         ),
     ]
 
-    with patch("notifications.push.notifier") as mock_notifier:
+    with patch("infrastructure.notifications.push.notifier") as mock_notifier:
         await notify_briefing_ready(b)
         mock_notifier.notify.assert_called_once()
         call_kwargs = mock_notifier.notify.call_args

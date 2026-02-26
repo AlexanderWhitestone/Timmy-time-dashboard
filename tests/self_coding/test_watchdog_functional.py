@@ -7,11 +7,11 @@ from unittest.mock import patch, MagicMock, call
 
 import pytest
 
-from self_tdd.watchdog import _run_tests, watch
+from self_coding.self_tdd.watchdog import _run_tests, watch
 
 
 class TestRunTests:
-    @patch("self_tdd.watchdog.subprocess.run")
+    @patch("self_coding.self_tdd.watchdog.subprocess.run")
     def test_run_tests_passing(self, mock_run):
         mock_run.return_value = MagicMock(
             returncode=0,
@@ -22,7 +22,7 @@ class TestRunTests:
         assert passed is True
         assert "5 passed" in output
 
-    @patch("self_tdd.watchdog.subprocess.run")
+    @patch("self_coding.self_tdd.watchdog.subprocess.run")
     def test_run_tests_failing(self, mock_run):
         mock_run.return_value = MagicMock(
             returncode=1,
@@ -34,7 +34,7 @@ class TestRunTests:
         assert "2 failed" in output
         assert "ERRORS" in output
 
-    @patch("self_tdd.watchdog.subprocess.run")
+    @patch("self_coding.self_tdd.watchdog.subprocess.run")
     def test_run_tests_command_format(self, mock_run):
         mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
         _run_tests()
@@ -48,9 +48,9 @@ class TestRunTests:
 
 
 class TestWatch:
-    @patch("self_tdd.watchdog.time.sleep")
-    @patch("self_tdd.watchdog._run_tests")
-    @patch("self_tdd.watchdog.typer")
+    @patch("self_coding.self_tdd.watchdog.time.sleep")
+    @patch("self_coding.self_tdd.watchdog._run_tests")
+    @patch("self_coding.self_tdd.watchdog.typer")
     def test_watch_first_pass(self, mock_typer, mock_tests, mock_sleep):
         """First iteration: None→passing → should print green message."""
         call_count = 0
@@ -67,9 +67,9 @@ class TestWatch:
         # Should have printed green "All tests passing" message
         mock_typer.secho.assert_called()
 
-    @patch("self_tdd.watchdog.time.sleep")
-    @patch("self_tdd.watchdog._run_tests")
-    @patch("self_tdd.watchdog.typer")
+    @patch("self_coding.self_tdd.watchdog.time.sleep")
+    @patch("self_coding.self_tdd.watchdog._run_tests")
+    @patch("self_coding.self_tdd.watchdog.typer")
     def test_watch_regression(self, mock_typer, mock_tests, mock_sleep):
         """Regression: passing→failing → should print red message + output."""
         results = [(True, "ok"), (False, "FAILED: test_foo"), KeyboardInterrupt]
@@ -91,9 +91,9 @@ class TestWatch:
         secho_calls = [str(c) for c in mock_typer.secho.call_args_list]
         assert any("Regression" in c for c in secho_calls) or any("RED" in c for c in secho_calls)
 
-    @patch("self_tdd.watchdog.time.sleep")
-    @patch("self_tdd.watchdog._run_tests")
-    @patch("self_tdd.watchdog.typer")
+    @patch("self_coding.self_tdd.watchdog.time.sleep")
+    @patch("self_coding.self_tdd.watchdog._run_tests")
+    @patch("self_coding.self_tdd.watchdog.typer")
     def test_watch_keyboard_interrupt(self, mock_typer, mock_tests, mock_sleep):
         mock_tests.side_effect = KeyboardInterrupt
         watch(interval=60)

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from ws_manager.handler import WebSocketManager, WSEvent
+from infrastructure.ws_manager.handler import WebSocketManager, WSEvent
 
 
 class TestWSEventSerialization:
