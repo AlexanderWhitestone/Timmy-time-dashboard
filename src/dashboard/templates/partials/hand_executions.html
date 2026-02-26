@@ -1,0 +1,38 @@
+{# Hand executions partial #}
+{% if executions %}
+  <div class="list-group list-group-flush">
+    {% for exec in executions %}
+    <div class="list-group-item py-2 px-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+          {% if exec.outcome == 'success' %}
+            <span class="badge bg-success">✓</span>
+          {% elif exec.outcome == 'failure' %}
+            <span class="badge bg-danger">✗</span>
+          {% elif exec.outcome == 'approval_pending' %}
+            <span class="badge bg-warning text-dark">⏸</span>
+          {% else %}
+            <span class="badge bg-secondary">○</span>
+          {% endif %}
+          
+          <span class="fw-medium">{{ exec.hand_name }}</span>
+          <small class="text-muted">({{ exec.trigger }})</small>
+        </div>
+        <small class="text-muted">
+          {{ exec.started_at[:16] if exec.started_at else 'Unknown' }}
+        </small>
+      </div>
+      
+      {% if exec.error %}
+        <div class="small text-danger mt-1">
+          Error: {{ exec.error[:50] }}{% if exec.error|length > 50 %}...{% endif %}
+        </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="text-center py-3 text-muted">
+    <p class="mb-0 small">No executions yet.</p>
+  </div>
+{% endif %}
