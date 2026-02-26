@@ -118,8 +118,9 @@ def create_timmy(
         from timmy.memory_system import memory_system
         memory_context = memory_system.get_system_context()
         if memory_context:
-            # Truncate if too long (keep under token limit)
-            max_context = 4000 if not use_tools else 8000
+            # Truncate if too long — smaller budget for small models
+            # since the expanded prompt (roster, guardrails) uses more tokens
+            max_context = 2000 if not use_tools else 8000
             if len(memory_context) > max_context:
                 memory_context = memory_context[:max_context] + "\n... [truncated]"
             full_prompt = f"{base_prompt}\n\n## Memory Context\n\n{memory_context}"
