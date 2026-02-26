@@ -250,6 +250,11 @@ class CascadeRouter:
         errors = []
         
         for provider in self.providers:
+            # Skip disabled providers
+            if not provider.enabled:
+                logger.debug("Skipping %s (disabled)", provider.name)
+                continue
+            
             # Skip unhealthy providers (circuit breaker)
             if provider.status == ProviderStatus.UNHEALTHY:
                 # Check if circuit breaker can close

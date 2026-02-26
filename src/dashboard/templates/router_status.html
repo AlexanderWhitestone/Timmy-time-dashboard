@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}Router Status - Timmy Time{% endblock %}
+
+{% block content %}
+<div class="mc-panel">
+  <div class="mc-panel-header">
+    <h1 class="page-title">Router Status</h1>
+    <p class="mc-text-secondary">LLM provider health and metrics</p>
+  </div>
+
+  <!-- Overall Stats -->
+  <div class="mc-stats-row">
+    <div class="mc-stat-card">
+      <div class="mc-stat-value">{{ providers|length }}</div>
+      <div class="mc-stat-label">Providers</div>
+    </div>
+    <div class="mc-stat-card">
+      <div class="mc-stat-value">{{ total_requests }}</div>
+      <div class="mc-stat-label">Total Requests</div>
+    </div>
+    <div class="mc-stat-card">
+      <div class="mc-stat-value">{{ total_success }}</div>
+      <div class="mc-stat-label">Successful</div>
+    </div>
+    <div class="mc-stat-card">
+      <div class="mc-stat-value">{{ total_failed }}</div>
+      <div class="mc-stat-label">Failed</div>
+    </div>
+    <div class="mc-stat-card">
+      <div class="mc-stat-value">{{ avg_latency_ms }}<small>ms</small></div>
+      <div class="mc-stat-label">Avg Latency</div>
+    </div>
+  </div>
+
+  <!-- Preferred Provider -->
+  {% if preferred_provider %}
+  <div class="mc-alert mc-alert-success">
+    <strong>Preferred Provider:</strong> {{ preferred_provider }}
+    <span class="mc-badge mc-badge-success">ACTIVE</span>
+  </div>
+  {% else %}
+  <div class="mc-alert mc-alert-warning">
+    <strong>Warning:</strong> No healthy providers available
+  </div>
+  {% endif %}
+
+  <!-- Provider Cards -->
+  <div class="mc-providers-grid">
+    {% for provider in providers %}
+    <div class="mc-provider-card provider-{{ provider.status }}">
+      <div class="provider-header">
+        <h3>{{ provider.name }}</h3>
+        <span class="mc-badge mc-badge-{{ provider.status }}">
+          {{ provider.status }}
+        </span>
+      </div>
+      
+      <div class="provider-meta">
+        <span class="provider-type">{{ provider.type }}</span>
+        <span class="provider-priority">Priority: {{ provider.priority }}</span>
+        {% if not provider.enabled %}
+        <span class="mc-badge mc-badge-disabled">DISABLED</span>
+        {% endif %}
+      </div>
+
+      <div class="provider-circuit">
+        Circuit: <span class="circuit-{{ provider.circuit_state }}">{{ provider.circuit_state }}</span>
+      </div>
+
+      <div class="provider-metrics">
+        <div class="metric">
+          <span class="metric-value">{{ provider.metrics.total }}</span>
+          <span class="metric-label">Requests</span>
+        </div>
+        <div class="metric">
+          <span class="metric-value">{{ provider.metrics.success }}</span>
+          <span class="metric-label">Success</span>
+        </div>
+        <div class="metric">
+          <span class="metric-value">{{ provider.metrics.failed }}</span>
+          <span class="metric-label">Failed</span>
+        </div>
+        <div class="metric">
+          <span class="metric-value">{{ provider.metrics.avg_latency_ms }}ms</span>
+          <span class="metric-label">Latency</span>
+        </div>
+        <div class="metric">
+          <span class="metric-value">{{ "%.1f"|format(provider.metrics.error_rate * 100) }}%</span>
+          <span class="metric-label">Error Rate</span>
+        </div>
+      </div>
+
+      {% if provider.metrics.error_rate > 0.1 %}
+      <div class="mc-alert mc-alert-warning mc-alert-small">
+        High error rate detected
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if not providers %}
+  <div class="mc-empty-state">
+    <p>No providers configured.</p>
+    <p class="mc-text-secondary">Check config/providers.yaml</p>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+.mc-providers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.mc-provider-card {
+  background: rgba(10, 15, 30, 0.6);
+  border: 1px solid var(--mc-border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.mc-provider-card.provider-healthy {
+  border-left: 4px solid #28a745;
+}
+
+.mc-provider-card.provider-degraded {
+  border-left: 4px solid #ffc107;
+}
+
+.mc-provider-card.provider-unhealthy {
+  border-left: 4px solid #dc3545;
+}
+
+.provider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.provider-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.provider-meta {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--mc-text-secondary);
+}
+
+.provider-circuit {
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(0,0,0,0.3);
+  border-radius: 0.25rem;
+}
+
+.circuit-closed { color: #28a745; }
+.circuit-open { color: #dc3545; }
+.circuit-half_open { color: #ffc107; }
+
+.provider-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.metric {
+  padding: 0.5rem;
+  background: rgba(0,0,0,0.2);
+  border-radius: 0.25rem;
+}
+
+.metric-value {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--mc-gold);
+}
+
+.metric-label {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--mc-text-secondary);
+}
+
+.mc-alert-small {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  font-size: 0.85rem;
+}
+</style>
+{% endblock %}

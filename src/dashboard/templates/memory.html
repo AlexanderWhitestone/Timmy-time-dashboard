@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Memory Browser - Timmy Time{% endblock %}
+
+{% block content %}
+<div class="mc-panel">
+  <div class="mc-panel-header">
+    <h1 class="page-title">Memory Browser</h1>
+    <p class="mc-text-secondary">Semantic search through conversation history and facts</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="mc-stats-row">
+    <div class="mc-stat-card">
+      <div class="mc-stat-value">{{ stats.total_entries }}</div>
+      <div class="mc-stat-label">Total Memories</div>
+    </div>
+    <div class="mc-stat-card">
+      <div class="mc-stat-value">{{ stats.with_embeddings }}</div>
+      <div class="mc-stat-label">With Embeddings</div>
+    </div>
+    <div class="mc-stat-card">
+      <div class="mc-stat-value">{% if stats.has_embedding_model %}✓{% else %}○{% endif %}</div>
+      <div class="mc-stat-label">AI Search</div>
+    </div>
+    {% for type, count in stats.by_type.items() %}
+    <div class="mc-stat-card">
+      <div class="mc-stat-value">{{ count }}</div>
+      <div class="mc-stat-label">{{ type }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Search -->
+  <div class="mc-search-section">
+    <form method="get" action="/memory" class="mc-search-form">
+      <input 
+        type="search" 
+        name="query" 
+        class="mc-search-input" 
+        placeholder="Search memories..."
+        value="{{ query or '' }}"
+        autofocus
+      >
+      <button type="submit" class="mc-btn mc-btn-primary">Search</button>
+    </form>
+    
+    {% if query %}
+    <p class="mc-search-info">Searching for: "{{ query }}"</p>
+    {% endif %}
+  </div>
+
+  <!-- Search Results -->
+  {% if query %}
+  <div class="mc-results-section">
+    <h3>Search Results</h3>
+    
+    {% if results %}
+    <div class="memory-results">
+      {% for mem in results %}
+      <div class="memory-entry" data-relevance="{{ mem.relevance_score }}">
+        <div class="memory-header">
+          <span class="memory-source">{{ mem.source }}</span>
+          <span class="memory-type mc-badge">{{ mem.context_type }}</span>
+          {% if mem.relevance_score %}
+          <span class="memory-score">{{ "%.2f"|format(mem.relevance_score) }}</span>
+          {% endif %}
+        </div>
+        <div class="memory-content">{{ mem.content }}</div>
+        <div class="memory-meta">
+          <span class="memory-time">{{ mem.timestamp[11:16] }}</span>
+          {% if mem.agent_id %}
+          <span class="memory-agent">Agent: {{ mem.agent_id[:8] }}...</span>
+          {% endif %}
+          {% if mem.task_id %}
+          <span class="memory-task">Task: {{ mem.task_id[:8] }}...</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="mc-empty-state">
+      <p>No results found for "{{ query }}"</p>
+      <p class="mc-text-secondary">Try different keywords or check spelling.</p>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Personal Facts -->
+  <div class="mc-facts-section">
+    <div class="mc-section-header">
+      <h3>Personal Facts</h3>
+      <button class="mc-btn mc-btn-small" onclick="document.getElementById('add-fact-form').style.display='block'">
+        + Add Fact
+      </button>
+    </div>
+    
+    <form id="add-fact-form" class="mc-inline-form" method="post" action="/memory/fact" style="display:none;" hx-post="/memory/fact" hx-target=".mc-facts-list">
+      <input type="text" name="fact" class="mc-input" placeholder="Enter a fact..." required>
+      <button type="submit" class="mc-btn mc-btn-primary">Save</button>
+      <button type="button" class="mc-btn" onclick="document.getElementById('add-fact-form').style.display='none'">Cancel</button>
+    </form>
+    
+    <div class="mc-facts-list">
+      {% if facts %}
+      <ul class="mc-fact-list">
+        {% for fact in facts %}
+        <li class="memory-fact">{{ fact }}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="mc-text-secondary">No personal facts stored yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

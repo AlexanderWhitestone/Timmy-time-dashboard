@@ -27,6 +27,11 @@ from dashboard.routes.spark import router as spark_router
 from dashboard.routes.creative import router as creative_router
 from dashboard.routes.discord import router as discord_router
 from dashboard.routes.self_modify import router as self_modify_router
+from dashboard.routes.events import router as events_router
+from dashboard.routes.ledger import router as ledger_router
+from dashboard.routes.memory import router as memory_router
+from dashboard.routes.router import router as router_status_router
+from dashboard.routes.upgrades import router as upgrades_router
 from router.api import router as cascade_router
 
 logging.basicConfig(
@@ -166,6 +171,11 @@ app.include_router(spark_router)
 app.include_router(creative_router)
 app.include_router(discord_router)
 app.include_router(self_modify_router)
+app.include_router(events_router)
+app.include_router(ledger_router)
+app.include_router(memory_router)
+app.include_router(router_status_router)
+app.include_router(upgrades_router)
 app.include_router(cascade_router)
 
 

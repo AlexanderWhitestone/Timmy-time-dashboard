@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}Upgrade Queue - Timmy Time{% endblock %}
+
+{% block content %}
+<div class="mc-panel">
+  <div class="mc-panel-header">
+    <h1 class="page-title">Upgrade Queue</h1>
+    <p class="mc-text-secondary">Review and approve self-modification proposals</p>
+  </div>
+
+  <!-- Pending Upgrades -->
+  <div class="mc-section">
+    <h2 class="mc-section-title">
+      Pending Upgrades
+      {% if pending_count > 0 %}
+      <span class="mc-badge mc-badge-warning">{{ pending_count }}</span>
+      {% endif %}
+    </h2>
+    
+    {% if pending %}
+    <div class="upgrades-list">
+      {% for upgrade in pending %}
+      <div class="upgrade-card upgrade-pending" data-id="{{ upgrade.id }}">
+        <div class="upgrade-header">
+          <h3>{{ upgrade.description }}</h3>
+          <span class="mc-badge mc-badge-warning">PENDING</span>
+        </div>
+        
+        <div class="upgrade-meta">
+          <span class="upgrade-branch">Branch: {{ upgrade.branch_name }}</span>
+          <span class="upgrade-time">Proposed: {{ upgrade.proposed_at[11:16] }}</span>
+        </div>
+        
+        <div class="upgrade-files">
+          Files: {{ upgrade.files_changed|join(', ') }}
+        </div>
+        
+        <div class="upgrade-test-status">
+          {% if upgrade.test_passed %}
+          <span class="test-passed">✓ Tests passed</span>
+          {% else %}
+          <span class="test-failed">✗ Tests failed</span>
+          {% endif %}
+        </div>
+        
+        <div class="upgrade-actions">
+          <button class="mc-btn mc-btn-primary" onclick="approveUpgrade('{{ upgrade.id }}')">
+            Approve
+          </button>
+          <button class="mc-btn" onclick="rejectUpgrade('{{ upgrade.id }}')">
+            Reject
+          </button>
+          <a href="/self-modify/queue/{{ upgrade.id }}/diff" class="mc-btn mc-btn-secondary">
+            View Diff
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="mc-empty-state">
+      <p>No pending upgrades.</p>
+      <p class="mc-text-secondary">Proposed modifications will appear here for review.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Approved (Waiting to Apply) -->
+  {% if approved %}
+  <div class="mc-section">
+    <h2 class="mc-section-title">Approved (Ready to Apply)</h2>
+    <div class="upgrades-list">
+      {% for upgrade in approved %}
+      <div class="upgrade-card upgrade-approved">
+        <div class="upgrade-header">
+          <h3>{{ upgrade.description }}</h3>
+          <span class="mc-badge mc-badge-success">APPROVED</span>
+        </div>
+        <div class="upgrade-actions">
+          <button class="mc-btn mc-btn-primary" onclick="applyUpgrade('{{ upgrade.id }}')">
+            Apply Now
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- History -->
+  <div class="mc-section">
+    <h2 class="mc-section-title">History</h2>
+    
+    {% if applied %}
+    <h4>Applied</h4>
+    <div class="upgrades-list upgrades-history">
+      {% for upgrade in applied %}
+      <div class="upgrade-card upgrade-applied">
+        <span class="upgrade-desc">{{ upgrade.description }}</span>
+        <span class="mc-badge mc-badge-success">APPLIED</span>
+        <span class="upgrade-time">{{ upgrade.applied_at[11:16] if upgrade.applied_at else '' }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    
+    {% if rejected %}
+    <h4>Rejected</h4>
+    <div class="upgrades-list upgrades-history">
+      {% for upgrade in rejected %}
+      <div class="upgrade-card upgrade-rejected">
+        <span class="upgrade-desc">{{ upgrade.description }}</span>
+        <span class="mc-badge mc-badge-secondary">REJECTED</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    
+    {% if failed %}
+    <h4>Failed</h4>
+    <div class="upgrades-list upgrades-history">
+      {% for upgrade in failed %}
+      <div class="upgrade-card upgrade-failed">
+        <span class="upgrade-desc">{{ upgrade.description }}</span>
+        <span class="mc-badge mc-badge-danger">FAILED</span>
+        <span class="upgrade-error" title="{{ upgrade.error_message }}">⚠️</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+async function approveUpgrade(id) {
+  if (!confirm('Approve this upgrade?')) return;
+  
+  const response = await fetch(`/self-modify/queue/${id}/approve`, {
+    method: 'POST',
+  });
+  
+  if (response.ok) {
+    window.location.reload();
+  } else {
+    alert('Failed to approve: ' + await response.text());
+  }
+}
+
+async function rejectUpgrade(id) {
+  if (!confirm('Reject this upgrade? The branch will be deleted.')) return;
+  
+  const response = await fetch(`/self-modify/queue/${id}/reject`, {
+    method: 'POST',
+  });
+  
+  if (response.ok) {
+    window.location.reload();
+  } else {
+    alert('Failed to reject: ' + await response.text());
+  }
+}
+
+async function applyUpgrade(id) {
+  if (!confirm('Apply this upgrade? This will merge to main.')) return;
+  
+  const response = await fetch(`/self-modify/queue/${id}/apply`, {
+    method: 'POST',
+  });
+  
+  if (response.ok) {
+    alert('Upgrade applied successfully!');
+    window.location.reload();
+  } else {
+    const error = await response.text();
+    alert('Failed to apply: ' + error);
+  }
+}
+</script>
+
+<style>
+.mc-section {
+  margin-bottom: 2rem;
+}
+
+.mc-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.upgrades-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.upgrade-card {
+  background: rgba(10, 15, 30, 0.6);
+  border: 1px solid var(--mc-border);
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.upgrade-pending {
+  border-left: 4px solid #ffc107;
+}
+
+.upgrade-approved {
+  border-left: 4px solid #17a2b8;
+}
+
+.upgrade-applied {
+  border-left: 4px solid #28a745;
+}
+
+.upgrade-rejected {
+  border-left: 4px solid #6c757d;
+}
+
+.upgrade-failed {
+  border-left: 4px solid #dc3545;
+}
+
+.upgrade-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+.upgrade-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.upgrade-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: var(--mc-text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.upgrade-files {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  font-family: monospace;
+}
+
+.upgrade-test-status {
+  margin-bottom: 0.75rem;
+}
+
+.test-passed {
+  color: #28a745;
+}
+
+.test-failed {
+  color: #dc3545;
+}
+
+.upgrade-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.upgrades-history .upgrade-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.upgrade-desc {
+  flex: 1;
+}
+
+.upgrade-time {
+  font-size: 0.85rem;
+  color: var(--mc-text-secondary);
+}
+
+.upgrade-error {
+  color: #dc3545;
+  cursor: help;
+}
+</style>
+{% endblock %}
