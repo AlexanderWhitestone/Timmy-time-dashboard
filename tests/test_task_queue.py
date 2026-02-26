@@ -545,3 +545,16 @@ class TestBuildQueueContext:
             ctx = _build_queue_context()
             assert isinstance(ctx, str)
             assert ctx == ""
+
+
+# ── Briefing Integration ──────────────────────────────────────────────────
+
+
+def test_briefing_task_queue_summary():
+    """Briefing engine should include task queue data."""
+    from task_queue.models import create_task
+    from timmy.briefing import _gather_task_queue_summary
+
+    create_task(title="Briefing integration test", created_by="test")
+    summary = _gather_task_queue_summary()
+    assert "pending" in summary.lower() or "task" in summary.lower()
