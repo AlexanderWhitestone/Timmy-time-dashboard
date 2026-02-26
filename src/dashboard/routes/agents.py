@@ -5,7 +5,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from timmy.agent import create_timmy
+from timmy.session import chat as timmy_chat
 from dashboard.store import message_log
 
 router = APIRouter(prefix="/agents", tags=["agents"])
@@ -75,9 +75,7 @@ async def chat_timmy(request: Request, message: str = Form(...)):
     error_text = None
 
     try:
-        agent = create_timmy()
-        run = agent.run(message, stream=False)
-        response_text = run.content if hasattr(run, "content") else str(run)
+        response_text = timmy_chat(message)
     except Exception as exc:
         error_text = f"Timmy is offline: {exc}"
 

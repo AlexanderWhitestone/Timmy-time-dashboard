@@ -274,7 +274,7 @@ class TestWebSocketResilience:
     
     def test_websocket_manager_handles_no_connections(self):
         """WebSocket manager handles zero connected clients."""
-        from websocket.handler import ws_manager
+        from ws_manager.handler import ws_manager
         
         # Should not crash when broadcasting with no connections
         try:

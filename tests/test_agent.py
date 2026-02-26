@@ -52,7 +52,7 @@ def test_create_timmy_history_config():
 
         kwargs = MockAgent.call_args.kwargs
         assert kwargs["add_history_to_context"] is True
-        assert kwargs["num_history_runs"] == 10
+        assert kwargs["num_history_runs"] == 20
         assert kwargs["markdown"] is True
 
 
@@ -78,7 +78,10 @@ def test_create_timmy_embeds_system_prompt():
         create_timmy()
 
         kwargs = MockAgent.call_args.kwargs
-        assert kwargs["description"] == TIMMY_SYSTEM_PROMPT
+        # Prompt should contain base system prompt (may have memory context appended)
+        # Default model (llama3.2) uses the lite prompt
+        assert "Timmy" in kwargs["description"]
+        assert "sovereign" in kwargs["description"]
 
 
 # ── Ollama host regression (container connectivity) ─────────────────────────
@@ -193,3 +196,85 @@ def test_resolve_backend_auto_falls_back_on_non_apple():
 
         from timmy.agent import _resolve_backend
         assert _resolve_backend(None) == "ollama"
+
+
+# ── _model_supports_tools ────────────────────────────────────────────────────
+
+def test_model_supports_tools_llama32_returns_false():
+    """llama3.2 (3B) is too small for reliable tool calling."""
+    from timmy.agent import _model_supports_tools
+    assert _model_supports_tools("llama3.2") is False
+    assert _model_supports_tools("llama3.2:latest") is False
+
+
+def test_model_supports_tools_llama31_returns_true():
+    """llama3.1 (8B+) can handle tool calling."""
+    from timmy.agent import _model_supports_tools
+    assert _model_supports_tools("llama3.1") is True
+    assert _model_supports_tools("llama3.3") is True
+
+
+def test_model_supports_tools_other_small_models():
+    """Other known small models should not get tools."""
+    from timmy.agent import _model_supports_tools
+    assert _model_supports_tools("phi-3") is False
+    assert _model_supports_tools("tinyllama") is False
+
+
+def test_model_supports_tools_unknown_model_gets_tools():
+    """Unknown models default to tool-capable (optimistic)."""
+    from timmy.agent import _model_supports_tools
+    assert _model_supports_tools("mistral") is True
+    assert _model_supports_tools("qwen2.5:72b") is True
+
+
+# ── Tool gating in create_timmy ──────────────────────────────────────────────
+
+def test_create_timmy_no_tools_for_small_model():
+    """llama3.2 should get no tools."""
+    with patch("timmy.agent.Agent") as MockAgent, \
+         patch("timmy.agent.Ollama"), \
+         patch("timmy.agent.SqliteDb"):
+
+        from timmy.agent import create_timmy
+        create_timmy()
+
+        kwargs = MockAgent.call_args.kwargs
+        # Default model is llama3.2 → tools should be None
+        assert kwargs["tools"] is None
+
+
+def test_create_timmy_includes_tools_for_large_model():
+    """A tool-capable model (e.g. llama3.1) should attempt to include tools."""
+    mock_toolkit = MagicMock()
+
+    with patch("timmy.agent.Agent") as MockAgent, \
+         patch("timmy.agent.Ollama"), \
+         patch("timmy.agent.SqliteDb"), \
+         patch("timmy.agent.create_full_toolkit", return_value=mock_toolkit), \
+         patch("timmy.agent.settings") as mock_settings:
+
+        mock_settings.ollama_model = "llama3.1"
+        mock_settings.ollama_url = "http://localhost:11434"
+        mock_settings.timmy_model_backend = "ollama"
+        mock_settings.airllm_model_size = "70b"
+        mock_settings.telemetry_enabled = False
+
+        from timmy.agent import create_timmy
+        create_timmy()
+
+        kwargs = MockAgent.call_args.kwargs
+        assert kwargs["tools"] == [mock_toolkit]
+
+
+def test_create_timmy_show_tool_calls_false():
+    """show_tool_calls should always be False to prevent raw JSON in output."""
+    with patch("timmy.agent.Agent") as MockAgent, \
+         patch("timmy.agent.Ollama"), \
+         patch("timmy.agent.SqliteDb"):
+
+        from timmy.agent import create_timmy
+        create_timmy()
+
+        kwargs = MockAgent.call_args.kwargs
+        assert kwargs["show_tool_calls"] is False
