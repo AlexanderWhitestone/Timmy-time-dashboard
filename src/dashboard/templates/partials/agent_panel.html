@@ -7,9 +7,9 @@
     <div class="card-header mc-panel-header d-flex justify-content-between align-items-center">
       <span>
         <span class="status-dot {{ dot }}" style="margin-right:6px;"></span>
-        // {{ agent.name | upper }}
+        // {{ agent.name | upper | e }}
         <span style="font-size:10px; color:var(--text-dim); margin-left:10px; letter-spacing:.1em;">
-          {{ agent.capabilities or "no capabilities listed" }}
+          {{ agent.capabilities | e or "no capabilities listed" }}
         </span>
       </span>
       <button class="mc-btn-clear"
@@ -31,9 +31,9 @@
           TASK · {{ task.status.value | upper }} · {{ task.created_at[:19].replace("T"," ") }}
         </div>
         <div class="msg-body" style="border-left: 3px solid var(--{% if task.status.value == 'completed' %}green{% elif task.status.value == 'failed' %}red{% else %}orange{% endif %});">
-          <div style="color:var(--text-dim); font-size:11px; margin-bottom:4px;">{{ task.description }}</div>
+          <div style="color:var(--text-dim); font-size:11px; margin-bottom:4px;">{{ task.description | e }}</div>
           {% if task.result %}
-          <div style="color:var(--text-bright);">{{ task.result }}</div>
+          <div style="color:var(--text-bright);">{{ task.result | e }}</div>
           {% endif %}
         </div>
       </div>
@@ -57,7 +57,7 @@
         <input type="text"
                name="message"
                class="form-control mc-input"
-               placeholder="send a message to {{ agent.name | lower }}..."
+               placeholder="send a message to {{ agent.name | lower | e }}..."
                autocomplete="off"
                autocorrect="off"
                autocapitalize="none"
