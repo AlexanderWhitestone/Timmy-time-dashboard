@@ -23,7 +23,7 @@ A local-first, sovereign AI agent system.  Talk to Timmy, watch his swarm, gate 
 | **WebSocket** | Real-time swarm live feed |
 | **Mobile** | Responsive layout with full iOS safe-area and touch support |
 | **Telegram** | Bridge Telegram messages to Timmy |
-| **Hands** | Autonomous scheduled agents — Oracle (Bitcoin intel), Sentinel (health monitoring) |
+| **Hands** | 6 autonomous scheduled agents — Oracle, Sentinel, Scout, Scribe, Ledger, Weaver |
 | **CLI** | `timmy`, `timmy-serve`, `self-tdd` entry points |
 
 **Full test suite, 100% passing.**
@@ -130,6 +130,10 @@ Hands are scheduled, autonomous agents that run on cron schedules. Each Hand has
 |------|----------|---------|
 | **Oracle** | 7am, 7pm UTC | Bitcoin intelligence — price, on-chain, macro analysis |
 | **Sentinel** | Every 15 min | System health — dashboard, agents, database, resources |
+| **Scout** | Every hour | OSINT monitoring — HN, Reddit, RSS for Bitcoin/sovereign AI |
+| **Scribe** | Daily 9am | Content production — blog posts, docs, changelog |
+| **Ledger** | Every 6 hours | Treasury tracking — Bitcoin/Lightning balances, payment audit |
+| **Weaver** | Sunday 10am | Creative pipeline — orchestrates Pixel+Lyra+Reel for video |
 
 **Dashboard:** `/hands` — manage, trigger, approve actions
 
