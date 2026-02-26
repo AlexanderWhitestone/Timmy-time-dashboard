@@ -102,6 +102,15 @@ async def lifespan(app: FastAPI):
         except Exception as exc:
             logger.error("Failed to spawn persona agents: %s", exc)
 
+    # Auto-bootstrap MCP tools
+    from mcp.bootstrap import auto_bootstrap, get_bootstrap_status
+    try:
+        registered = auto_bootstrap()
+        if registered:
+            logger.info("MCP auto-bootstrap: %d tools registered", len(registered))
+    except Exception as exc:
+        logger.warning("MCP auto-bootstrap failed: %s", exc)
+    
     # Initialise Spark Intelligence engine
     from spark.engine import spark_engine
     if spark_engine.enabled:

@@ -42,6 +42,9 @@ class ToolRecord:
     avg_latency_ms: float = 0.0
     added_at: float = field(default_factory=time.time)
     requires_confirmation: bool = False
+    tags: list[str] = field(default_factory=list)
+    source_module: Optional[str] = None
+    auto_discovered: bool = False
 
 
 class ToolRegistry:
@@ -59,6 +62,9 @@ class ToolRegistry:
         handler: Callable,
         category: str = "general",
         requires_confirmation: bool = False,
+        tags: Optional[list[str]] = None,
+        source_module: Optional[str] = None,
+        auto_discovered: bool = False,
     ) -> ToolRecord:
         """Register a new tool.
         
@@ -68,6 +74,9 @@ class ToolRegistry:
             handler: Function to execute
             category: Tool category for organization
             requires_confirmation: If True, user must approve before execution
+            tags: Tags for filtering and organization
+            source_module: Module where tool was defined
+            auto_discovered: Whether tool was auto-discovered
         
         Returns:
             The registered ToolRecord
@@ -81,6 +90,9 @@ class ToolRegistry:
             handler=handler,
             category=category,
             requires_confirmation=requires_confirmation,
+            tags=tags or [],
+            source_module=source_module,
+            auto_discovered=auto_discovered,
         )
         
         self._tools[name] = record
@@ -93,6 +105,75 @@ class ToolRegistry:
         
         logger.info("Registered tool: %s (category: %s)", name, category)
         return record
+    
+    def register_tool(
+        self,
+        name: str,
+        function: Callable,
+        description: Optional[str] = None,
+        category: str = "general",
+        tags: Optional[list[str]] = None,
+        source_module: Optional[str] = None,
+    ) -> ToolRecord:
+        """Register a tool from a function (convenience method for discovery).
+        
+        Args:
+            name: Tool name
+            function: Function to register
+            description: Tool description (defaults to docstring)
+            category: Tool category
+            tags: Tags for organization
+            source_module: Source module path
+        
+        Returns:
+            The registered ToolRecord
+        """
+        # Build schema from function signature
+        sig = inspect.signature(function)
+        
+        properties = {}
+        required = []
+        
+        for param_name, param in sig.parameters.items():
+            if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
+                continue
+            
+            param_schema: dict = {"type": "string"}
+            
+            # Try to infer type from annotation
+            if param.annotation != inspect.Parameter.empty:
+                if param.annotation in (int, float):
+                    param_schema = {"type": "number"}
+                elif param.annotation == bool:
+                    param_schema = {"type": "boolean"}
+                elif param.annotation == list:
+                    param_schema = {"type": "array"}
+                elif param.annotation == dict:
+                    param_schema = {"type": "object"}
+            
+            if param.default is param.empty:
+                required.append(param_name)
+            else:
+                param_schema["default"] = param.default
+            
+            properties[param_name] = param_schema
+        
+        schema = create_tool_schema(
+            name=name,
+            description=description or (function.__doc__ or f"Execute {name}"),
+            parameters=properties,
+            required=required,
+        )
+        
+        return self.register(
+            name=name,
+            schema=schema,
+            handler=function,
+            category=category,
+            tags=tags,
+            source_module=source_module or function.__module__,
+            auto_discovered=True,
+        )
     
     def unregister(self, name: str) -> bool:
         """Remove a tool from the registry."""
@@ -137,14 +218,18 @@ class ToolRegistry:
         self,
         query: Optional[str] = None,
         category: Optional[str] = None,
+        tags: Optional[list[str]] = None,
         healthy_only: bool = True,
+        auto_discovered_only: bool = False,
     ) -> list[ToolRecord]:
         """Discover tools matching criteria.
         
         Args:
             query: Search in tool names and descriptions
             category: Filter by category
+            tags: Filter by tags (must have all specified tags)
             healthy_only: Only return healthy tools
+            auto_discovered_only: Only return auto-discovered tools
         
         Returns:
             List of matching ToolRecords
@@ -156,8 +241,17 @@ class ToolRegistry:
             if category and record.category != category:
                 continue
             
+            # Tags filter
+            if tags:
+                if not all(tag in record.tags for tag in tags):
+                    continue
+            
             # Health filter
             if healthy_only and record.health_status == "unhealthy":
+                continue
+            
+            # Auto-discovered filter
+            if auto_discovered_only and not record.auto_discovered:
                 continue
             
             # Query filter
@@ -166,7 +260,8 @@ class ToolRegistry:
                 name_match = query_lower in name.lower()
                 desc = record.schema.get("description", "")
                 desc_match = query_lower in desc.lower()
-                if not (name_match or desc_match):
+                tag_match = any(query_lower in tag.lower() for tag in record.tags)
+                if not (name_match or desc_match or tag_match):
                     continue
             
             results.append(record)
@@ -274,16 +369,25 @@ class ToolRegistry:
                     "category": r.category,
                     "health": r.health_status,
                     "requires_confirmation": r.requires_confirmation,
+                    "tags": r.tags,
+                    "source_module": r.source_module,
+                    "auto_discovered": r.auto_discovered,
                 }
                 for r in self._tools.values()
             ],
             "categories": self._categories,
             "total_tools": len(self._tools),
+            "auto_discovered_count": sum(1 for r in self._tools.values() if r.auto_discovered),
         }
 
 
 # Module-level singleton
 tool_registry = ToolRegistry()
+
+
+def get_registry() -> ToolRegistry:
+    """Get the global tool registry singleton."""
+    return tool_registry
 
 
 def register_tool(
