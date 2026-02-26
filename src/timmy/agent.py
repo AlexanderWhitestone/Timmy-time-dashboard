@@ -138,7 +138,6 @@ def create_timmy(
         num_history_runs=20,
         markdown=True,
         tools=[tools] if tools else None,
-        show_tool_calls=False,
         telemetry=settings.telemetry_enabled,
     )
 

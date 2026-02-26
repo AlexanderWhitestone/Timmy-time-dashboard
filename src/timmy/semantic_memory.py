@@ -319,6 +319,25 @@ semantic_memory = SemanticMemory()
 memory_searcher = MemorySearcher()
 
 
-def memory_search(query: str, top_k: int = 5) -> list[tuple[str, float]]:
-    """Simple interface for memory search."""
-    return semantic_memory.search(query, top_k)
+def memory_search(query: str, top_k: int = 5) -> str:
+    """Search past conversations and notes for relevant context.
+
+    Args:
+        query: What to search for (e.g. "Bitcoin strategy", "server setup").
+        top_k: Number of results to return (default 5).
+
+    Returns:
+        Formatted string of relevant memory results.
+    """
+    # Guard: model sometimes passes None for top_k
+    if top_k is None:
+        top_k = 5
+    results = semantic_memory.search(query, top_k)
+    if not results:
+        return "No relevant memories found."
+    parts = []
+    for content, score in results:
+        if score < 0.2:
+            continue
+        parts.append(f"[score {score:.2f}] {content[:300]}")
+    return "\n\n".join(parts) if parts else "No relevant memories found."
