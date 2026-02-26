@@ -30,7 +30,11 @@ class Settings(BaseSettings):
     ollama_url: str = "http://localhost:11434"
 
     # LLM model passed to Agno/Ollama — override with OLLAMA_MODEL
-    ollama_model: str = "llama3.2"
+    # llama3.1:8b-instruct is used instead of llama3.2 because it is
+    # specifically fine-tuned for reliable tool/function calling.
+    # llama3.2 (3B) hallucinated tool output consistently in testing.
+    # Fallback: qwen2.5:14b if llama3.1:8b-instruct not available.
+    ollama_model: str = "llama3.1:8b-instruct"
 
     # Set DEBUG=true to enable /docs and /redoc (disabled by default)
     debug: bool = False
@@ -131,6 +135,62 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# ── Model fallback configuration ────────────────────────────────────────────
+# Primary model for reliable tool calling (llama3.1:8b-instruct)
+# Fallback if primary not available: qwen2.5:14b
+OLLAMA_MODEL_PRIMARY: str = "llama3.1:8b-instruct"
+OLLAMA_MODEL_FALLBACK: str = "qwen2.5:14b"
+
+
+def check_ollama_model_available(model_name: str) -> bool:
+    """Check if a specific Ollama model is available locally."""
+    try:
+        import urllib.request
+        url = settings.ollama_url.replace("localhost", "127.0.0.1")
+        req = urllib.request.Request(
+            f"{url}/api/tags",
+            method="GET",
+            headers={"Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=5) as response:
+            import json
+            data = json.loads(response.read().decode())
+            models = [m.get("name", "").split(":")[0] for m in data.get("models", [])]
+            # Check for exact match or model name without tag
+            return any(model_name in m or m in model_name for m in models)
+    except Exception:
+        return False
+
+
+def get_effective_ollama_model() -> str:
+    """Get the effective Ollama model, with fallback logic."""
+    # If user has overridden, use their setting
+    user_model = settings.ollama_model
+    
+    # Check if user's model is available
+    if check_ollama_model_available(user_model):
+        return user_model
+    
+    # Try primary
+    if check_ollama_model_available(OLLAMA_MODEL_PRIMARY):
+        _startup_logger.warning(
+            f"Requested model '{user_model}' not available. "
+            f"Using primary: {OLLAMA_MODEL_PRIMARY}"
+        )
+        return OLLAMA_MODEL_PRIMARY
+    
+    # Try fallback
+    if check_ollama_model_available(OLLAMA_MODEL_FALLBACK):
+        _startup_logger.warning(
+            f"Primary model '{OLLAMA_MODEL_PRIMARY}' not available. "
+            f"Using fallback: {OLLAMA_MODEL_FALLBACK}"
+        )
+        return OLLAMA_MODEL_FALLBACK
+    
+    # Last resort - return user's setting and hope for the best
+    return user_model
+
 
 # ── Startup validation ───────────────────────────────────────────────────────
 # Enforce security requirements — fail fast in production.

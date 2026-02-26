@@ -1,7 +1,8 @@
 """Git operations tools for Forge, Helm, and Timmy personas.
 
 Provides a full set of git commands that agents can execute against
-local or remote repositories.  Uses GitPython under the hood.
+the local repository. Uses subprocess with explicit working directory
+to ensure commands run from the repo root.
 
 All functions return plain dicts so they're easily serialisable for
 tool-call results, Spark event capture, and WebSocket broadcast.
@@ -10,162 +11,261 @@ tool-call results, Spark event capture, and WebSocket broadcast.
 from __future__ import annotations
 
 import logging
+import os
+import subprocess
 from pathlib import Path
 from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-_GIT_AVAILABLE = True
-try:
-    from git import Repo, InvalidGitRepositoryError, GitCommandNotFound
-except ImportError:
-    _GIT_AVAILABLE = False
+
+def _find_repo_root() -> str:
+    """Walk up from this file's location to find the .git directory."""
+    path = os.path.dirname(os.path.abspath(__file__))
+    # Start from project root (3 levels up from src/tools/git_tools.py)
+    path = os.path.dirname(os.path.dirname(os.path.dirname(path)))
+    
+    while path != os.path.dirname(path):
+        if os.path.exists(os.path.join(path, '.git')):
+            return path
+        path = os.path.dirname(path)
+    
+    # Fallback to config repo_root
+    try:
+        from config import settings
+        return settings.repo_root
+    except Exception:
+        return os.getcwd()
 
 
-def _require_git() -> None:
-    if not _GIT_AVAILABLE:
-        raise ImportError(
-            "GitPython is not installed. Run: pip install GitPython"
+# Module-level constant for repo root
+REPO_ROOT = _find_repo_root()
+logger.info(f"Git repo root: {REPO_ROOT}")
+
+
+def _run_git_command(args: list[str], cwd: Optional[str] = None) -> tuple[int, str, str]:
+    """Run a git command with proper working directory.
+    
+    Args:
+        args: Git command arguments (e.g., ["log", "--oneline", "-5"])
+        cwd: Working directory (defaults to REPO_ROOT)
+    
+    Returns:
+        Tuple of (returncode, stdout, stderr)
+    """
+    cmd = ["git"] + args
+    working_dir = cwd or REPO_ROOT
+    
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=working_dir,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
-
-
-def _default_repo_path() -> Path:
-    """Return the default repository root path from config.
-    
-    This ensures git tools run from the correct working directory
-    without Timmy needing to know the absolute path.
-    """
-    from config import settings
-    return Path(settings.repo_root)
-
-
-def _open_repo(repo_path: str | Path | None = None) -> "Repo":
-    """Open an existing git repo at *repo_path*.
-    
-    If repo_path is None, uses the default repo_root from settings.
-    """
-    _require_git()
-    if repo_path is None:
-        repo_path = _default_repo_path()
-    return Repo(str(repo_path))
+        return result.returncode, result.stdout, result.stderr
+    except subprocess.TimeoutExpired:
+        return -1, "", "Command timed out after 30 seconds"
+    except Exception as exc:
+        return -1, "", str(exc)
 
 
 # ── Repository management ────────────────────────────────────────────────────
 
 def git_clone(url: str, dest: str | Path) -> dict:
-    """Clone a remote repository to a local path.
-
-    Returns dict with ``path`` and ``default_branch``.
-    """
-    _require_git()
-    repo = Repo.clone_from(url, str(dest))
+    """Clone a remote repository to a local path."""
+    returncode, stdout, stderr = _run_git_command(
+        ["clone", url, str(dest)],
+        cwd=None  # Clone uses current directory as parent
+    )
+    
+    if returncode != 0:
+        return {"success": False, "error": stderr}
+    
     return {
         "success": True,
         "path": str(dest),
-        "default_branch": repo.active_branch.name,
+        "message": f"Cloned {url} to {dest}",
     }
 
 
 def git_init(path: str | Path) -> dict:
     """Initialise a new git repository at *path*."""
-    _require_git()
-    Path(path).mkdir(parents=True, exist_ok=True)
-    repo = Repo.init(str(path))
-    return {"success": True, "path": str(path), "bare": repo.bare}
+    os.makedirs(path, exist_ok=True)
+    returncode, stdout, stderr = _run_git_command(["init"], cwd=str(path))
+    
+    if returncode != 0:
+        return {"success": False, "error": stderr}
+    
+    return {"success": True, "path": str(path)}
 
 
 # ── Status / inspection ──────────────────────────────────────────────────────
 
-def git_status(repo_path: str | Path | None = None) -> dict:
-    """Return working-tree status: modified, staged, untracked files.
+def git_status(repo_path: Optional[str] = None) -> dict:
+    """Return working-tree status: modified, staged, untracked files."""
+    cwd = repo_path or REPO_ROOT
+    returncode, stdout, stderr = _run_git_command(
+        ["status", "--porcelain", "-b"], cwd=cwd
+    )
     
-    If repo_path is not provided, uses the default repo_root from settings.
-    """
-    repo = _open_repo(repo_path)
+    if returncode != 0:
+        return {"success": False, "error": stderr}
+    
+    # Parse porcelain output
+    lines = stdout.strip().split("\n") if stdout else []
+    branch = "unknown"
+    modified = []
+    staged = []
+    untracked = []
+    
+    for line in lines:
+        if line.startswith("## "):
+            branch = line[3:].split("...")[0].strip()
+        elif len(line) >= 2:
+            index_status = line[0]
+            worktree_status = line[1]
+            filename = line[3:].strip() if len(line) > 3 else ""
+            
+            if index_status in "MADRC":
+                staged.append(filename)
+            if worktree_status in "MD":
+                modified.append(filename)
+            if worktree_status == "?":
+                untracked.append(filename)
+    
     return {
         "success": True,
-        "branch": repo.active_branch.name,
-        "is_dirty": repo.is_dirty(untracked_files=True),
-        "untracked": repo.untracked_files,
-        "modified": [item.a_path for item in repo.index.diff(None)],
-        "staged": [item.a_path for item in repo.index.diff("HEAD")],
+        "branch": branch,
+        "is_dirty": bool(modified or staged or untracked),
+        "modified": modified,
+        "staged": staged,
+        "untracked": untracked,
     }
 
 
 def git_diff(
-    repo_path: str | Path | None = None,
+    repo_path: Optional[str] = None,
     staged: bool = False,
     file_path: Optional[str] = None,
 ) -> dict:
-    """Show diff of working tree or staged changes.
-
-    If *file_path* is given, scope diff to that file only.
-    If repo_path is not provided, uses the default repo_root from settings.
-    """
-    repo = _open_repo(repo_path)
-    args: list[str] = []
+    """Show diff of working tree or staged changes."""
+    cwd = repo_path or REPO_ROOT
+    args = ["diff"]
     if staged:
         args.append("--cached")
     if file_path:
         args.extend(["--", file_path])
-    diff_text = repo.git.diff(*args)
-    return {"success": True, "diff": diff_text, "staged": staged}
+    
+    returncode, stdout, stderr = _run_git_command(args, cwd=cwd)
+    
+    if returncode != 0:
+        return {"success": False, "error": stderr}
+    
+    return {"success": True, "diff": stdout, "staged": staged}
 
 
 def git_log(
-    repo_path: str | Path | None = None,
+    repo_path: Optional[str] = None,
     max_count: int = 20,
     branch: Optional[str] = None,
 ) -> dict:
-    """Return recent commit history as a list of dicts.
+    """Return recent commit history as a list of dicts."""
+    cwd = repo_path or REPO_ROOT
+    args = ["log", f"--max-count={max_count}", "--format=%H|%h|%s|%an|%ai"]
+    if branch:
+        args.append(branch)
     
-    If repo_path is not provided, uses the default repo_root from settings.
-    """
-    repo = _open_repo(repo_path)
-    ref = branch or repo.active_branch.name
+    returncode, stdout, stderr = _run_git_command(args, cwd=cwd)
+    
+    if returncode != 0:
+        return {"success": False, "error": stderr}
+    
     commits = []
-    for commit in repo.iter_commits(ref, max_count=max_count):
-        commits.append({
-            "sha": commit.hexsha,
-            "short_sha": commit.hexsha[:8],
-            "message": commit.message.strip(),
-            "author": str(commit.author),
-            "date": commit.committed_datetime.isoformat(),
-            "files_changed": len(commit.stats.files),
-        })
-    return {"success": True, "branch": ref, "commits": commits}
-
-
-def git_blame(repo_path: str | Path | None = None, file_path: str = "") -> dict:
-    """Show line-by-line authorship for a file.
+    for line in stdout.strip().split("\n"):
+        if not line:
+            continue
+        parts = line.split("|", 4)
+        if len(parts) >= 5:
+            commits.append({
+                "sha": parts[0],
+                "short_sha": parts[1],
+                "message": parts[2],
+                "author": parts[3],
+                "date": parts[4],
+            })
     
-    If repo_path is not provided, uses the default repo_root from settings.
-    """
-    repo = _open_repo(repo_path)
-    blame_text = repo.git.blame(file_path)
-    return {"success": True, "file": file_path, "blame": blame_text}
+    # Get current branch
+    _, branch_out, _ = _run_git_command(["branch", "--show-current"], cwd=cwd)
+    current_branch = branch_out.strip() or "main"
+    
+    return {
+        "success": True,
+        "branch": branch or current_branch,
+        "commits": commits,
+    }
+
+
+def git_blame(repo_path: Optional[str] = None, file_path: str = "") -> dict:
+    """Show line-by-line authorship for a file."""
+    if not file_path:
+        return {"success": False, "error": "file_path is required"}
+    
+    cwd = repo_path or REPO_ROOT
+    returncode, stdout, stderr = _run_git_command(
+        ["blame", "--porcelain", file_path], cwd=cwd
+    )
+    
+    if returncode != 0:
+        return {"success": False, "error": stderr}
+    
+    return {"success": True, "file": file_path, "blame": stdout}
 
 
 # ── Branching ─────────────────────────────────────────────────────────────────
 
 def git_branch(
-    repo_path: str | Path | None = None,
+    repo_path: Optional[str] = None,
     create: Optional[str] = None,
     switch: Optional[str] = None,
 ) -> dict:
-    """List branches, optionally create or switch to one.
+    """List branches, optionally create or switch to one."""
+    cwd = repo_path or REPO_ROOT
     
-    If repo_path is not provided, uses the default repo_root from settings.
-    """
-    repo = _open_repo(repo_path)
-
     if create:
-        repo.create_head(create)
+        returncode, _, stderr = _run_git_command(
+            ["branch", create], cwd=cwd
+        )
+        if returncode != 0:
+            return {"success": False, "error": stderr}
+    
     if switch:
-        repo.heads[switch].checkout()
-
-    branches = [h.name for h in repo.heads]
-    active = repo.active_branch.name
+        returncode, _, stderr = _run_git_command(
+            ["checkout", switch], cwd=cwd
+        )
+        if returncode != 0:
+            return {"success": False, "error": stderr}
+    
+    # List branches
+    returncode, stdout, stderr = _run_git_command(
+        ["branch", "-a", "--format=%(refname:short)%(if)%(HEAD)%(then)*%(end)"],
+        cwd=cwd
+    )
+    
+    if returncode != 0:
+        return {"success": False, "error": stderr}
+    
+    branches = []
+    active = ""
+    for line in stdout.strip().split("\n"):
+        line = line.strip()
+        if line.endswith("*"):
+            active = line[:-1]
+            branches.append(active)
+        elif line:
+            branches.append(line)
+    
     return {
         "success": True,
         "branches": branches,
@@ -177,38 +277,47 @@ def git_branch(
 
 # ── Staging & committing ─────────────────────────────────────────────────────
 
-def git_add(
-    repo_path: str | Path | None = None,
-    paths: list[str] | None = None,
-) -> dict:
-    """Stage files for commit.  *paths* defaults to all modified files.
+def git_add(repo_path: Optional[str] = None, paths: Optional[list[str]] = None) -> dict:
+    """Stage files for commit. *paths* defaults to all modified files."""
+    cwd = repo_path or REPO_ROOT
     
-    If repo_path is not provided, uses the default repo_root from settings.
-    """
-    repo = _open_repo(repo_path)
     if paths:
-        repo.index.add(paths)
+        args = ["add"] + paths
     else:
-        # Stage all changes
-        repo.git.add(A=True)
-    staged = [item.a_path for item in repo.index.diff("HEAD")]
-    return {"success": True, "staged": staged}
+        args = ["add", "-A"]
+    
+    returncode, _, stderr = _run_git_command(args, cwd=cwd)
+    
+    if returncode != 0:
+        return {"success": False, "error": stderr}
+    
+    return {"success": True, "staged": paths or ["all"]}
 
 
 def git_commit(
-    repo_path: str | Path | None = None,
+    repo_path: Optional[str] = None,
     message: str = "",
 ) -> dict:
-    """Create a commit with the given message.
+    """Create a commit with the given message."""
+    if not message:
+        return {"success": False, "error": "commit message is required"}
     
-    If repo_path is not provided, uses the default repo_root from settings.
-    """
-    repo = _open_repo(repo_path)
-    commit = repo.index.commit(message)
+    cwd = repo_path or REPO_ROOT
+    returncode, stdout, stderr = _run_git_command(
+        ["commit", "-m", message], cwd=cwd
+    )
+    
+    if returncode != 0:
+        return {"success": False, "error": stderr}
+    
+    # Get the commit hash
+    _, hash_out, _ = _run_git_command(["rev-parse", "HEAD"], cwd=cwd)
+    commit_hash = hash_out.strip()
+    
     return {
         "success": True,
-        "sha": commit.hexsha,
-        "short_sha": commit.hexsha[:8],
+        "sha": commit_hash,
+        "short_sha": commit_hash[:8],
         "message": message,
     }
 
@@ -216,56 +325,68 @@ def git_commit(
 # ── Remote operations ─────────────────────────────────────────────────────────
 
 def git_push(
-    repo_path: str | Path | None = None,
+    repo_path: Optional[str] = None,
     remote: str = "origin",
     branch: Optional[str] = None,
 ) -> dict:
-    """Push the current (or specified) branch to the remote.
+    """Push the current (or specified) branch to the remote."""
+    cwd = repo_path or REPO_ROOT
+    args = ["push", remote]
+    if branch:
+        args.append(branch)
     
-    If repo_path is not provided, uses the default repo_root from settings.
-    """
-    repo = _open_repo(repo_path)
-    ref = branch or repo.active_branch.name
-    info = repo.remotes[remote].push(ref)
-    summaries = [str(i.summary) for i in info]
-    return {"success": True, "remote": remote, "branch": ref, "summaries": summaries}
+    returncode, stdout, stderr = _run_git_command(args, cwd=cwd)
+    
+    if returncode != 0:
+        return {"success": False, "error": stderr}
+    
+    return {"success": True, "remote": remote, "branch": branch or "current"}
 
 
 def git_pull(
-    repo_path: str | Path | None = None,
+    repo_path: Optional[str] = None,
     remote: str = "origin",
     branch: Optional[str] = None,
 ) -> dict:
-    """Pull from the remote into the working tree.
+    """Pull from the remote into the working tree."""
+    cwd = repo_path or REPO_ROOT
+    args = ["pull", remote]
+    if branch:
+        args.append(branch)
     
-    If repo_path is not provided, uses the default repo_root from settings.
-    """
-    repo = _open_repo(repo_path)
-    ref = branch or repo.active_branch.name
-    info = repo.remotes[remote].pull(ref)
-    summaries = [str(i.summary) for i in info]
-    return {"success": True, "remote": remote, "branch": ref, "summaries": summaries}
+    returncode, stdout, stderr = _run_git_command(args, cwd=cwd)
+    
+    if returncode != 0:
+        return {"success": False, "error": stderr}
+    
+    return {"success": True, "remote": remote, "branch": branch or "current"}
 
 
 # ── Stashing ──────────────────────────────────────────────────────────────────
 
 def git_stash(
-    repo_path: str | Path | None = None,
+    repo_path: Optional[str] = None,
     pop: bool = False,
     message: Optional[str] = None,
 ) -> dict:
-    """Stash or pop working-tree changes.
+    """Stash or pop working-tree changes."""
+    cwd = repo_path or REPO_ROOT
     
-    If repo_path is not provided, uses the default repo_root from settings.
-    """
-    repo = _open_repo(repo_path)
     if pop:
-        repo.git.stash("pop")
+        returncode, _, stderr = _run_git_command(["stash", "pop"], cwd=cwd)
+        if returncode != 0:
+            return {"success": False, "error": stderr}
         return {"success": True, "action": "pop"}
-    args = ["push"]
+    
+    args = ["stash", "push"]
     if message:
         args.extend(["-m", message])
-    repo.git.stash(*args)
+    
+    returncode, _, stderr = _run_git_command(args, cwd=cwd)
+    
+    if returncode != 0:
+        return {"success": False, "error": stderr}
+    
     return {"success": True, "action": "stash", "message": message}
 
 

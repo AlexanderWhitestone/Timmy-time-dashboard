@@ -59,7 +59,12 @@ make install
 
 # 3. Start Ollama (separate terminal)
 ollama serve
-ollama pull llama3.2
+ollama pull llama3.1:8b-instruct  # Required for reliable tool calling
+
+# Note: llama3.1:8b-instruct is used instead of llama3.2 because it is
+# specifically fine-tuned for reliable tool/function calling.
+# llama3.2 (3B) was found to hallucinate tool output consistently in testing.
+# Fallback: qwen2.5:14b if llama3.1:8b-instruct is not available.
 
 # 4. Launch dashboard
 make dev
@@ -193,7 +198,7 @@ cp .env.example .env
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `OLLAMA_URL` | `http://localhost:11434` | Ollama host |
-| `OLLAMA_MODEL` | `llama3.2` | Model served by Ollama |
+| `OLLAMA_MODEL` | `llama3.1:8b-instruct` | Model for tool calling. Use llama3.1:8b-instruct for reliable tool use; fallback to qwen2.5:14b |
 | `DEBUG` | `false` | Enable `/docs` and `/redoc` |
 | `TIMMY_MODEL_BACKEND` | `ollama` | `ollama` \| `airllm` \| `auto` |
 | `AIRLLM_MODEL_SIZE` | `70b` | `8b` \| `70b` \| `405b` |

@@ -140,11 +140,13 @@ def format_timmy_prompt(base_prompt: str, context: dict[str, Any]) -> str:
         for h in context.get("hands", [])
     ]) or "(No hands configured)"
     
+    repo_root = context.get('repo_root', settings.repo_root)
+    
     context_block = f"""
 ## Current System Context (as of {context.get('timestamp', datetime.now(timezone.utc).isoformat())})
 
 ### Repository
-**Root:** `{context.get('repo_root', settings.repo_root)}`
+**Root:** `{repo_root}`
 
 ### Recent Commits (last 20):
 ```
@@ -164,6 +166,9 @@ def format_timmy_prompt(base_prompt: str, context: dict[str, Any]) -> str:
 ### Hot Memory:
 {context.get('memory', '(unavailable)')[:1000]}
 """
+    
+    # Replace {REPO_ROOT} placeholder with actual path
+    base_prompt = base_prompt.replace("{REPO_ROOT}", repo_root)
     
     # Insert context after the first line (You are Timmy...)
     lines = base_prompt.split("\n")
@@ -229,7 +234,7 @@ Use `memory_search` when the user refers to past conversations.
 
 5. **When corrected, use memory_write to save the correction immediately.**
 
-6. **Your source code lives at the repository root shown above.** When using git tools, you don't need to specify a path unless working with a different repo.
+6. **Your source code lives at the repository root shown above.** When using git tools, you don't need to specify a path — they automatically run from {REPO_ROOT}.
 
 ## Principles
 
@@ -284,6 +289,9 @@ class TimmyOrchestrator(BaseAgent):
         
         Silently reads git log and AGENTS.md to ground self-description in real data.
         This runs once per session before the first response.
+        
+        The git log is prepended to Timmy's context so he can answer "what's new?"
+        from actual commit data rather than hallucinating.
         """
         if self._session_initialized:
             return
@@ -295,32 +303,81 @@ class TimmyOrchestrator(BaseAgent):
             await build_timmy_context_async()
             self._context_fully_loaded = True
         
+        # Read recent git log --oneline -15 from repo root
         try:
-            # Read recent git log
             from tools.git_tools import git_log
-            git_result = git_log(max_count=10)
+            git_result = git_log(max_count=15)
             if git_result.get("success"):
-                self._session_context["git_log"] = git_result.get("commits", [])
+                commits = git_result.get("commits", [])
+                self._session_context["git_log_commits"] = commits
+                # Format as oneline for easy reading
+                self._session_context["git_log_oneline"] = "\n".join([
+                    f"{c['short_sha']} {c['message'].split(chr(10))[0]}"
+                    for c in commits
+                ])
+                logger.debug(f"Session init: loaded {len(commits)} commits from git log")
+            else:
+                self._session_context["git_log_oneline"] = "Git log unavailable"
         except Exception as exc:
             logger.warning("Session init: could not read git log: %s", exc)
+            self._session_context["git_log_oneline"] = "Git log unavailable"
         
+        # Read AGENTS.md for self-awareness
         try:
-            # Read AGENTS.md
             agents_md_path = Path(settings.repo_root) / "AGENTS.md"
             if agents_md_path.exists():
                 self._session_context["agents_md"] = agents_md_path.read_text()[:3000]
         except Exception as exc:
             logger.warning("Session init: could not read AGENTS.md: %s", exc)
         
+        # Read CHANGELOG for recent changes
+        try:
+            changelog_path = Path(settings.repo_root) / "docs" / "CHANGELOG_2026-02-26.md"
+            if changelog_path.exists():
+                self._session_context["changelog"] = changelog_path.read_text()[:2000]
+        except Exception:
+            pass  # Changelog is optional
+        
+        # Build session-specific context block for the prompt
+        recent_changes = self._session_context.get("git_log_oneline", "")
+        if recent_changes and recent_changes != "Git log unavailable":
+            self._session_context["recent_changes_block"] = f"""
+## Recent Changes to Your Codebase (last 15 commits):
+```
+{recent_changes}
+```
+When asked "what's new?" or similar, refer to these commits for actual changes.
+"""
+        else:
+            self._session_context["recent_changes_block"] = ""
+        
         self._session_initialized = True
         logger.debug("Session init complete")
+    
+    def _get_enhanced_system_prompt(self) -> str:
+        """Get system prompt enhanced with session-specific context.
+        
+        This prepends the recent git log to the system prompt so Timmy
+        can answer questions about what's new from real data.
+        """
+        base = self.system_prompt
+        
+        # Add recent changes block if available
+        recent_changes = self._session_context.get("recent_changes_block", "")
+        if recent_changes:
+            # Insert after the first line
+            lines = base.split("\n")
+            if lines:
+                return lines[0] + "\n" + recent_changes + "\n" + "\n".join(lines[1:])
+        
+        return base
     
     async def orchestrate(self, user_request: str) -> str:
         """Main entry point for user requests.
         
         Analyzes the request and either handles directly or delegates.
         """
-        # Run session init on first message
+        # Run session init on first message (loads git log, etc.)
         await self._session_init()
         
         # Quick classification
