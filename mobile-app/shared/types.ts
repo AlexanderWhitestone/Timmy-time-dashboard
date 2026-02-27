@@ -1,10 +1,6 @@
 /**
- * Unified type exports
- * Import shared types from this single entry point.
+ * Shared type definitions for the Timmy Chat mobile app.
  */
-
-export type * from "../drizzle/schema";
-export * from "./_core/errors";
 
 // ── Chat Message Types ──────────────────────────────────────────────────────
 

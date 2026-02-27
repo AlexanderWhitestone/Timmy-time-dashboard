@@ -38,6 +38,7 @@ from dashboard.routes.hands import router as hands_router
 from dashboard.routes.grok import router as grok_router
 from dashboard.routes.models import router as models_router
 from dashboard.routes.models import api_router as models_api_router
+from dashboard.routes.chat_api import router as chat_api_router
 from infrastructure.router.api import router as cascade_router
 
 logging.basicConfig(
@@ -185,6 +186,15 @@ app.add_middleware(
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory=str(PROJECT_ROOT / "static")), name="static")
 
+# Serve uploaded chat attachments (created lazily by /api/upload)
+_uploads_dir = PROJECT_ROOT / "data" / "chat-uploads"
+_uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount(
+    "/uploads",
+    StaticFiles(directory=str(_uploads_dir)),
+    name="uploads",
+)
+
 app.include_router(health_router)
 app.include_router(agents_router)
 app.include_router(swarm_router)
@@ -212,6 +222,7 @@ app.include_router(hands_router)
 app.include_router(grok_router)
 app.include_router(models_router)
 app.include_router(models_api_router)
+app.include_router(chat_api_router)
 app.include_router(cascade_router)
 
 

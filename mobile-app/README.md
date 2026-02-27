@@ -1,6 +1,6 @@
 # Timmy Chat — Mobile App
 
-A sleek mobile chat interface for Timmy, the sovereign AI agent. Built with **Expo SDK 54**, **React Native**, **TypeScript**, and **NativeWind** (Tailwind CSS).
+A mobile chat interface for Timmy, the sovereign AI agent. Built with **Expo SDK 54**, **React Native**, **TypeScript**, and **NativeWind** (Tailwind CSS).
 
 ## Features
 
@@ -10,13 +10,17 @@ A sleek mobile chat interface for Timmy, the sovereign AI agent. Built with **Ex
 - **File Attachments** — Send any document via the system file picker
 - **Dark Arcane Theme** — Deep purple/indigo palette matching the Timmy Time dashboard
 
-## Screenshots
+## Architecture
 
-The app is a single-screen chat interface with:
-- Header showing Timmy's status and a clear-chat button
-- Message list with distinct user (teal) and Timmy (dark surface) bubbles
-- Input bar with attachment (+), text field, and mic/send button
-- Empty state with Timmy branding when no messages exist
+The mobile app is a **thin client** — all AI processing happens on the Timmy dashboard backend (FastAPI + Ollama). The app communicates over two REST endpoints:
+
+```
+Mobile App  ──POST /api/chat──►  FastAPI Dashboard  ──►  Ollama (local LLM)
+            ──POST /api/upload──►  File storage
+            ──GET  /api/chat/history──►  Chat history
+```
+
+No separate Node.js server is needed. Just point the app at your running Timmy dashboard.
 
 ## Project Structure
 
@@ -25,7 +29,6 @@ mobile-app/
 ├── app/                    # Expo Router screens
 │   ├── _layout.tsx         # Root layout with providers
 │   └── (tabs)/
-│       ├── _layout.tsx     # Tab layout (hidden — single screen)
 │       └── index.tsx       # Main chat screen
 ├── components/
 │   ├── chat-bubble.tsx     # Message bubble (text, image, voice, file)
@@ -35,14 +38,15 @@ mobile-app/
 │   ├── image-viewer.tsx    # Full-screen image modal
 │   └── typing-indicator.tsx # Animated dots while Timmy responds
 ├── lib/
-│   └── chat-store.tsx      # React Context chat state + API calls
-├── server/
-│   └── chat.ts             # Server-side chat handler with Timmy's prompt
+│   ├── chat-store.tsx      # React Context chat state + API calls
+│   └── _core/theme.ts      # Color palette definitions
 ├── shared/
 │   └── types.ts            # ChatMessage type definitions
-├── assets/images/          # App icons (custom generated)
-├── theme.config.js         # Color tokens (dark arcane palette)
-├── tailwind.config.js      # Tailwind/NativeWind configuration
+├── hooks/
+│   ├── use-colors.ts       # Current theme color palette hook
+│   └── use-color-scheme.ts # System color scheme detection
+├── constants/
+│   └── theme.ts            # Theme re-exports
 └── tests/
     └── chat.test.ts        # Unit tests
 ```
@@ -55,52 +59,52 @@ mobile-app/
 - pnpm 9+
 - Expo CLI (`npx expo`)
 - iOS Simulator or Android Emulator (or physical device with Expo Go)
+- **Timmy dashboard running** (provides the chat API)
 
-### Install Dependencies
+### Install & Run
 
 ```bash
 cd mobile-app
 pnpm install
-```
 
-### Run the App
+# Set your Timmy dashboard URL (your computer's IP on the local network)
+export EXPO_PUBLIC_API_BASE_URL=http://192.168.1.100:8000
 
-```bash
-# Start the Expo dev server
-npx expo start
-
-# Or run on specific platform
-npx expo start --ios
-npx expo start --android
-npx expo start --web
+# Start the app
+npx expo start --ios     # iPhone simulator
+npx expo start --android # Android emulator
+npx expo start --web     # Browser preview
 ```
 
 ### Backend
 
-The chat API endpoint (`server/chat.ts`) requires an LLM backend. The `invokeLLM` function should be wired to your preferred provider:
+The app connects to the Timmy Time dashboard backend. Make sure it's running:
 
-- **Local Ollama** — Point to `http://localhost:11434` for local inference
-- **OpenAI-compatible API** — Any API matching the OpenAI chat completions format
+```bash
+# From the project root
+make dev
+# Dashboard starts on http://localhost:8000
+```
 
-The system prompt in `server/chat.ts` contains Timmy's full personality, agent roster, and behavioral rules ported from the dashboard's `prompts.py`.
-
-## Timmy's Personality
-
-Timmy is a sovereign AI agent — grounded in Christian faith, powered by Bitcoin economics, committed to digital sovereignty. He speaks plainly, acts with intention, and never ends responses with generic chatbot phrases. His agent roster includes Echo, Mace, Forge, Seer, Helm, Quill, Pixel, Lyra, and Reel.
+The mobile app calls these endpoints on the dashboard:
+- `POST /api/chat` — Send messages, get Timmy's replies
+- `POST /api/upload` — Upload images/files/voice recordings
+- `GET /api/chat/history` — Retrieve chat history
+- `DELETE /api/chat/history` — Clear chat
 
 ## Theme
 
-The app uses a dark arcane color palette:
+Dark arcane palette:
 
 | Token | Color | Usage |
 |-------|-------|-------|
-| `primary` | `#7c3aed` | Accent, user bubbles |
+| `primary` | `#a855f7` | Accent, user bubbles |
 | `background` | `#080412` | Screen background |
-| `surface` | `#110a20` | Cards, Timmy bubbles |
-| `foreground` | `#e8e0f0` | Primary text |
-| `muted` | `#6b5f7d` | Secondary text |
-| `border` | `#1e1535` | Dividers |
-| `success` | `#22c55e` | Status indicator |
+| `surface` | `#110820` | Cards, Timmy bubbles |
+| `foreground` | `#ede0ff` | Primary text |
+| `muted` | `#6b4a8a` | Secondary text |
+| `border` | `#3b1a5c` | Dividers |
+| `success` | `#00e87a` | Status indicator |
 | `error` | `#ff4455` | Recording state |
 
 ## License
