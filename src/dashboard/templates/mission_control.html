@@ -59,10 +59,61 @@
     </div>
 </div>
 
+<!-- Grok Mode Toggle -->
+<div class="card" style="margin-top: 24px;">
+    <div class="card-header">
+        <h2 class="card-title">Grok Mode</h2>
+        <div>
+            <span class="badge" id="grok-badge" style="background: #666;">STANDBY</span>
+        </div>
+    </div>
+    <div id="grok-toggle-card"
+         hx-get="/grok/status"
+         hx-trigger="load"
+         hx-target="#grok-toggle-card"
+         hx-swap="innerHTML">
+        <div style="border: 2px solid #666; border-radius: 12px; padding: 16px;
+                    background: var(--bg-secondary);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-weight: 700; font-size: 1.1rem; color: #666;">
+                        GROK MODE: LOADING...
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
+                        xAI frontier reasoning augmentation
+                    </div>
+                </div>
+                <button hx-post="/grok/toggle"
+                        hx-target="#grok-toggle-card"
+                        hx-swap="outerHTML"
+                        style="background: #666; color: #000; border: none;
+                               border-radius: 8px; padding: 8px 20px; cursor: pointer;
+                               font-weight: 700; font-family: inherit;">
+                    ACTIVATE
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="grid grid-3" style="margin-top: 12px;">
+        <div class="stat">
+            <div class="stat-value" id="grok-requests">0</div>
+            <div class="stat-label">Grok Queries</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="grok-tokens">0</div>
+            <div class="stat-label">Tokens Used</div>
+        </div>
+        <div class="stat">
+            <div class="stat-value" id="grok-cost">0</div>
+            <div class="stat-label">Est. Cost (sats)</div>
+        </div>
+    </div>
+</div>
+
 <!-- Heartbeat Monitor -->
 <div class="card" style="margin-top: 24px;">
     <div class="card-header">
-        <h2 class="card-title">💓 Heartbeat Monitor</h2>
+        <h2 class="card-title">Heartbeat Monitor</h2>
         <div>
             <span class="badge" id="heartbeat-status">Checking...</span>
         </div>
@@ -318,11 +369,40 @@ async function loadChatHistory() {
     }
 }
 
+// Load Grok stats
+async function loadGrokStats() {
+    try {
+        const response = await fetch('/grok/status');
+        const data = await response.json();
+
+        if (data.stats) {
+            document.getElementById('grok-requests').textContent = data.stats.total_requests || 0;
+            document.getElementById('grok-tokens').textContent =
+                (data.stats.total_prompt_tokens || 0) + (data.stats.total_completion_tokens || 0);
+            document.getElementById('grok-cost').textContent = data.stats.estimated_cost_sats || 0;
+        }
+
+        const badge = document.getElementById('grok-badge');
+        if (data.active) {
+            badge.textContent = 'ACTIVE';
+            badge.style.background = '#00ff88';
+            badge.style.color = '#000';
+        } else {
+            badge.textContent = 'STANDBY';
+            badge.style.background = '#666';
+            badge.style.color = '#fff';
+        }
+    } catch (error) {
+        // Grok endpoint may not respond — silent fallback
+    }
+}
+
 // Initial load
 loadSovereignty();
 loadHealth();
 loadSwarmStats();
 loadLightningStats();
+loadGrokStats();
 loadChatHistory();
 
 // Periodic updates
@@ -330,5 +410,6 @@ setInterval(loadSovereignty, 30000);  // Every 30s
 setInterval(loadHealth, 10000);       // Every 10s
 setInterval(loadSwarmStats, 5000);    // Every 5s
 setInterval(updateHeartbeat, 5000);   // Heartbeat every 5s
+setInterval(loadGrokStats, 10000);   // Grok stats every 10s
 </script>
 {% endblock %}

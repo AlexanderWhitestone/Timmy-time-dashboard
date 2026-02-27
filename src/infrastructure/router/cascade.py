@@ -220,10 +220,10 @@ class CascadeRouter:
             except ImportError:
                 return False
         
-        elif provider.type in ("openai", "anthropic"):
+        elif provider.type in ("openai", "anthropic", "grok"):
             # Check if API key is set
             return provider.api_key is not None and provider.api_key != ""
-        
+
         return True
     
     async def complete(
@@ -331,6 +331,14 @@ class CascadeRouter:
             )
         elif provider.type == "anthropic":
             result = await self._call_anthropic(
+                provider=provider,
+                messages=messages,
+                model=model or provider.get_default_model(),
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+        elif provider.type == "grok":
+            result = await self._call_grok(
                 provider=provider,
                 messages=messages,
                 model=model or provider.get_default_model(),
@@ -455,7 +463,40 @@ class CascadeRouter:
             "content": response.content[0].text,
             "model": response.model,
         }
-    
+
+    async def _call_grok(
+        self,
+        provider: Provider,
+        messages: list[dict],
+        model: str,
+        temperature: float,
+        max_tokens: Optional[int],
+    ) -> dict:
+        """Call xAI Grok API via OpenAI-compatible SDK."""
+        import httpx
+        import openai
+
+        client = openai.AsyncOpenAI(
+            api_key=provider.api_key,
+            base_url=provider.base_url or "https://api.x.ai/v1",
+            timeout=httpx.Timeout(300.0),
+        )
+
+        kwargs = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature,
+        }
+        if max_tokens:
+            kwargs["max_tokens"] = max_tokens
+
+        response = await client.chat.completions.create(**kwargs)
+
+        return {
+            "content": response.choices[0].message.content,
+            "model": response.model,
+        }
+
     def _record_success(self, provider: Provider, latency_ms: float) -> None:
         """Record a successful request."""
         provider.metrics.total_requests += 1

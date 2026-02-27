@@ -32,6 +32,10 @@ services:
       DEBUG: "true"
       # Point to host Ollama (Mac default).  Override in .env if different.
       OLLAMA_URL: "${OLLAMA_URL:-http://host.docker.internal:11434}"
+      # Grok (xAI) — opt-in premium cloud backend
+      GROK_ENABLED: "${GROK_ENABLED:-false}"
+      XAI_API_KEY: "${XAI_API_KEY:-}"
+      GROK_DEFAULT_MODEL: "${GROK_DEFAULT_MODEL:-grok-3-fast}"
     extra_hosts:
       - "host.docker.internal:host-gateway"  # Linux compatibility
     networks:

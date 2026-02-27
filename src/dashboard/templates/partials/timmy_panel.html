@@ -30,7 +30,8 @@
             hx-disabled-elt="find button"
             hx-on::after-settle="scrollChat()"
             hx-on::after-request="if(event.detail.successful){this.querySelector('[name=message]').value='';}"
-            class="d-flex gap-2">
+            class="d-flex gap-2"
+            id="timmy-chat-form">
         <input type="text"
                name="message"
                class="form-control mc-input"
@@ -40,10 +41,19 @@
                autocapitalize="none"
                spellcheck="false"
                enterkeyhint="send"
-               required />
+               required
+               id="timmy-chat-input" />
         <button type="submit" class="btn mc-btn-send">
           SEND
           <span id="send-indicator" class="htmx-indicator">&#x25FC;</span>
+        </button>
+        <button type="button"
+                class="btn"
+                style="background: #1a1a2e; color: #00ff88; border: 1px solid #00ff88;
+                       font-size: 0.7rem; white-space: nowrap; padding: 4px 10px;"
+                onclick="askGrok()"
+                title="Send directly to Grok (xAI)">
+          GROK
         </button>
       </form>
     </div>
@@ -61,4 +71,20 @@
     }
   }
   scrollChat();
+
+  function askGrok() {
+    var input = document.getElementById('timmy-chat-input');
+    if (!input || !input.value.trim()) return;
+    var form = document.getElementById('timmy-chat-form');
+    // Temporarily redirect form to Grok endpoint
+    var originalAction = form.getAttribute('hx-post');
+    form.setAttribute('hx-post', '/grok/chat');
+    htmx.process(form);
+    htmx.trigger(form, 'submit');
+    // Restore original action after submission
+    setTimeout(function() {
+      form.setAttribute('hx-post', originalAction);
+      htmx.process(form);
+    }, 100);
+  }
 </script>
