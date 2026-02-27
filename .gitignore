@@ -18,8 +18,11 @@ env/
 .env.*
 !.env.example
 
-# SQLite memory — never commit agent memory
+# SQLite — never commit databases or WAL/SHM artifacts
 *.db
+*.db-shm
+*.db-wal
+*.db-journal
 
 # Runtime PID files
 .watchdog.pid
