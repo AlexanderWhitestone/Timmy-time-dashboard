@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -160,7 +161,7 @@ def test_pass():
 """)
         safety = GitSafety(
             repo_path=temp_git_repo,
-            test_command="python -m pytest test_pass.py -v",
+            test_command=f"{sys.executable} -m pytest test_pass.py -v",
         )
         
         snapshot = await safety.snapshot(run_tests=True)

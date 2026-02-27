@@ -6,6 +6,7 @@ Tests timeout handling, git failures, merge conflicts, and edge cases.
 from __future__ import annotations
 
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -124,7 +125,7 @@ class TestGitSafetyErrors:
             
             safety = GitSafety(
                 repo_path=repo_path,
-                test_command="python -m pytest test_fail.py -v",
+                test_command=f"{sys.executable} -m pytest test_fail.py -v",
             )
             
             snapshot = await safety.snapshot(run_tests=True)
