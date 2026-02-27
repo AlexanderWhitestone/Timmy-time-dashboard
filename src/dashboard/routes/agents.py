@@ -18,7 +18,10 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templa
 # ── Task queue detection ──────────────────────────────────────────────────
 # Patterns that indicate the user wants to queue a task rather than chat
 _QUEUE_PATTERNS = [
-    re.compile(r"\b(?:add|put|schedule|queue|submit)\b.*\b(?:to the|on the|in the)?\s*(?:queue|task(?:\s*queue)?|task list)\b", re.IGNORECASE),
+    re.compile(
+        r"\b(?:add|put|schedule|queue|submit)\b.*\b(?:to the|on the|in the)?\s*(?:queue|task(?:\s*queue)?|task list)\b",
+        re.IGNORECASE,
+    ),
     re.compile(r"\bschedule\s+(?:this|that|a)\b", re.IGNORECASE),
     re.compile(r"\bcreate\s+(?:a\s+|an\s+)?(?:\w+\s+){0,3}task\b", re.IGNORECASE),
 ]
@@ -35,10 +38,20 @@ _QUESTION_FRAMES = re.compile(
 )
 
 # Known agent names for task assignment parsing
-_KNOWN_AGENTS = frozenset({
-    "timmy", "echo", "mace", "helm", "seer",
-    "forge", "quill", "pixel", "lyra", "reel",
-})
+_KNOWN_AGENTS = frozenset(
+    {
+        "timmy",
+        "echo",
+        "mace",
+        "helm",
+        "seer",
+        "forge",
+        "quill",
+        "pixel",
+        "lyra",
+        "reel",
+    }
+)
 _AGENT_PATTERN = re.compile(
     r"\bfor\s+(" + "|".join(_KNOWN_AGENTS) + r")\b", re.IGNORECASE
 )
@@ -93,14 +106,18 @@ def _extract_task_from_message(message: str) -> dict | None:
             # Strip the queue instruction to get the actual task description
             title = re.sub(
                 r"\b(?:add|put|schedule|queue|submit|create)\b.*?\b(?:to the|on the|in the|an?)?(?:\s+\w+){0,3}\s*(?:queue|task(?:\s*queue)?|task list)\b",
-                "", message, flags=re.IGNORECASE,
+                "",
+                message,
+                flags=re.IGNORECASE,
             ).strip(" ,:;-")
             # Strip "for {agent}" from title
             title = _AGENT_PATTERN.sub("", title).strip(" ,:;-")
             # Strip priority keywords from title
             title = re.sub(
                 r"\b(?:urgent|critical|asap|emergency|high[- ]priority|important|low[- ]priority|minor)\b",
-                "", title, flags=re.IGNORECASE,
+                "",
+                title,
+                flags=re.IGNORECASE,
             ).strip(" ,:;-")
             # Strip leading "to " that often remains
             title = re.sub(r"^to\s+", "", title, flags=re.IGNORECASE).strip()
@@ -126,12 +143,15 @@ def _build_queue_context() -> str:
     """Build a concise task queue summary for context injection."""
     try:
         from swarm.task_queue.models import get_counts_by_status, list_tasks, TaskStatus
+
         counts = get_counts_by_status()
         pending = counts.get("pending_approval", 0)
         running = counts.get("running", 0)
         completed = counts.get("completed", 0)
 
-        parts = [f"[System: Task queue — {pending} pending approval, {running} running, {completed} completed."]
+        parts = [
+            f"[System: Task queue — {pending} pending approval, {running} running, {completed} completed."
+        ]
         if pending > 0:
             tasks = list_tasks(status=TaskStatus.PENDING_APPROVAL, limit=5)
             if tasks:
@@ -152,7 +172,7 @@ def _build_queue_context() -> str:
 _AGENT_METADATA: dict[str, dict] = {
     "timmy": {
         "type": "sovereign",
-        "model": "llama3.2",
+        "model": "",  # Injected dynamically from settings
         "backend": "ollama",
         "version": "1.0.0",
     },
@@ -163,6 +183,13 @@ _AGENT_METADATA: dict[str, dict] = {
 async def list_agents():
     """Return all registered agents with live status from the swarm registry."""
     from swarm import registry as swarm_registry
+    from config import settings
+
+    # Inject model name from settings into timmy metadata
+    metadata = dict(_AGENT_METADATA)
+    if "timmy" in metadata and not metadata["timmy"].get("model"):
+        metadata["timmy"]["model"] = settings.ollama_model
+
     agents = swarm_registry.list_agents()
     return {
         "agents": [
@@ -171,7 +198,7 @@ async def list_agents():
                 "name": a.name,
                 "status": a.status,
                 "capabilities": a.capabilities,
-                **_AGENT_METADATA.get(a.id, {}),
+                **metadata.get(a.id, {}),
             }
             for a in agents
         ]
@@ -182,8 +209,11 @@ async def list_agents():
 async def timmy_panel(request: Request):
     """Timmy chat panel — for HTMX main-panel swaps."""
     from swarm import registry as swarm_registry
+
     agent = swarm_registry.get_agent("timmy")
-    return templates.TemplateResponse(request, "partials/timmy_panel.html", {"agent": agent})
+    return templates.TemplateResponse(
+        request, "partials/timmy_panel.html", {"agent": agent}
+    )
 
 
 @router.get("/timmy/history", response_class=HTMLResponse)
@@ -216,6 +246,7 @@ async def chat_timmy(request: Request, message: str = Form(...)):
     if task_info:
         try:
             from swarm.task_queue.models import create_task
+
             task = create_task(
                 title=task_info["title"],
                 description=task_info["description"],
@@ -224,14 +255,23 @@ async def chat_timmy(request: Request, message: str = Form(...)):
                 priority=task_info.get("priority", "normal"),
                 requires_approval=True,
             )
-            priority_label = f" | Priority: `{task.priority.value}`" if task.priority.value != "normal" else ""
+            priority_label = (
+                f" | Priority: `{task.priority.value}`"
+                if task.priority.value != "normal"
+                else ""
+            )
             response_text = (
                 f"Task queued for approval: **{task.title}**\n\n"
                 f"Assigned to: `{task.assigned_to}`{priority_label} | "
                 f"Status: `{task.status.value}` | "
                 f"[View Task Queue](/tasks)"
             )
-            logger.info("Chat → task queue: %s → %s (id=%s)", task.title, task.assigned_to, task.id)
+            logger.info(
+                "Chat → task queue: %s → %s (id=%s)",
+                task.title,
+                task.assigned_to,
+                task.id,
+            )
         except Exception as exc:
             logger.error("Failed to create task from chat: %s", exc)
             task_info = None

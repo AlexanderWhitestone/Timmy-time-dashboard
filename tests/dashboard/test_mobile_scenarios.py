@@ -20,6 +20,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
+
 def _css() -> str:
     """Read the main stylesheet."""
     css_path = Path(__file__).parent.parent.parent / "static" / "style.css"
@@ -36,6 +37,7 @@ def _timmy_panel_html(client) -> str:
 
 
 # ── M1xx — Viewport & meta tags ───────────────────────────────────────────────
+
 
 def test_M101_viewport_meta_present(client):
     """viewport meta tag must exist for correct mobile scaling."""
@@ -84,6 +86,7 @@ def test_M108_lang_attribute_on_html(client):
 
 # ── M2xx — Touch target sizing ────────────────────────────────────────────────
 
+
 def test_M201_send_button_min_height_44px():
     """SEND button must be at least 44 × 44 px — Apple HIG minimum."""
     css = _css()
@@ -110,6 +113,7 @@ def test_M204_touch_action_manipulation_on_buttons():
 
 
 # ── M3xx — iOS keyboard & zoom prevention ─────────────────────────────────────
+
 
 def test_M301_input_font_size_16px_in_mobile_query():
     """iOS Safari zooms in when input font-size < 16px.  Must be exactly 16px."""
@@ -149,6 +153,7 @@ def test_M305_input_spellcheck_false(client):
 
 # ── M4xx — HTMX robustness ────────────────────────────────────────────────────
 
+
 def test_M401_form_hx_sync_drop(client):
     """hx-sync=this:drop discards duplicate submissions (fast double-tap)."""
     html = _timmy_panel_html(client)
@@ -180,6 +185,7 @@ def test_M405_chat_log_loads_history_on_boot(client):
 
 
 # ── M5xx — Safe-area / notch support ─────────────────────────────────────────
+
 
 def test_M501_safe_area_inset_top_in_header():
     """Header padding must accommodate the iPhone notch / status bar."""
@@ -213,9 +219,11 @@ def test_M505_dvh_units_used():
 
 # ── M6xx — AirLLM backend interface contract ──────────────────────────────────
 
+
 def test_M601_airllm_agent_has_run_method():
     """TimmyAirLLMAgent must expose run() so the dashboard route can call it."""
     from timmy.backends import TimmyAirLLMAgent
+
     assert hasattr(TimmyAirLLMAgent, "run"), (
         "TimmyAirLLMAgent is missing run() — dashboard will fail with AirLLM backend"
     )
@@ -225,6 +233,7 @@ def test_M602_airllm_run_returns_content_attribute():
     """run() must return an object with a .content attribute (Agno RunResponse compat)."""
     with patch("timmy.backends.is_apple_silicon", return_value=False):
         from timmy.backends import TimmyAirLLMAgent
+
         agent = TimmyAirLLMAgent(model_size="8b")
 
     mock_model = MagicMock()
@@ -246,6 +255,7 @@ def test_M603_airllm_run_updates_history():
     """run() must update _history so multi-turn context is preserved."""
     with patch("timmy.backends.is_apple_silicon", return_value=False):
         from timmy.backends import TimmyAirLLMAgent
+
         agent = TimmyAirLLMAgent(model_size="8b")
 
     mock_model = MagicMock()
@@ -268,10 +278,13 @@ def test_M604_airllm_print_response_delegates_to_run():
     """print_response must use run() so both interfaces share one inference path."""
     with patch("timmy.backends.is_apple_silicon", return_value=False):
         from timmy.backends import TimmyAirLLMAgent, RunResult
+
         agent = TimmyAirLLMAgent(model_size="8b")
 
-    with patch.object(agent, "run", return_value=RunResult(content="ok")) as mock_run, \
-         patch.object(agent, "_render"):
+    with (
+        patch.object(agent, "run", return_value=RunResult(content="ok")) as mock_run,
+        patch.object(agent, "_render"),
+    ):
         agent.print_response("hello", stream=True)
 
     mock_run.assert_called_once_with("hello", stream=True)
@@ -279,24 +292,43 @@ def test_M604_airllm_print_response_delegates_to_run():
 
 def test_M605_health_status_passes_model_to_template(client):
     """Health status partial must receive the configured model name, not a hardcoded string."""
-    with patch("dashboard.routes.health.check_ollama", new_callable=AsyncMock, return_value=True):
+    with patch(
+        "dashboard.routes.health.check_ollama",
+        new_callable=AsyncMock,
+        return_value=True,
+    ):
         response = client.get("/health/status")
-    # The default model is llama3.2 — it should appear in the partial from settings, not hardcoded
+    # The default model is llama3.1:8b-instruct — it should appear from settings
     assert response.status_code == 200
-    assert "llama3.2" in response.text  # rendered via template variable, not hardcoded literal
+    assert (
+        "llama3.1" in response.text
+    )  # rendered via template variable, not hardcoded literal
 
 
 # ── M7xx — XSS prevention ─────────────────────────────────────────────────────
 
+
 def _mobile_html() -> str:
     """Read the mobile template source."""
-    path = Path(__file__).parent.parent.parent / "src" / "dashboard" / "templates" / "mobile.html"
+    path = (
+        Path(__file__).parent.parent.parent
+        / "src"
+        / "dashboard"
+        / "templates"
+        / "mobile.html"
+    )
     return path.read_text()
 
 
 def _swarm_live_html() -> str:
     """Read the swarm live template source."""
-    path = Path(__file__).parent.parent.parent / "src" / "dashboard" / "templates" / "swarm_live.html"
+    path = (
+        Path(__file__).parent.parent.parent
+        / "src"
+        / "dashboard"
+        / "templates"
+        / "swarm_live.html"
+    )
     return path.read_text()
 
 
@@ -324,7 +356,9 @@ def test_M702_mobile_chat_user_input_not_in_innerhtml_template_literal():
 def test_M703_swarm_live_agent_name_not_interpolated_in_innerhtml():
     """swarm_live.html must not put ${agent.name} inside innerHTML template literals."""
     html = _swarm_live_html()
-    blocks = re.findall(r"innerHTML\s*=\s*agents\.map\([^;]+\)\.join\([^)]*\)", html, re.DOTALL)
+    blocks = re.findall(
+        r"innerHTML\s*=\s*agents\.map\([^;]+\)\.join\([^)]*\)", html, re.DOTALL
+    )
     assert len(blocks) == 0, (
         "swarm_live.html still uses innerHTML=agents.map(…) with interpolated agent data — XSS vulnerability"
     )

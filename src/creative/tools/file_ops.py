@@ -8,7 +8,12 @@ from pathlib import Path
 from typing import Any
 
 from mcp.registry import register_tool
-from mcp.schemas.base import create_tool_schema, PARAM_STRING, PARAM_BOOLEAN, RETURN_STRING
+from mcp.schemas.base import (
+    create_tool_schema,
+    PARAM_STRING,
+    PARAM_BOOLEAN,
+    RETURN_STRING,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -75,40 +80,54 @@ LIST_DIR_SCHEMA = create_tool_schema(
 )
 
 
-def _resolve_path(path: str) -> Path:
-    """Resolve path relative to project root."""
+def _resolve_path(path: str, base_dir: str | Path | None = None) -> Path:
+    """Resolve path with proper handling of ~, absolute, and relative paths.
+
+    Resolution order:
+    1. If absolute, use as-is (after expanding ~)
+    2. If relative, resolve relative to base_dir (or repo root)
+    """
     from config import settings
-    
+
     p = Path(path)
+
+    # Expand ~ to user's home directory
+    p = p.expanduser()
+
     if p.is_absolute():
-        return p
-    
-    # Try relative to project root
-    project_root = Path(__file__).parent.parent.parent
-    return project_root / p
+        return p.resolve()
+
+    # Use provided base_dir, or fall back to settings.repo_root
+    if base_dir is None:
+        base = Path(settings.repo_root)
+    else:
+        base = Path(base_dir)
+
+    # Resolve relative to base
+    return (base / p).resolve()
 
 
 def read_file(path: str, limit: int = 0) -> str:
     """Read file contents."""
     try:
         filepath = _resolve_path(path)
-        
+
         if not filepath.exists():
             return f"Error: File not found: {path}"
-        
+
         if not filepath.is_file():
             return f"Error: Path is not a file: {path}"
-        
+
         content = filepath.read_text()
-        
+
         if limit > 0:
-            lines = content.split('\n')[:limit]
-            content = '\n'.join(lines)
-            if len(content.split('\n')) == limit:
+            lines = content.split("\n")[:limit]
+            content = "\n".join(lines)
+            if len(content.split("\n")) == limit:
                 content += f"\n\n... [{limit} lines shown]"
-        
+
         return content
-        
+
     except Exception as exc:
         logger.error("Read file failed: %s", exc)
         return f"Error reading file: {exc}"
@@ -118,16 +137,16 @@ def write_file(path: str, content: str, append: bool = False) -> str:
     """Write content to file."""
     try:
         filepath = _resolve_path(path)
-        
+
         # Ensure directory exists
         filepath.parent.mkdir(parents=True, exist_ok=True)
-        
+
         mode = "a" if append else "w"
         filepath.write_text(content)
-        
+
         action = "appended to" if append else "wrote"
         return f"Successfully {action} {filepath}"
-        
+
     except Exception as exc:
         logger.error("Write file failed: %s", exc)
         return f"Error writing file: {exc}"
@@ -137,32 +156,32 @@ def list_directory(path: str = ".", pattern: str = "*") -> str:
     """List directory contents."""
     try:
         dirpath = _resolve_path(path)
-        
+
         if not dirpath.exists():
             return f"Error: Directory not found: {path}"
-        
+
         if not dirpath.is_dir():
             return f"Error: Path is not a directory: {path}"
-        
+
         items = list(dirpath.glob(pattern))
-        
+
         files = []
         dirs = []
-        
+
         for item in items:
             if item.is_dir():
                 dirs.append(f"📁 {item.name}/")
             else:
                 size = item.stat().st_size
-                size_str = f"{size}B" if size < 1024 else f"{size//1024}KB"
+                size_str = f"{size}B" if size < 1024 else f"{size // 1024}KB"
                 files.append(f"📄 {item.name} ({size_str})")
-        
+
         result = [f"Contents of {dirpath}:", ""]
         result.extend(sorted(dirs))
         result.extend(sorted(files))
-        
+
         return "\n".join(result)
-        
+
     except Exception as exc:
         logger.error("List directory failed: %s", exc)
         return f"Error listing directory: {exc}"
@@ -176,4 +195,6 @@ register_tool(
     category="files",
     requires_confirmation=True,
 )(write_file)
-register_tool(name="list_directory", schema=LIST_DIR_SCHEMA, category="files")(list_directory)
+register_tool(name="list_directory", schema=LIST_DIR_SCHEMA, category="files")(
+    list_directory
+)
