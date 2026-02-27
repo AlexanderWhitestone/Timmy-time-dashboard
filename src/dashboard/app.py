@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -168,6 +169,14 @@ app = FastAPI(
     # Docs disabled unless DEBUG=true in env / .env
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
