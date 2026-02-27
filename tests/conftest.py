@@ -33,6 +33,9 @@ for _mod in [
     # pyzbar is optional (for QR code invite detection)
     "pyzbar",
     "pyzbar.pyzbar",
+    # requests is optional — used by reward scoring (swarm.learner) to call
+    # Ollama directly; stub so patch("requests.post") works in tests.
+    "requests",
 ]:
     sys.modules.setdefault(_mod, MagicMock())
 
