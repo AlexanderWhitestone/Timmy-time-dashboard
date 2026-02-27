@@ -162,3 +162,18 @@ def pytest_addoption(parser):
 def headed_mode(request):
     """Check if --headed flag was passed."""
     return request.config.getoption("--headed")
+
+
+@pytest.fixture
+def isolated_task_db(tmp_path):
+    """Provide a fresh, isolated SQLite DB for task queue tests.
+
+    Points the task queue module at a temporary database that is unique
+    per test.  pytest's tmp_path is auto-cleaned — no teardown needed.
+    """
+    from swarm.task_queue import models as tq_models
+
+    original = tq_models.DB_PATH
+    tq_models.DB_PATH = tmp_path / "tasks.db"
+    yield tq_models.DB_PATH
+    tq_models.DB_PATH = original
