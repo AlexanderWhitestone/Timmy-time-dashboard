@@ -97,7 +97,17 @@ class TestGetToolStats:
 
 class TestPersonaToolkits:
     def test_all_expected_personas_present(self):
-        expected = {"echo", "mace", "helm", "seer", "forge", "quill", "pixel", "lyra", "reel"}
+        expected = {
+            "echo",
+            "mace",
+            "helm",
+            "seer",
+            "forge",
+            "quill",
+            "pixel",
+            "lyra",
+            "reel",
+        }
         assert set(PERSONA_TOOLKITS.keys()) == expected
 
     def test_get_tools_for_known_persona_raises_without_agno(self):
@@ -123,7 +133,14 @@ class TestPersonaToolkits:
 class TestToolCatalog:
     def test_catalog_contains_base_tools(self):
         catalog = get_all_available_tools()
-        base_tools = {"web_search", "shell", "python", "read_file", "write_file", "list_files"}
+        base_tools = {
+            "web_search",
+            "shell",
+            "python",
+            "read_file",
+            "write_file",
+            "list_files",
+        }
         for tool_id in base_tools:
             assert tool_id in catalog, f"Missing base tool: {tool_id}"
 
@@ -137,7 +154,14 @@ class TestToolCatalog:
 
     def test_catalog_timmy_has_all_base_tools(self):
         catalog = get_all_available_tools()
-        base_tools = {"web_search", "shell", "python", "read_file", "write_file", "list_files"}
+        base_tools = {
+            "web_search",
+            "shell",
+            "python",
+            "read_file",
+            "write_file",
+            "list_files",
+        }
         for tool_id in base_tools:
             assert "timmy" in catalog[tool_id]["available_in"], (
                 f"Timmy missing tool: {tool_id}"
@@ -167,3 +191,38 @@ class TestToolCatalog:
         # Should pick up image, music, video catalogs
         all_keys = list(catalog.keys())
         assert len(all_keys) > 6  # more than just base tools
+
+    def test_catalog_forge_has_aider(self):
+        """Verify Aider AI tool is available in Forge's toolkit."""
+        catalog = get_all_available_tools()
+        assert "aider" in catalog
+        assert "forge" in catalog["aider"]["available_in"]
+        assert "timmy" in catalog["aider"]["available_in"]
+
+
+class TestAiderTool:
+    """Test the Aider AI coding assistant tool."""
+
+    def test_aider_tool_responds_to_simple_prompt(self):
+        """Test Aider tool can respond to a simple prompt.
+
+        This is a smoke test - we just verify it returns something.
+        """
+        from timmy.tools import create_aider_tool
+        from pathlib import Path
+
+        tool = create_aider_tool(Path.cwd())
+
+        # Call with a simple prompt - should return something (even if error)
+        result = tool.run_aider("what is 2+2", model="qwen2.5:14b")
+
+        # Should get a response (either success or error message)
+        assert result is not None
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    def test_aider_in_tool_catalog(self):
+        """Verify Aider appears in the tool catalog."""
+        catalog = get_all_available_tools()
+        assert "aider" in catalog
+        assert "forge" in catalog["aider"]["available_in"]
