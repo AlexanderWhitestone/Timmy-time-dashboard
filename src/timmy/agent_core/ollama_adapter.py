@@ -31,7 +31,7 @@ from timmy.agent_core.interface import (
     TimAgent,
     AgentEffect,
 )
-from timmy.agent import create_timmy
+from timmy.agent import create_timmy, _resolve_model_with_fallback
 
 
 class OllamaAgent(TimAgent):
@@ -53,18 +53,33 @@ class OllamaAgent(TimAgent):
         identity: AgentIdentity,
         model: Optional[str] = None,
         effect_log: Optional[str] = None,
+        require_vision: bool = False,
     ) -> None:
         """Initialize Ollama-based agent.
         
         Args:
             identity: Agent identity (persistent across sessions)
-            model: Ollama model to use (default from config)
+            model: Ollama model to use (auto-resolves with fallback)
             effect_log: Path to log agent effects (optional)
+            require_vision: Whether to select a vision-capable model
         """
         super().__init__(identity)
         
+        # Resolve model with automatic pulling and fallback
+        resolved_model, is_fallback = _resolve_model_with_fallback(
+            requested_model=model,
+            require_vision=require_vision,
+            auto_pull=True,
+        )
+        
+        if is_fallback:
+            import logging
+            logging.getLogger(__name__).info(
+                "OllamaAdapter using fallback model %s", resolved_model
+            )
+        
         # Initialize underlying Ollama agent
-        self._timmy = create_timmy(model=model)
+        self._timmy = create_timmy(model=resolved_model)
         
         # Set capabilities based on what Ollama can do
         self._capabilities = {
