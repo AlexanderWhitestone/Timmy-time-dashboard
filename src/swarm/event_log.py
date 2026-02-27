@@ -39,6 +39,9 @@ class EventType(str, Enum):
     TOOL_COMPLETED = "tool.completed"
     TOOL_FAILED = "tool.failed"
     
+    # Thinking
+    TIMMY_THOUGHT = "timmy.thought"
+
     # System
     SYSTEM_ERROR = "system.error"
     SYSTEM_WARNING = "system.warning"

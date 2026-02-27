@@ -39,6 +39,7 @@ from dashboard.routes.grok import router as grok_router
 from dashboard.routes.models import router as models_router
 from dashboard.routes.models import api_router as models_api_router
 from dashboard.routes.chat_api import router as chat_api_router
+from dashboard.routes.thinking import router as thinking_router
 from infrastructure.router.api import router as cascade_router
 
 logging.basicConfig(
@@ -78,6 +79,26 @@ async def _briefing_scheduler() -> None:
             logger.error("Briefing scheduler error: %s", exc)
 
         await asyncio.sleep(_BRIEFING_INTERVAL_HOURS * 3600)
+
+
+async def _thinking_loop() -> None:
+    """Background task: Timmy's default thinking thread.
+
+    Starts shortly after server boot and runs on a configurable cadence.
+    Timmy ponders his existence, recent swarm activity, scripture, creative
+    ideas, or continues a previous train of thought.
+    """
+    from timmy.thinking import thinking_engine
+
+    await asyncio.sleep(10)  # Let server finish starting before first thought
+
+    while True:
+        try:
+            await thinking_engine.think_once()
+        except Exception as exc:
+            logger.error("Thinking loop error: %s", exc)
+
+        await asyncio.sleep(settings.thinking_interval_seconds)
 
 
 @asynccontextmanager
@@ -139,6 +160,15 @@ async def lifespan(app: FastAPI):
     if spark_engine.enabled:
         logger.info("Spark Intelligence active — event capture enabled")
 
+    # Start Timmy's default thinking thread (skip in test mode)
+    thinking_task = None
+    if settings.thinking_enabled and os.environ.get("TIMMY_TEST_MODE") != "1":
+        thinking_task = asyncio.create_task(_thinking_loop())
+        logger.info(
+            "Default thinking thread started (interval: %ds)",
+            settings.thinking_interval_seconds,
+        )
+
     # Auto-start chat integrations (skip silently if unconfigured)
     from integrations.telegram_bot.bot import telegram_bot
     from integrations.chat_bridge.vendors.discord import discord_bot
@@ -159,6 +189,12 @@ async def lifespan(app: FastAPI):
 
     await discord_bot.stop()
     await telegram_bot.stop()
+    if thinking_task:
+        thinking_task.cancel()
+        try:
+            await thinking_task
+        except asyncio.CancelledError:
+            pass
     task.cancel()
     try:
         await task
@@ -223,6 +259,7 @@ app.include_router(grok_router)
 app.include_router(models_router)
 app.include_router(models_api_router)
 app.include_router(chat_api_router)
+app.include_router(thinking_router)
 app.include_router(cascade_router)
 
 
