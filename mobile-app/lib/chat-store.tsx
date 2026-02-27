@@ -71,16 +71,16 @@ const ChatContext = createContext<ChatContextValue | null>(null);
 // ── API call ────────────────────────────────────────────────────────────────
 
 function getApiBase(): string {
-  // Set EXPO_PUBLIC_API_BASE_URL in your .env to point to your Timmy backend
-  // e.g. EXPO_PUBLIC_API_BASE_URL=http://192.168.1.100:3000
+  // Set EXPO_PUBLIC_API_BASE_URL in your .env to point to your Timmy dashboard
+  // e.g. EXPO_PUBLIC_API_BASE_URL=http://192.168.1.100:8000
   const envBase = process.env.EXPO_PUBLIC_API_BASE_URL;
   if (envBase) return envBase.replace(/\/+$/, "");
-  // Fallback for web: derive from window location
+  // Fallback for web: derive from window location (same host, port 8000)
   if (typeof window !== "undefined" && window.location) {
-    return `${window.location.protocol}//${window.location.hostname}:3000`;
+    return `${window.location.protocol}//${window.location.hostname}:8000`;
   }
-  // Default: local machine
-  return "http://127.0.0.1:3000";
+  // Default: Timmy dashboard on localhost
+  return "http://127.0.0.1:8000";
 }
 
 const API_BASE = getApiBase();
