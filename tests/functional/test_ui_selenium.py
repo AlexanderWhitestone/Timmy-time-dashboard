@@ -10,7 +10,6 @@ Run:
 """
 
 import os
-import time
 
 import pytest
 from selenium import webdriver
@@ -96,7 +95,8 @@ def _send_chat_and_wait(driver, message):
 
     # Wait for a NEW agent response (not one from a prior test)
     WebDriverWait(driver, 30).until(
-        lambda d: len(d.find_elements(By.CSS_SELECTOR, ".chat-message.agent")) > existing
+        lambda d: len(d.find_elements(By.CSS_SELECTOR, ".chat-message.agent"))
+        > existing
     )
 
     return existing
@@ -158,10 +158,14 @@ class TestChatInteraction:
         """Full chat roundtrip: send message, get response, input clears, chat scrolls."""
         _load_dashboard(driver)
 
-        # Wait for any initial HTMX requests (history load) to settle
-        time.sleep(2)
+        # Wait for page to be ready
+        WebDriverWait(driver, 10).until(
+            lambda d: d.execute_script("return document.readyState") == "complete"
+        )
 
-        existing_agents = len(driver.find_elements(By.CSS_SELECTOR, ".chat-message.agent"))
+        existing_agents = len(
+            driver.find_elements(By.CSS_SELECTOR, ".chat-message.agent")
+        )
 
         inp = driver.find_element(By.CSS_SELECTOR, "input[name='message']")
         inp.send_keys("hello from selenium")
@@ -169,26 +173,29 @@ class TestChatInteraction:
 
         # 1. User bubble appears immediately
         WebDriverWait(driver, 5).until(
-            EC.presence_of_element_located(
-                (By.CSS_SELECTOR, ".chat-message.user")
-            )
+            EC.presence_of_element_located((By.CSS_SELECTOR, ".chat-message.user"))
         )
 
         # 2. Agent response arrives
         WebDriverWait(driver, 30).until(
-            lambda d: len(d.find_elements(By.CSS_SELECTOR, ".chat-message.agent")) > existing_agents
+            lambda d: len(d.find_elements(By.CSS_SELECTOR, ".chat-message.agent"))
+            > existing_agents
         )
 
         # 3. Input cleared (regression test)
-        time.sleep(0.5)
+        # Already waited for agent response via WebDriverWait above
         inp = driver.find_element(By.CSS_SELECTOR, "input[name='message']")
         assert inp.get_attribute("value") == "", "Input should be empty after sending"
 
         # 4. Chat scrolled to bottom (regression test)
         chat_log = driver.find_element(By.ID, "chat-log")
         scroll_top = driver.execute_script("return arguments[0].scrollTop", chat_log)
-        scroll_height = driver.execute_script("return arguments[0].scrollHeight", chat_log)
-        client_height = driver.execute_script("return arguments[0].clientHeight", chat_log)
+        scroll_height = driver.execute_script(
+            "return arguments[0].scrollHeight", chat_log
+        )
+        client_height = driver.execute_script(
+            "return arguments[0].clientHeight", chat_log
+        )
 
         if scroll_height > client_height:
             gap = scroll_height - scroll_top - client_height
@@ -252,9 +259,7 @@ class TestAgentSidebar:
     def test_sidebar_header_shows(self, driver):
         _load_dashboard(driver)
         _wait_for_sidebar(driver)
-        header = driver.find_element(
-            By.XPATH, "//*[contains(text(), 'SWARM AGENTS')]"
-        )
+        header = driver.find_element(By.XPATH, "//*[contains(text(), 'SWARM AGENTS')]")
         assert header.is_displayed()
 
     def test_sidebar_shows_status_when_agents_exist(self, driver):

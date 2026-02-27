@@ -19,6 +19,7 @@ class TestVoiceTTS:
 
         with patch.dict("sys.modules", {"pyttsx3": mock_pyttsx3}):
             from timmy_serve.voice_tts import VoiceTTS
+
             tts = VoiceTTS(rate=200, volume=0.8)
             assert tts.available is True
             mock_engine.setProperty.assert_any_call("rate", 200)
@@ -29,6 +30,7 @@ class TestVoiceTTS:
         with patch.dict("sys.modules", {"pyttsx3": None}):
             from importlib import reload
             import timmy_serve.voice_tts as mod
+
             tts = mod.VoiceTTS.__new__(mod.VoiceTTS)
             tts._engine = None
             tts._rate = 175
@@ -39,6 +41,7 @@ class TestVoiceTTS:
 
     def test_speak_skips_when_unavailable(self):
         from timmy_serve.voice_tts import VoiceTTS
+
         tts = VoiceTTS.__new__(VoiceTTS)
         tts._engine = None
         tts._available = False
@@ -48,6 +51,7 @@ class TestVoiceTTS:
 
     def test_speak_sync_skips_when_unavailable(self):
         from timmy_serve.voice_tts import VoiceTTS
+
         tts = VoiceTTS.__new__(VoiceTTS)
         tts._engine = None
         tts._available = False
@@ -56,19 +60,32 @@ class TestVoiceTTS:
 
     def test_speak_calls_engine(self):
         from timmy_serve.voice_tts import VoiceTTS
+
         tts = VoiceTTS.__new__(VoiceTTS)
         tts._engine = MagicMock()
         tts._available = True
         tts._lock = threading.Lock()
 
-        tts.speak("test speech")
-        # Give the background thread time to execute
-        import time
-        time.sleep(0.1)
+        # Patch threading.Thread to capture the thread and join it
+        original_thread_class = threading.Thread
+        captured_threads = []
+
+        def capture_thread(*args, **kwargs):
+            t = original_thread_class(*args, **kwargs)
+            captured_threads.append(t)
+            return t
+
+        with patch.object(threading, "Thread", side_effect=capture_thread):
+            tts.speak("test speech")
+            # Wait for the background thread to complete
+            for t in captured_threads:
+                t.join(timeout=1)
+
         tts._engine.say.assert_called_with("test speech")
 
     def test_speak_sync_calls_engine(self):
         from timmy_serve.voice_tts import VoiceTTS
+
         tts = VoiceTTS.__new__(VoiceTTS)
         tts._engine = MagicMock()
         tts._available = True
@@ -80,6 +97,7 @@ class TestVoiceTTS:
 
     def test_set_rate(self):
         from timmy_serve.voice_tts import VoiceTTS
+
         tts = VoiceTTS.__new__(VoiceTTS)
         tts._engine = MagicMock()
         tts._rate = 175
@@ -90,6 +108,7 @@ class TestVoiceTTS:
 
     def test_set_rate_no_engine(self):
         from timmy_serve.voice_tts import VoiceTTS
+
         tts = VoiceTTS.__new__(VoiceTTS)
         tts._engine = None
         tts._rate = 175
@@ -98,6 +117,7 @@ class TestVoiceTTS:
 
     def test_set_volume_clamped(self):
         from timmy_serve.voice_tts import VoiceTTS
+
         tts = VoiceTTS.__new__(VoiceTTS)
         tts._engine = MagicMock()
         tts._volume = 0.9
@@ -113,12 +133,14 @@ class TestVoiceTTS:
 
     def test_get_voices_no_engine(self):
         from timmy_serve.voice_tts import VoiceTTS
+
         tts = VoiceTTS.__new__(VoiceTTS)
         tts._engine = None
         assert tts.get_voices() == []
 
     def test_get_voices_with_engine(self):
         from timmy_serve.voice_tts import VoiceTTS
+
         tts = VoiceTTS.__new__(VoiceTTS)
         mock_voice = MagicMock()
         mock_voice.id = "voice1"
@@ -136,6 +158,7 @@ class TestVoiceTTS:
 
     def test_get_voices_exception(self):
         from timmy_serve.voice_tts import VoiceTTS
+
         tts = VoiceTTS.__new__(VoiceTTS)
         tts._engine = MagicMock()
         tts._engine.getProperty.side_effect = RuntimeError("no voices")
@@ -143,6 +166,7 @@ class TestVoiceTTS:
 
     def test_set_voice(self):
         from timmy_serve.voice_tts import VoiceTTS
+
         tts = VoiceTTS.__new__(VoiceTTS)
         tts._engine = MagicMock()
         tts.set_voice("voice_id_1")
@@ -150,6 +174,7 @@ class TestVoiceTTS:
 
     def test_set_voice_no_engine(self):
         from timmy_serve.voice_tts import VoiceTTS
+
         tts = VoiceTTS.__new__(VoiceTTS)
         tts._engine = None
         tts.set_voice("voice_id_1")  # should not raise
