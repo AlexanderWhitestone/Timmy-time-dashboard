@@ -16,7 +16,6 @@ from pathlib import Path
 
 import pytest
 
-# Try to import httpx for real HTTP calls to containers
 httpx = pytest.importorskip("httpx")
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -25,7 +24,25 @@ COMPOSE_TEST = PROJECT_ROOT / "docker-compose.test.yml"
 
 def _compose(*args, timeout=60):
     cmd = ["docker", "compose", "-f", str(COMPOSE_TEST), "-p", "timmy-test", *args]
-    return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=str(PROJECT_ROOT))
+    return subprocess.run(
+        cmd, capture_output=True, text=True, timeout=timeout, cwd=str(PROJECT_ROOT)
+    )
+
+
+def _wait_for_agents(dashboard_url, timeout=30, interval=1):
+    """Poll /swarm/agents until at least one agent appears."""
+    start = time.monotonic()
+    while time.monotonic() - start < timeout:
+        try:
+            resp = httpx.get(f"{dashboard_url}/swarm/agents", timeout=10)
+            if resp.status_code == 200:
+                agents = resp.json().get("agents", [])
+                if agents:
+                    return agents
+        except Exception:
+            pass
+        time.sleep(interval)
+    return []
 
 
 class TestDockerDashboard:
@@ -80,13 +97,18 @@ class TestDockerAgentSwarm:
         """Scale up one agent worker and verify it appears in the registry."""
         # Start one agent
         result = _compose(
-            "--profile", "agents", "up", "-d", "--scale", "agent=1",
+            "--profile",
+            "agents",
+            "up",
+            "-d",
+            "--scale",
+            "agent=1",
             timeout=120,
         )
         assert result.returncode == 0, f"Failed to start agent:\n{result.stderr}"
 
-        # Give the agent time to register via HTTP
-        time.sleep(8)
+        # Wait for agent to register via polling
+        _wait_for_agents(docker_stack)
 
         resp = httpx.get(f"{docker_stack}/swarm/agents", timeout=10)
         assert resp.status_code == 200
@@ -101,13 +123,18 @@ class TestDockerAgentSwarm:
         """Start an agent, post a task, verify the agent bids on it."""
         # Start agent
         result = _compose(
-            "--profile", "agents", "up", "-d", "--scale", "agent=1",
+            "--profile",
+            "agents",
+            "up",
+            "-d",
+            "--scale",
+            "agent=1",
             timeout=120,
         )
         assert result.returncode == 0
 
-        # Wait for agent to register
-        time.sleep(8)
+        # Wait for agent to register via polling
+        _wait_for_agents(docker_stack)
 
         # Post a task — this triggers an auction
         task_resp = httpx.post(
@@ -118,8 +145,13 @@ class TestDockerAgentSwarm:
         assert task_resp.status_code == 200
         task_id = task_resp.json()["task_id"]
 
-        # Give the agent time to poll and bid
-        time.sleep(12)
+        # Poll until task exists (agent may poll and bid)
+        start = time.monotonic()
+        while time.monotonic() - start < 15:
+            task = httpx.get(f"{docker_stack}/swarm/tasks/{task_id}", timeout=10)
+            if task.status_code == 200:
+                break
+            time.sleep(1)
 
         # Check task status — may have been assigned
         task = httpx.get(f"{docker_stack}/swarm/tasks/{task_id}", timeout=10)
@@ -133,18 +165,25 @@ class TestDockerAgentSwarm:
     def test_multiple_agents(self, docker_stack):
         """Scale to 3 agents and verify all register."""
         result = _compose(
-            "--profile", "agents", "up", "-d", "--scale", "agent=3",
+            "--profile",
+            "agents",
+            "up",
+            "-d",
+            "--scale",
+            "agent=3",
             timeout=120,
         )
         assert result.returncode == 0
 
-        # Wait for registration
-        time.sleep(12)
+        # Wait for agents to register via polling
+        _wait_for_agents(docker_stack)
 
         resp = httpx.get(f"{docker_stack}/swarm/agents", timeout=10)
         agents = resp.json()["agents"]
         # Should have at least the 3 agents we started (plus possibly Timmy and auto-spawned ones)
-        worker_count = sum(1 for a in agents if "Worker" in a["name"] or "TestWorker" in a["name"])
+        worker_count = sum(
+            1 for a in agents if "Worker" in a["name"] or "TestWorker" in a["name"]
+        )
         assert worker_count >= 1  # At least some registered
 
         _compose("--profile", "agents", "down", timeout=30)
