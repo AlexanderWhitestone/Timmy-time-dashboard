@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Custom Models - Timmy Time{% endblock %}
+
+{% block content %}
+<div class="mc-panel">
+  <div class="mc-panel-header">
+    <h1 class="page-title">Custom Models</h1>
+    <p class="mc-text-secondary">Manage model weights and agent assignments</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="mc-stats-row">
+    <div class="mc-stat-card">
+      <div class="mc-stat-value">{{ models|length }}</div>
+      <div class="mc-stat-label">Models</div>
+    </div>
+    <div class="mc-stat-card">
+      <div class="mc-stat-value">{{ assignments|length }}</div>
+      <div class="mc-stat-label">Assignments</div>
+    </div>
+    <div class="mc-stat-card">
+      <div class="mc-stat-value">{{ "Yes" if reward_model else "No" }}</div>
+      <div class="mc-stat-label">Reward Model</div>
+    </div>
+  </div>
+
+  <!-- Register Model Form -->
+  <div class="mc-section" style="margin-top: 1.5rem;">
+    <h2>Register Model</h2>
+    <form hx-post="/api/v1/models" hx-target="#model-result" hx-swap="innerHTML"
+          style="display: grid; gap: 0.5rem; max-width: 500px;">
+      <input name="name" placeholder="Model name" required class="mc-input" />
+      <select name="format" class="mc-input">
+        <option value="ollama">Ollama</option>
+        <option value="gguf">GGUF</option>
+        <option value="safetensors">Safetensors</option>
+        <option value="hf">HF Checkpoint</option>
+      </select>
+      <input name="path" placeholder="Path or Ollama model name" required class="mc-input" />
+      <select name="role" class="mc-input">
+        <option value="general">General</option>
+        <option value="reward">Reward (PRM)</option>
+        <option value="teacher">Teacher</option>
+        <option value="judge">Judge</option>
+      </select>
+      <input name="context_window" type="number" value="4096" class="mc-input" />
+      <input name="description" placeholder="Description (optional)" class="mc-input" />
+      <button type="submit" class="mc-btn mc-btn-primary">Register</button>
+    </form>
+    <div id="model-result" style="margin-top: 0.5rem;"></div>
+  </div>
+
+  <!-- Registered Models -->
+  <div class="mc-section" style="margin-top: 1.5rem;">
+    <h2>Registered Models</h2>
+    {% if models %}
+    <table class="mc-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Format</th>
+          <th>Role</th>
+          <th>Context</th>
+          <th>Active</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in models %}
+        <tr>
+          <td><strong>{{ m.name }}</strong></td>
+          <td>{{ m.format.value }}</td>
+          <td>{{ m.role.value }}</td>
+          <td>{{ m.context_window }}</td>
+          <td>{{ "Yes" if m.active else "No" }}</td>
+          <td>
+            <button class="mc-btn mc-btn-sm"
+                    hx-delete="/api/v1/models/{{ m.name }}"
+                    hx-confirm="Remove {{ m.name }}?"
+                    hx-target="closest tr"
+                    hx-swap="outerHTML">Remove</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="mc-text-secondary">No custom models registered. Use the form above or the API.</p>
+    {% endif %}
+  </div>
+
+  <!-- Agent Assignments -->
+  <div class="mc-section" style="margin-top: 1.5rem;">
+    <h2>Agent Model Assignments</h2>
+    {% if assignments %}
+    <table class="mc-table">
+      <thead>
+        <tr><th>Agent</th><th>Model</th></tr>
+      </thead>
+      <tbody>
+        {% for agent_id, model_name in assignments.items() %}
+        <tr>
+          <td>{{ agent_id }}</td>
+          <td>{{ model_name }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="mc-text-secondary">No agent-specific model assignments. All agents use the global default.</p>
+    {% endif %}
+  </div>
+
+  <div class="mc-section" style="margin-top: 1rem;">
+    <p class="mc-text-secondary">Weights directory: <code>{{ weights_dir }}</code></p>
+  </div>
+</div>
+{% endblock %}

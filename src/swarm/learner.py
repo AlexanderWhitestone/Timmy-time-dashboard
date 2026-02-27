@@ -251,3 +251,193 @@ def learned_keywords(agent_id: str) -> list[dict]:
         results.append({"keyword": kw, "wins": wins, "failures": fails, "net": wins - fails})
     results.sort(key=lambda x: x["net"], reverse=True)
     return results
+
+
+# ── Reward model scoring (PRM-style) ─────────────────────────────────────────
+
+import logging as _logging
+from config import settings as _settings
+
+_reward_logger = _logging.getLogger(__name__ + ".reward")
+
+
+@dataclass
+class RewardScore:
+    """Result from reward-model evaluation."""
+    score: float          # Normalised score in [-1.0, 1.0]
+    positive_votes: int
+    negative_votes: int
+    total_votes: int
+    model_used: str
+
+
+def _ensure_reward_table() -> None:
+    """Create the reward_scores table if needed."""
+    conn = _get_conn()
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS reward_scores (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_id     TEXT NOT NULL,
+            agent_id    TEXT NOT NULL,
+            output_text TEXT NOT NULL,
+            score       REAL NOT NULL,
+            positive    INTEGER NOT NULL,
+            negative    INTEGER NOT NULL,
+            total       INTEGER NOT NULL,
+            model_used  TEXT NOT NULL,
+            scored_at   TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+
+
+def score_output(
+    task_id: str,
+    agent_id: str,
+    task_description: str,
+    output_text: str,
+) -> Optional[RewardScore]:
+    """Score an agent's output using the reward model (majority vote).
+
+    Calls the reward model N times (settings.reward_model_votes) with a
+    quality-evaluation prompt.  Each vote is +1 (good) or -1 (bad).
+    Final score is (positive - negative) / total, in [-1.0, 1.0].
+
+    Returns None if the reward model is disabled or unavailable.
+    """
+    if not _settings.reward_model_enabled:
+        return None
+
+    # Resolve model name: explicit setting > registry reward model > skip
+    model_name = _settings.reward_model_name
+    if not model_name:
+        try:
+            from infrastructure.models.registry import model_registry
+            reward = model_registry.get_reward_model()
+            if reward:
+                model_name = reward.path if reward.format.value == "ollama" else reward.name
+        except Exception:
+            pass
+
+    if not model_name:
+        _reward_logger.debug("No reward model configured, skipping scoring")
+        return None
+
+    num_votes = max(1, _settings.reward_model_votes)
+    positive = 0
+    negative = 0
+
+    prompt = (
+        f"You are a quality evaluator.  Rate the following agent output.\n\n"
+        f"TASK: {task_description}\n\n"
+        f"OUTPUT:\n{output_text[:2000]}\n\n"
+        f"Is this output correct, helpful, and complete? "
+        f"Reply with exactly one word: GOOD or BAD."
+    )
+
+    try:
+        import requests as _req
+        ollama_url = _settings.ollama_url
+
+        for _ in range(num_votes):
+            try:
+                resp = _req.post(
+                    f"{ollama_url}/api/generate",
+                    json={
+                        "model": model_name,
+                        "prompt": prompt,
+                        "stream": False,
+                        "options": {"temperature": 0.3, "num_predict": 10},
+                    },
+                    timeout=30,
+                )
+                if resp.status_code == 200:
+                    answer = resp.json().get("response", "").strip().upper()
+                    if "GOOD" in answer:
+                        positive += 1
+                    else:
+                        negative += 1
+                else:
+                    negative += 1  # Treat errors as negative conservatively
+            except Exception as vote_exc:
+                _reward_logger.debug("Vote failed: %s", vote_exc)
+                negative += 1
+
+    except ImportError:
+        _reward_logger.warning("requests library not available for reward scoring")
+        return None
+
+    total = positive + negative
+    if total == 0:
+        return None
+
+    score = (positive - negative) / total
+
+    result = RewardScore(
+        score=score,
+        positive_votes=positive,
+        negative_votes=negative,
+        total_votes=total,
+        model_used=model_name,
+    )
+
+    # Persist to DB
+    try:
+        _ensure_reward_table()
+        conn = _get_conn()
+        conn.execute(
+            """
+            INSERT INTO reward_scores
+                (task_id, agent_id, output_text, score, positive, negative, total, model_used)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                task_id, agent_id, output_text[:5000],
+                score, positive, negative, total, model_name,
+            ),
+        )
+        conn.commit()
+        conn.close()
+    except Exception as db_exc:
+        _reward_logger.warning("Failed to persist reward score: %s", db_exc)
+
+    _reward_logger.info(
+        "Scored task %s agent %s: %.2f (%d+/%d- of %d votes)",
+        task_id, agent_id, score, positive, negative, total,
+    )
+    return result
+
+
+def get_reward_scores(
+    agent_id: Optional[str] = None, limit: int = 50
+) -> list[dict]:
+    """Retrieve historical reward scores from the database."""
+    _ensure_reward_table()
+    conn = _get_conn()
+    if agent_id:
+        rows = conn.execute(
+            "SELECT * FROM reward_scores WHERE agent_id = ? ORDER BY id DESC LIMIT ?",
+            (agent_id, limit),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM reward_scores ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    conn.close()
+    return [
+        {
+            "task_id": r["task_id"],
+            "agent_id": r["agent_id"],
+            "score": r["score"],
+            "positive": r["positive"],
+            "negative": r["negative"],
+            "total": r["total"],
+            "model_used": r["model_used"],
+            "scored_at": r["scored_at"],
+        }
+        for r in rows
+    ]

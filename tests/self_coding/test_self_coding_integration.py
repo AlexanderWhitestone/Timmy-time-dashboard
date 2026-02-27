@@ -39,7 +39,11 @@ def self_coding_env():
             ["git", "config", "user.name", "Test User"],
             cwd=repo_path, check=True, capture_output=True,
         )
-        
+        subprocess.run(
+            ["git", "config", "commit.gpgsign", "false"],
+            cwd=repo_path, check=True, capture_output=True,
+        )
+
         # Create src directory with real Python files
         src_path = repo_path / "src" / "myproject"
         src_path.mkdir(parents=True)

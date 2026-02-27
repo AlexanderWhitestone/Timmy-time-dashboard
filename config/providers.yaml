@@ -68,6 +68,37 @@ providers:
       - name: claude-3-sonnet-20240229
         context_window: 200000
 
+# ── Custom Models ──────────────────────────────────────────────────────
+# Register custom model weights for per-agent assignment.
+# Supports GGUF (Ollama), safetensors, and HuggingFace checkpoint dirs.
+# Models can also be registered at runtime via the /api/v1/models API.
+#
+# Roles: general (default inference), reward (PRM scoring),
+#        teacher (distillation), judge (output evaluation)
+custom_models: []
+  # Example entries:
+  # - name: my-finetuned-llama
+  #   format: gguf
+  #   path: /path/to/model.gguf
+  #   role: general
+  #   context_window: 8192
+  #   description: "Fine-tuned Llama for code tasks"
+  #
+  # - name: reward-model
+  #   format: ollama
+  #   path: deepseek-r1:1.5b
+  #   role: reward
+  #   context_window: 32000
+  #   description: "Process reward model for scoring outputs"
+
+# ── Agent Model Assignments ─────────────────────────────────────────────
+# Map persona agent IDs to specific models.
+# Agents without an assignment use the global default (ollama_model).
+agent_model_assignments: {}
+  # Example:
+  # persona-forge: my-finetuned-llama
+  # persona-echo: deepseek-r1:1.5b
+
 # Cost tracking (optional, for budget monitoring)
 cost_tracking:
   enabled: true

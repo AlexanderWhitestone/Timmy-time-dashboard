@@ -273,31 +273,34 @@ except ImportError:
     
     async def test_permission_error(self):
         """Should handle permission errors gracefully."""
+        import os
+        if os.geteuid() == 0:
+            pytest.skip("Permission tests are ineffective when running as root")
+
         with tempfile.TemporaryDirectory() as tmpdir:
             repo_path = Path(tmpdir)
             src_path = repo_path / "src"
             src_path.mkdir()
-            
+
             # Create file
             file_path = src_path / "locked.py"
             file_path.write_text("def test(): pass")
-            
+
             # Remove read permission (if on Unix)
-            import os
             try:
                 os.chmod(file_path, 0o000)
-                
+
                 indexer = CodebaseIndexer(
                     repo_path=repo_path,
                     db_path=repo_path / "index.db",
                     src_dirs=["src"],
                 )
-                
+
                 stats = await indexer.index_all()
-                
+
                 # Should count as failed
                 assert stats["failed"] == 1
-                
+
             finally:
                 # Restore permission for cleanup
                 os.chmod(file_path, 0o644)
