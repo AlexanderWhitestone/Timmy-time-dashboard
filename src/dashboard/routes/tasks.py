@@ -32,6 +32,7 @@ from swarm.task_queue.models import (
     get_counts_by_status,
     get_pending_count,
     get_task,
+    list_backlogged_tasks,
     list_tasks,
     update_task,
     update_task_status,
@@ -85,10 +86,12 @@ async def task_queue_page(request: Request, assign: Optional[str] = None):
     active = list_tasks(status=TaskStatus.RUNNING) + list_tasks(
         status=TaskStatus.PAUSED
     )
+    backlogged = list_backlogged_tasks(limit=20)
     completed = (
         list_tasks(status=TaskStatus.COMPLETED, limit=20)
         + list_tasks(status=TaskStatus.VETOED, limit=10)
         + list_tasks(status=TaskStatus.FAILED, limit=10)
+        + backlogged
     )
 
     # Get agents for the create modal
@@ -158,6 +161,7 @@ async def tasks_completed_partial(request: Request):
         list_tasks(status=TaskStatus.COMPLETED, limit=20)
         + list_tasks(status=TaskStatus.VETOED, limit=10)
         + list_tasks(status=TaskStatus.FAILED, limit=10)
+        + list_backlogged_tasks(limit=20)
     )
     return templates.TemplateResponse(
         request,
@@ -252,7 +256,21 @@ async def api_task_counts():
         "completed": counts.get("completed", 0),
         "failed": counts.get("failed", 0),
         "vetoed": counts.get("vetoed", 0),
+        "backlogged": counts.get("backlogged", 0),
         "total": sum(counts.values()),
+    }
+
+
+# ── Backlog API (must be before {task_id} catch-all) ─────────────────────
+
+
+@router.get("/api/tasks/backlog", response_class=JSONResponse)
+async def api_list_backlogged(assigned_to: Optional[str] = None, limit: int = 50):
+    """List all backlogged tasks."""
+    tasks = list_backlogged_tasks(assigned_to=assigned_to, limit=limit)
+    return {
+        "tasks": [_task_to_dict(t) for t in tasks],
+        "count": len(tasks),
     }
 
 
@@ -447,6 +465,36 @@ async def htmx_retry_task(request: Request, task_id: str):
     )
 
 
+@router.patch("/api/tasks/{task_id}/unbacklog", response_class=JSONResponse)
+async def api_unbacklog_task(task_id: str):
+    """Move a backlogged task back to approved for re-processing."""
+    task = get_task(task_id)
+    if not task:
+        raise HTTPException(404, "Task not found")
+    if task.status != TaskStatus.BACKLOGGED:
+        raise HTTPException(400, "Can only unbacklog backlogged tasks")
+    updated = update_task_status(
+        task_id, TaskStatus.APPROVED, result=None, backlog_reason=None
+    )
+    _broadcast_task_event("task_unbacklogged", updated)
+    return {"success": True, "task": _task_to_dict(updated)}
+
+
+@router.post("/tasks/{task_id}/unbacklog", response_class=HTMLResponse)
+async def htmx_unbacklog_task(request: Request, task_id: str):
+    """Move a backlogged task back to approved (HTMX)."""
+    task = get_task(task_id)
+    if not task:
+        raise HTTPException(404, "Task not found")
+    updated = update_task_status(
+        task_id, TaskStatus.APPROVED, result=None, backlog_reason=None
+    )
+    _broadcast_task_event("task_unbacklogged", updated)
+    return templates.TemplateResponse(
+        request, "partials/task_card.html", {"task": updated}
+    )
+
+
 # ── Queue Status API ─────────────────────────────────────────────────────
 
 
@@ -511,7 +559,7 @@ async def api_agent_queue(assigned_to: str, limit: int = 20):
 
 
 def _task_to_dict(task: QueueTask) -> dict:
-    return {
+    d = {
         "id": task.id,
         "title": task.title,
         "description": task.description,
@@ -529,6 +577,9 @@ def _task_to_dict(task: QueueTask) -> dict:
         "completed_at": task.completed_at,
         "updated_at": task.updated_at,
     }
+    if task.backlog_reason:
+        d["backlog_reason"] = task.backlog_reason
+    return d
 
 
 def _notify_task_created(task: QueueTask):

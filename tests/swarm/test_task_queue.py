@@ -603,3 +603,296 @@ def test_briefing_task_queue_summary():
     create_task(title="Briefing integration test", created_by="test")
     summary = _gather_task_queue_summary()
     assert "pending" in summary.lower() or "task" in summary.lower()
+
+
+# ── Backlog Tests ──────────────────────────────────────────────────────────
+
+
+def test_backlogged_status_exists():
+    """BACKLOGGED is a valid task status."""
+    from swarm.task_queue.models import TaskStatus
+
+    assert TaskStatus.BACKLOGGED.value == "backlogged"
+
+
+def test_backlog_task():
+    """Tasks can be moved to backlogged status with a reason."""
+    from swarm.task_queue.models import create_task, update_task_status, TaskStatus, get_task
+
+    task = create_task(title="To backlog", created_by="test")
+    updated = update_task_status(
+        task.id, TaskStatus.BACKLOGGED,
+        result="Backlogged: no handler",
+        backlog_reason="No handler for task type: external",
+    )
+    assert updated.status == TaskStatus.BACKLOGGED
+    refreshed = get_task(task.id)
+    assert refreshed.backlog_reason == "No handler for task type: external"
+
+
+def test_list_backlogged_tasks():
+    """list_backlogged_tasks returns only backlogged tasks."""
+    from swarm.task_queue.models import (
+        create_task, update_task_status, TaskStatus, list_backlogged_tasks,
+    )
+
+    task = create_task(title="Backlog list test", created_by="test", assigned_to="timmy")
+    update_task_status(
+        task.id, TaskStatus.BACKLOGGED, backlog_reason="test reason",
+    )
+    backlogged = list_backlogged_tasks(assigned_to="timmy")
+    assert any(t.id == task.id for t in backlogged)
+
+
+def test_list_backlogged_tasks_filters_by_agent():
+    """list_backlogged_tasks filters by assigned_to."""
+    from swarm.task_queue.models import (
+        create_task, update_task_status, TaskStatus, list_backlogged_tasks,
+    )
+
+    task = create_task(title="Agent filter test", created_by="test", assigned_to="forge")
+    update_task_status(task.id, TaskStatus.BACKLOGGED, backlog_reason="test")
+    backlogged = list_backlogged_tasks(assigned_to="echo")
+    assert not any(t.id == task.id for t in backlogged)
+
+
+def test_get_all_actionable_tasks():
+    """get_all_actionable_tasks returns approved and pending tasks in priority order."""
+    from swarm.task_queue.models import (
+        create_task, update_task_status, TaskStatus, get_all_actionable_tasks,
+    )
+
+    t1 = create_task(title="Low prio", created_by="test", assigned_to="drain-test", priority="low")
+    t2 = create_task(title="Urgent", created_by="test", assigned_to="drain-test", priority="urgent")
+    update_task_status(t2.id, TaskStatus.APPROVED)  # Approve the urgent one
+
+    tasks = get_all_actionable_tasks("drain-test")
+    assert len(tasks) >= 2
+    # Urgent should come before low
+    ids = [t.id for t in tasks]
+    assert ids.index(t2.id) < ids.index(t1.id)
+
+
+def test_briefing_includes_backlogged():
+    """Briefing summary includes backlogged count."""
+    from swarm.task_queue.models import (
+        create_task, update_task_status, TaskStatus, get_task_summary_for_briefing,
+    )
+
+    task = create_task(title="Briefing backlog test", created_by="test")
+    update_task_status(task.id, TaskStatus.BACKLOGGED, backlog_reason="No handler")
+    summary = get_task_summary_for_briefing()
+    assert "backlogged" in summary
+    assert "recent_backlogged" in summary
+
+
+# ── Task Processor Tests ────────────────────────────────────────────────
+
+
+class TestTaskProcessor:
+    """Tests for the TaskProcessor drain and backlog logic."""
+
+    @pytest.mark.asyncio
+    async def test_drain_empty_queue(self):
+        """drain_queue with no tasks returns zero counts."""
+        from swarm.task_processor import TaskProcessor
+
+        tp = TaskProcessor("drain-empty-test")
+        summary = await tp.drain_queue()
+        assert summary["processed"] == 0
+        assert summary["backlogged"] == 0
+        assert summary["skipped"] == 0
+
+    @pytest.mark.asyncio
+    async def test_drain_backlogs_unhandled_tasks(self):
+        """Tasks with no registered handler get backlogged during drain."""
+        from swarm.task_processor import TaskProcessor
+        from swarm.task_queue.models import create_task, get_task, TaskStatus
+
+        tp = TaskProcessor("drain-backlog-test")
+        # No handlers registered — should backlog
+        task = create_task(
+            title="Unhandleable task",
+            task_type="unknown_type",
+            assigned_to="drain-backlog-test",
+            created_by="test",
+            requires_approval=False,
+            auto_approve=True,
+        )
+
+        summary = await tp.drain_queue()
+        assert summary["backlogged"] >= 1
+
+        refreshed = get_task(task.id)
+        assert refreshed.status == TaskStatus.BACKLOGGED
+        assert refreshed.backlog_reason is not None
+
+    @pytest.mark.asyncio
+    async def test_drain_processes_handled_tasks(self):
+        """Tasks with a registered handler get processed during drain."""
+        from swarm.task_processor import TaskProcessor
+        from swarm.task_queue.models import create_task, get_task, TaskStatus
+
+        tp = TaskProcessor("drain-process-test")
+        tp.register_handler("test_type", lambda task: "done")
+
+        task = create_task(
+            title="Handleable task",
+            task_type="test_type",
+            assigned_to="drain-process-test",
+            created_by="test",
+            requires_approval=False,
+            auto_approve=True,
+        )
+
+        summary = await tp.drain_queue()
+        assert summary["processed"] >= 1
+
+        refreshed = get_task(task.id)
+        assert refreshed.status == TaskStatus.COMPLETED
+
+    @pytest.mark.asyncio
+    async def test_drain_skips_pending_approval(self):
+        """Tasks requiring approval are skipped during drain."""
+        from swarm.task_processor import TaskProcessor
+        from swarm.task_queue.models import create_task, get_task, TaskStatus
+
+        tp = TaskProcessor("drain-skip-test")
+        tp.register_handler("chat_response", lambda task: "ok")
+
+        task = create_task(
+            title="Needs approval",
+            task_type="chat_response",
+            assigned_to="drain-skip-test",
+            created_by="user",
+            requires_approval=True,
+            auto_approve=False,
+        )
+
+        summary = await tp.drain_queue()
+        assert summary["skipped"] >= 1
+
+        refreshed = get_task(task.id)
+        assert refreshed.status == TaskStatus.PENDING_APPROVAL
+
+    @pytest.mark.asyncio
+    async def test_process_single_task_backlogs_on_no_handler(self):
+        """process_single_task backlogs when no handler is registered."""
+        from swarm.task_processor import TaskProcessor
+        from swarm.task_queue.models import create_task, get_task, TaskStatus
+
+        tp = TaskProcessor("single-backlog-test")
+        task = create_task(
+            title="No handler",
+            task_type="exotic_type",
+            assigned_to="single-backlog-test",
+            created_by="test",
+            requires_approval=False,
+        )
+
+        result = await tp.process_single_task(task)
+        assert result is None
+
+        refreshed = get_task(task.id)
+        assert refreshed.status == TaskStatus.BACKLOGGED
+
+    @pytest.mark.asyncio
+    async def test_process_single_task_backlogs_permanent_error(self):
+        """process_single_task backlogs tasks with permanent errors."""
+        from swarm.task_processor import TaskProcessor
+        from swarm.task_queue.models import create_task, get_task, TaskStatus
+
+        tp = TaskProcessor("perm-error-test")
+
+        def bad_handler(task):
+            raise RuntimeError("not supported operation")
+
+        tp.register_handler("broken_type", bad_handler)
+        task = create_task(
+            title="Perm error",
+            task_type="broken_type",
+            assigned_to="perm-error-test",
+            created_by="test",
+            requires_approval=False,
+        )
+
+        result = await tp.process_single_task(task)
+        assert result is None
+
+        refreshed = get_task(task.id)
+        assert refreshed.status == TaskStatus.BACKLOGGED
+
+    @pytest.mark.asyncio
+    async def test_process_single_task_fails_transient_error(self):
+        """process_single_task marks transient errors as FAILED (retryable)."""
+        from swarm.task_processor import TaskProcessor
+        from swarm.task_queue.models import create_task, get_task, TaskStatus
+
+        tp = TaskProcessor("transient-error-test")
+
+        def flaky_handler(task):
+            raise ConnectionError("Ollama connection refused")
+
+        tp.register_handler("flaky_type", flaky_handler)
+        task = create_task(
+            title="Transient error",
+            task_type="flaky_type",
+            assigned_to="transient-error-test",
+            created_by="test",
+            requires_approval=False,
+        )
+
+        result = await tp.process_single_task(task)
+        assert result is None
+
+        refreshed = get_task(task.id)
+        assert refreshed.status == TaskStatus.FAILED
+
+
+# ── Backlog Route Tests ─────────────────────────────────────────────────
+
+
+def test_api_list_backlogged(client):
+    resp = client.get("/api/tasks/backlog")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "tasks" in data
+    assert "count" in data
+
+
+def test_api_unbacklog_task(client):
+    from swarm.task_queue.models import create_task, update_task_status, TaskStatus
+
+    task = create_task(title="To unbacklog", created_by="test")
+    update_task_status(task.id, TaskStatus.BACKLOGGED, backlog_reason="test")
+
+    resp = client.patch(f"/api/tasks/{task.id}/unbacklog")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["success"] is True
+    assert data["task"]["status"] == "approved"
+
+
+def test_api_unbacklog_wrong_status(client):
+    from swarm.task_queue.models import create_task
+
+    task = create_task(title="Not backlogged", created_by="test")
+    resp = client.patch(f"/api/tasks/{task.id}/unbacklog")
+    assert resp.status_code == 400
+
+
+def test_htmx_unbacklog(client):
+    from swarm.task_queue.models import create_task, update_task_status, TaskStatus
+
+    task = create_task(title="HTMX unbacklog", created_by="test")
+    update_task_status(task.id, TaskStatus.BACKLOGGED, backlog_reason="test")
+
+    resp = client.post(f"/tasks/{task.id}/unbacklog")
+    assert resp.status_code == 200
+
+
+def test_task_counts_include_backlogged(client):
+    resp = client.get("/api/tasks/counts")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "backlogged" in data

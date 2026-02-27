@@ -24,6 +24,7 @@ class TaskStatus(str, Enum):
     COMPLETED = "completed"
     VETOED = "vetoed"
     FAILED = "failed"
+    BACKLOGGED = "backlogged"
 
 
 class TaskPriority(str, Enum):
@@ -66,6 +67,7 @@ class QueueTask:
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )
     queue_position: Optional[int] = None  # Position in queue when created
+    backlog_reason: Optional[str] = None  # Why the task was backlogged
 
 
 # ── Auto-Approve Rules ──────────────────────────────────────────────────
@@ -124,7 +126,8 @@ def _get_conn() -> sqlite3.Connection:
             started_at TEXT,
             completed_at TEXT,
             updated_at TEXT NOT NULL,
-            queue_position INTEGER
+            queue_position INTEGER,
+            backlog_reason TEXT
         )
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_tq_status ON task_queue(status)")
@@ -140,6 +143,10 @@ def _get_conn() -> sqlite3.Connection:
         pass  # Column already exists
     try:
         conn.execute("ALTER TABLE task_queue ADD COLUMN queue_position INTEGER")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    try:
+        conn.execute("ALTER TABLE task_queue ADD COLUMN backlog_reason TEXT")
     except sqlite3.OperationalError:
         pass  # Column already exists
 
@@ -173,6 +180,7 @@ def _row_to_task(row: sqlite3.Row) -> QueueTask:
         completed_at=d.get("completed_at"),
         updated_at=d["updated_at"],
         queue_position=d.get("queue_position"),
+        backlog_reason=d.get("backlog_reason"),
     )
 
 
@@ -224,8 +232,9 @@ def create_task(
         """INSERT INTO task_queue
            (id, title, description, task_type, assigned_to, created_by, status, priority,
             requires_approval, auto_approve, parent_task_id, result, steps,
-            created_at, started_at, completed_at, updated_at, queue_position)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            created_at, started_at, completed_at, updated_at, queue_position,
+            backlog_reason)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             task.id,
             task.title,
@@ -245,6 +254,7 @@ def create_task(
             task.completed_at,
             task.updated_at,
             task.queue_position,
+            task.backlog_reason,
         ),
     )
     conn.commit()
@@ -296,6 +306,7 @@ def update_task_status(
     task_id: str,
     new_status: TaskStatus,
     result: Optional[str] = None,
+    backlog_reason: Optional[str] = None,
 ) -> Optional[QueueTask]:
     now = datetime.now(timezone.utc).isoformat()
     conn = _get_conn()
@@ -313,6 +324,10 @@ def update_task_status(
     if result is not None:
         updates.append("result = ?")
         params.append(result)
+
+    if backlog_reason is not None:
+        updates.append("backlog_reason = ?")
+        params.append(backlog_reason)
 
     params.append(task_id)
     conn.execute(
@@ -489,6 +504,10 @@ def get_task_summary_for_briefing() -> dict:
     failed = conn.execute(
         "SELECT title, result FROM task_queue WHERE status = 'failed' ORDER BY updated_at DESC LIMIT 5"
     ).fetchall()
+    # Backlogged tasks
+    backlogged = conn.execute(
+        "SELECT title, backlog_reason FROM task_queue WHERE status = 'backlogged' ORDER BY updated_at DESC LIMIT 5"
+    ).fetchall()
     conn.close()
 
     return {
@@ -497,8 +516,56 @@ def get_task_summary_for_briefing() -> dict:
         "completed": counts.get("completed", 0),
         "failed": counts.get("failed", 0),
         "vetoed": counts.get("vetoed", 0),
+        "backlogged": counts.get("backlogged", 0),
         "total": sum(counts.values()),
         "recent_failures": [
             {"title": r["title"], "result": r["result"]} for r in failed
         ],
+        "recent_backlogged": [
+            {"title": r["title"], "reason": r["backlog_reason"]} for r in backlogged
+        ],
     }
+
+
+def list_backlogged_tasks(
+    assigned_to: Optional[str] = None, limit: int = 50
+) -> list[QueueTask]:
+    """List all backlogged tasks, optionally filtered by assignee."""
+    conn = _get_conn()
+    if assigned_to:
+        rows = conn.execute(
+            """SELECT * FROM task_queue WHERE status = 'backlogged' AND assigned_to = ?
+               ORDER BY priority, created_at ASC LIMIT ?""",
+            (assigned_to, limit),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            """SELECT * FROM task_queue WHERE status = 'backlogged'
+               ORDER BY priority, created_at ASC LIMIT ?""",
+            (limit,),
+        ).fetchall()
+    conn.close()
+    return [_row_to_task(r) for r in rows]
+
+
+def get_all_actionable_tasks(assigned_to: str) -> list[QueueTask]:
+    """Get all tasks that should be processed on startup — approved or auto-approved pending.
+
+    Returns tasks ordered by priority then creation time (urgent first, oldest first).
+    """
+    conn = _get_conn()
+    rows = conn.execute(
+        """SELECT * FROM task_queue
+           WHERE assigned_to = ? AND status IN ('approved', 'pending_approval')
+           ORDER BY
+               CASE priority
+                   WHEN 'urgent' THEN 1
+                   WHEN 'high' THEN 2
+                   WHEN 'normal' THEN 3
+                   WHEN 'low' THEN 4
+               END,
+               created_at ASC""",
+        (assigned_to,),
+    ).fetchall()
+    conn.close()
+    return [_row_to_task(r) for r in rows]

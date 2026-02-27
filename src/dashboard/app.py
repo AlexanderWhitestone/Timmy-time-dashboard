@@ -117,8 +117,9 @@ async def _thinking_loop() -> None:
 async def _task_processor_loop() -> None:
     """Background task: Timmy's task queue processor.
 
-    Processes tasks from the queue one at a time, including chat responses
-    and self-generated tasks. Pushes responses to user via WebSocket.
+    On startup, drains all pending/approved tasks immediately — iterating
+    through the queue and processing what can be handled, backlogging what
+    can't.  Then enters the steady-state polling loop.
     """
     from swarm.task_processor import task_processor
     from swarm.task_queue.models import update_task_status, TaskStatus
@@ -173,8 +174,39 @@ async def _task_processor_loop() -> None:
     task_processor.register_handler("thought", handle_thought)
     task_processor.register_handler("internal", handle_thought)
 
-    logger.info("Task processor loop started")
+    # ── Startup drain: iterate through all pending tasks immediately ──
+    logger.info("Draining task queue on startup…")
+    try:
+        summary = await task_processor.drain_queue()
+        if summary["processed"] or summary["backlogged"]:
+            logger.info(
+                "Startup drain: %d processed, %d backlogged, %d skipped, %d failed",
+                summary["processed"],
+                summary["backlogged"],
+                summary["skipped"],
+                summary["failed"],
+            )
 
+            # Notify via WebSocket so the dashboard updates
+            try:
+                from infrastructure.ws_manager.handler import ws_manager
+
+                asyncio.create_task(
+                    ws_manager.broadcast_json(
+                        {
+                            "type": "task_event",
+                            "event": "startup_drain_complete",
+                            "summary": summary,
+                        }
+                    )
+                )
+            except Exception:
+                pass
+    except Exception as exc:
+        logger.error("Startup drain failed: %s", exc)
+
+    # ── Steady-state: poll for new tasks ──
+    logger.info("Task processor entering steady-state loop")
     await task_processor.run_loop(interval_seconds=3.0)
 
 
