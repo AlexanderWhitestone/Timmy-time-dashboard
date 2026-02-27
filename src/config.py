@@ -135,6 +135,12 @@ class Settings(BaseSettings):
     # Fallback to server when browser model is unavailable or too slow.
     browser_model_fallback: bool = True
 
+    # ── Default Thinking ──────────────────────────────────────────────
+    # When enabled, Timmy starts an internal thought loop on server start.
+    # He ponders his existence, recent activity, scripture, and creative ideas.
+    thinking_enabled: bool = True
+    thinking_interval_seconds: int = 300  # 5 minutes between thoughts
+
     # ── Scripture / Biblical Integration ──────────────────────────────
     # Enable the sovereign biblical text module.  When enabled, Timmy
     # loads the local ESV text corpus and runs meditation workflows.
