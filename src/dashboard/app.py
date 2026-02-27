@@ -84,21 +84,98 @@ async def _briefing_scheduler() -> None:
 async def _thinking_loop() -> None:
     """Background task: Timmy's default thinking thread.
 
-    Starts shortly after server boot and runs on a configurable cadence.
-    Timmy ponders his existence, recent swarm activity, scripture, creative
-    ideas, or continues a previous train of thought.
+    Instead of thinking directly, this creates thought tasks in the queue
+    for the task processor to handle. This ensures all of Timmy's work
+    goes through the unified task system.
     """
-    from timmy.thinking import thinking_engine
+    from swarm.task_queue.models import create_task
+    from datetime import datetime
 
     await asyncio.sleep(10)  # Let server finish starting before first thought
 
     while True:
         try:
-            await thinking_engine.think_once()
+            # Create a thought task instead of thinking directly
+            now = datetime.now()
+            create_task(
+                title=f"Thought: {now.strftime('%A %B %d, %I:%M %p')}",
+                description="Continue thinking about your existence, recent events, scripture, creative ideas, or a previous thread of thought.",
+                assigned_to="timmy",
+                created_by="timmy",  # Self-generated
+                priority="low",
+                requires_approval=False,
+                auto_approve=True,
+                task_type="thought",
+            )
+            logger.debug("Created thought task in queue")
         except Exception as exc:
             logger.error("Thinking loop error: %s", exc)
 
         await asyncio.sleep(settings.thinking_interval_seconds)
+
+
+async def _task_processor_loop() -> None:
+    """Background task: Timmy's task queue processor.
+
+    Processes tasks from the queue one at a time, including chat responses
+    and self-generated tasks. Pushes responses to user via WebSocket.
+    """
+    from swarm.task_processor import task_processor
+    from swarm.task_queue.models import update_task_status, TaskStatus
+    from timmy.session import chat as timmy_chat
+    from datetime import datetime
+    import json
+    import asyncio
+
+    await asyncio.sleep(5)  # Let server finish starting
+
+    def handle_chat_response(task):
+        """Handler for chat_response tasks - calls Timmy and returns response."""
+        try:
+            now = datetime.now()
+            context = f"[System: Current date/time is {now.strftime('%A, %B %d, %Y at %I:%M %p')}]\n\n"
+            response = timmy_chat(context + task.description)
+
+            # Push response to user via WebSocket
+            try:
+                from infrastructure.ws_manager.handler import ws_manager
+
+                asyncio.create_task(
+                    ws_manager.broadcast(
+                        "timmy_response",
+                        {
+                            "task_id": task.id,
+                            "response": response,
+                        },
+                    )
+                )
+            except Exception as e:
+                logger.debug("Failed to push response via WS: %s", e)
+
+            return response
+        except Exception as e:
+            logger.error("Chat response failed: %s", e)
+            return f"Error: {str(e)}"
+
+    def handle_thought(task):
+        """Handler for thought tasks - Timmy's internal thinking."""
+        from timmy.thinking import thinking_engine
+
+        try:
+            result = thinking_engine.think_once()
+            return str(result) if result else "Thought completed"
+        except Exception as e:
+            logger.error("Thought processing failed: %s", e)
+            return f"Error: {str(e)}"
+
+    # Register handlers
+    task_processor.register_handler("chat_response", handle_chat_response)
+    task_processor.register_handler("thought", handle_thought)
+    task_processor.register_handler("internal", handle_thought)
+
+    logger.info("Task processor loop started")
+
+    await task_processor.run_loop(interval_seconds=3.0)
 
 
 @asynccontextmanager
@@ -107,6 +184,7 @@ async def lifespan(app: FastAPI):
 
     # Register Timmy in the swarm registry so it shows up alongside other agents
     from swarm import registry as swarm_registry
+
     swarm_registry.register(
         name="Timmy",
         capabilities="chat,reasoning,research,planning",
@@ -115,6 +193,7 @@ async def lifespan(app: FastAPI):
 
     # Log swarm recovery summary (reconciliation ran during coordinator init)
     from swarm.coordinator import coordinator as swarm_coordinator
+
     rec = swarm_coordinator._recovery_summary
     if rec["tasks_failed"] or rec["agents_offlined"]:
         logger.info(
@@ -138,6 +217,7 @@ async def lifespan(app: FastAPI):
     # Log system startup event so the Events page is never empty
     try:
         from swarm.event_log import log_event, EventType
+
         log_event(
             EventType.SYSTEM_INFO,
             source="coordinator",
@@ -148,6 +228,7 @@ async def lifespan(app: FastAPI):
 
     # Auto-bootstrap MCP tools
     from mcp.bootstrap import auto_bootstrap, get_bootstrap_status
+
     try:
         registered = auto_bootstrap()
         if registered:
@@ -157,6 +238,7 @@ async def lifespan(app: FastAPI):
 
     # Initialise Spark Intelligence engine
     from spark.engine import spark_engine
+
     if spark_engine.enabled:
         logger.info("Spark Intelligence active — event capture enabled")
 
@@ -169,10 +251,17 @@ async def lifespan(app: FastAPI):
             settings.thinking_interval_seconds,
         )
 
+    # Start Timmy's task queue processor (skip in test mode)
+    task_processor_task = None
+    if os.environ.get("TIMMY_TEST_MODE") != "1":
+        task_processor_task = asyncio.create_task(_task_processor_loop())
+        logger.info("Task queue processor started")
+
     # Auto-start chat integrations (skip silently if unconfigured)
     from integrations.telegram_bot.bot import telegram_bot
     from integrations.chat_bridge.vendors.discord import discord_bot
     from integrations.chat_bridge.registry import platform_registry
+
     platform_registry.register(discord_bot)
 
     if settings.telegram_token:
@@ -193,6 +282,12 @@ async def lifespan(app: FastAPI):
         thinking_task.cancel()
         try:
             await thinking_task
+        except asyncio.CancelledError:
+            pass
+    if task_processor_task:
+        task_processor_task.cancel()
+        try:
+            await task_processor_task
         except asyncio.CancelledError:
             pass
     task.cancel()
@@ -272,4 +367,5 @@ async def index(request: Request):
 async def shortcuts_setup():
     """Siri Shortcuts setup guide."""
     from integrations.shortcuts.siri import get_setup_guide
+
     return get_setup_guide()

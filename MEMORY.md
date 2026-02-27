@@ -34,10 +34,8 @@
 
 ## User Profile
 
-**Name:** (not set)  
-**Interests:** (to be learned)
+**Name:** Not
 
----
 
 ## Key Decisions
 

@@ -237,16 +237,19 @@ async def clear_history(request: Request):
 
 @router.post("/timmy/chat", response_class=HTMLResponse)
 async def chat_timmy(request: Request, message: str = Form(...)):
+    """Chat with Timmy - queues message as task for async processing."""
+    from swarm.task_queue.models import create_task, get_queue_status_for_task
+
     timestamp = datetime.now().strftime("%H:%M:%S")
+    task_id = None
     response_text = None
     error_text = None
+    queue_info = None
 
-    # Check if the user wants to queue a task instead of chatting
+    # Check if the user wants to queue a task (explicit queue request)
     task_info = _extract_task_from_message(message)
     if task_info:
         try:
-            from swarm.task_queue.models import create_task
-
             task = create_task(
                 title=task_info["title"],
                 description=task_info["description"],
@@ -254,7 +257,9 @@ async def chat_timmy(request: Request, message: str = Form(...)):
                 assigned_to=task_info.get("agent", "timmy"),
                 priority=task_info.get("priority", "normal"),
                 requires_approval=True,
+                task_type="task_request",
             )
+            task_id = task.id
             priority_label = (
                 f" | Priority: `{task.priority.value}`"
                 if task.priority.value != "normal"
@@ -276,27 +281,54 @@ async def chat_timmy(request: Request, message: str = Form(...)):
             logger.error("Failed to create task from chat: %s", exc)
             task_info = None
 
-    # Normal chat path (also used as fallback if task creation failed)
+    # Normal chat: always queue for async processing
     if not task_info:
         try:
-            now = datetime.now()
-            context_parts = [
-                f"[System: Current date/time is {now.strftime('%A, %B %d, %Y at %I:%M %p')}]"
-            ]
-            if _QUEUE_QUERY_PATTERN.search(message):
-                queue_ctx = _build_queue_context()
-                if queue_ctx:
-                    context_parts.append(queue_ctx)
-            context_prefix = "\n".join(context_parts) + "\n\n"
-            response_text = timmy_chat(context_prefix + message)
-        except Exception as exc:
-            error_text = f"Timmy is offline: {exc}"
+            # Create a chat response task (auto-approved for timmy)
+            # Priority is "high" to jump ahead of Timmy's self-generated "thought" tasks
+            # but below any "urgent" tasks Timmy might create
+            task = create_task(
+                title=message[:100] + ("..." if len(message) > 100 else ""),
+                description=message,
+                created_by="user",
+                assigned_to="timmy",
+                priority="high",  # Higher than thought tasks, lower than urgent
+                requires_approval=True,
+                auto_approve=True,  # Auto-approve chat responses
+                task_type="chat_response",
+            )
+            task_id = task.id
+            queue_info = get_queue_status_for_task(task.id)
 
+            # Acknowledge queuing
+            position = queue_info.get("position", 1)
+            total = queue_info.get("total", 1)
+            percent_ahead = queue_info.get("percent_ahead", 0)
+
+            response_text = (
+                f"Message queued for Timmy's attention.\n\n"
+                f"**Queue position:** {position}/{total} ({100 - percent_ahead}% complete ahead of you)\n\n"
+                f"_Timmy will respond shortly..._"
+            )
+            logger.info(
+                "Chat → queued: %s (id=%s, position=%d/%d)",
+                message[:50],
+                task.id,
+                position,
+                total,
+            )
+        except Exception as exc:
+            logger.error("Failed to queue chat message: %s", exc)
+            error_text = f"Failed to queue message: {exc}"
+
+    # Log to message history (for context, even though async)
     message_log.append(role="user", content=message, timestamp=timestamp)
     if response_text is not None:
         message_log.append(role="agent", content=response_text, timestamp=timestamp)
     else:
-        message_log.append(role="error", content=error_text, timestamp=timestamp)
+        message_log.append(
+            role="error", content=error_text or "Unknown error", timestamp=timestamp
+        )
 
     return templates.TemplateResponse(
         request,
@@ -306,5 +338,7 @@ async def chat_timmy(request: Request, message: str = Form(...)):
             "response": response_text,
             "error": error_text,
             "timestamp": timestamp,
+            "task_id": task_id,
+            "queue_info": queue_info,
         },
     )

@@ -45,6 +45,7 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templa
 
 # ── Helper to broadcast task events via WebSocket ────────────────────────
 
+
 def _broadcast_task_event(event_type: str, task: QueueTask):
     """Best-effort broadcast a task event to connected WebSocket clients."""
     try:
@@ -74,25 +75,28 @@ def _broadcast_task_event(event_type: str, task: QueueTask):
 
 # ── Dashboard page ───────────────────────────────────────────────────────
 
+
 @router.get("/tasks", response_class=HTMLResponse)
 async def task_queue_page(request: Request, assign: Optional[str] = None):
     """Task queue dashboard with three columns."""
-    pending = list_tasks(status=TaskStatus.PENDING_APPROVAL) + \
-              list_tasks(status=TaskStatus.APPROVED)
-    active = list_tasks(status=TaskStatus.RUNNING) + \
-             list_tasks(status=TaskStatus.PAUSED)
-    completed = list_tasks(status=TaskStatus.COMPLETED, limit=20) + \
-                list_tasks(status=TaskStatus.VETOED, limit=10) + \
-                list_tasks(status=TaskStatus.FAILED, limit=10)
+    pending = list_tasks(status=TaskStatus.PENDING_APPROVAL) + list_tasks(
+        status=TaskStatus.APPROVED
+    )
+    active = list_tasks(status=TaskStatus.RUNNING) + list_tasks(
+        status=TaskStatus.PAUSED
+    )
+    completed = (
+        list_tasks(status=TaskStatus.COMPLETED, limit=20)
+        + list_tasks(status=TaskStatus.VETOED, limit=10)
+        + list_tasks(status=TaskStatus.FAILED, limit=10)
+    )
 
     # Get agents for the create modal
     agents = []
     try:
         from swarm.coordinator import coordinator
-        agents = [
-            {"id": a.id, "name": a.name}
-            for a in coordinator.list_swarm_agents()
-        ]
+
+        agents = [{"id": a.id, "name": a.name} for a in coordinator.list_swarm_agents()]
     except Exception:
         pass
     # Always include core agents
@@ -120,11 +124,13 @@ async def task_queue_page(request: Request, assign: Optional[str] = None):
 
 # ── HTMX partials ───────────────────────────────────────────────────────
 
+
 @router.get("/tasks/pending", response_class=HTMLResponse)
 async def tasks_pending_partial(request: Request):
     """HTMX partial: pending approval tasks."""
-    pending = list_tasks(status=TaskStatus.PENDING_APPROVAL) + \
-              list_tasks(status=TaskStatus.APPROVED)
+    pending = list_tasks(status=TaskStatus.PENDING_APPROVAL) + list_tasks(
+        status=TaskStatus.APPROVED
+    )
     return templates.TemplateResponse(
         request,
         "partials/task_cards.html",
@@ -135,8 +141,9 @@ async def tasks_pending_partial(request: Request):
 @router.get("/tasks/active", response_class=HTMLResponse)
 async def tasks_active_partial(request: Request):
     """HTMX partial: active tasks."""
-    active = list_tasks(status=TaskStatus.RUNNING) + \
-             list_tasks(status=TaskStatus.PAUSED)
+    active = list_tasks(status=TaskStatus.RUNNING) + list_tasks(
+        status=TaskStatus.PAUSED
+    )
     return templates.TemplateResponse(
         request,
         "partials/task_cards.html",
@@ -147,9 +154,11 @@ async def tasks_active_partial(request: Request):
 @router.get("/tasks/completed", response_class=HTMLResponse)
 async def tasks_completed_partial(request: Request):
     """HTMX partial: completed tasks."""
-    completed = list_tasks(status=TaskStatus.COMPLETED, limit=20) + \
-                list_tasks(status=TaskStatus.VETOED, limit=10) + \
-                list_tasks(status=TaskStatus.FAILED, limit=10)
+    completed = (
+        list_tasks(status=TaskStatus.COMPLETED, limit=20)
+        + list_tasks(status=TaskStatus.VETOED, limit=10)
+        + list_tasks(status=TaskStatus.FAILED, limit=10)
+    )
     return templates.TemplateResponse(
         request,
         "partials/task_cards.html",
@@ -158,6 +167,7 @@ async def tasks_completed_partial(request: Request):
 
 
 # ── JSON API ─────────────────────────────────────────────────────────────
+
 
 @router.get("/api/tasks", response_class=JSONResponse)
 async def api_list_tasks(
@@ -256,6 +266,7 @@ async def api_get_task(task_id: str):
 
 
 # ── Workflow actions ─────────────────────────────────────────────────────
+
 
 @router.patch("/api/tasks/{task_id}/approve", response_class=JSONResponse)
 async def api_approve_task(task_id: str):
@@ -436,7 +447,68 @@ async def htmx_retry_task(request: Request, task_id: str):
     )
 
 
+# ── Queue Status API ─────────────────────────────────────────────────────
+
+
+@router.get("/api/queue/status", response_class=JSONResponse)
+async def api_queue_status(assigned_to: str = "timmy"):
+    """Get queue status for an agent - position info for polling."""
+    from swarm.task_queue.models import (
+        get_current_task_for_agent,
+        get_queue_position_ahead,
+        get_next_pending_task,
+    )
+
+    current = get_current_task_for_agent(assigned_to)
+    next_task = get_next_pending_task(assigned_to)
+    ahead = get_queue_position_ahead(assigned_to)
+
+    return {
+        "agent": assigned_to,
+        "is_working": current is not None,
+        "current_task": _task_to_dict(current) if current else None,
+        "next_task": _task_to_dict(next_task) if next_task else None,
+        "tasks_ahead": ahead,
+    }
+
+
+@router.get("/api/queue/position/{task_id}", response_class=JSONResponse)
+async def api_queue_position(task_id: str):
+    """Get queue position for a specific task."""
+    from swarm.task_queue.models import get_queue_status_for_task
+
+    status = get_queue_status_for_task(task_id)
+    if "error" in status:
+        raise HTTPException(404, status["error"])
+    return status
+
+
+@router.get("/api/queue/agent/{assigned_to}", response_class=JSONResponse)
+async def api_agent_queue(assigned_to: str, limit: int = 20):
+    """Get all pending tasks for an agent."""
+    from swarm.task_queue.models import list_tasks, TaskStatus
+
+    tasks = list_tasks(
+        assigned_to=assigned_to,
+        status=None,  # All statuses
+        limit=limit,
+    )
+    # Filter to pending/running tasks
+    pending = [
+        t
+        for t in tasks
+        if t.status not in (TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.VETOED)
+    ]
+
+    return {
+        "assigned_to": assigned_to,
+        "tasks": [_task_to_dict(t) for t in pending],
+        "count": len(pending),
+    }
+
+
 # ── Helpers ──────────────────────────────────────────────────────────────
+
 
 def _task_to_dict(task: QueueTask) -> dict:
     return {
@@ -462,6 +534,7 @@ def _task_to_dict(task: QueueTask) -> dict:
 def _notify_task_created(task: QueueTask):
     try:
         from infrastructure.notifications.push import notifier
+
         notifier.notify(
             title="New Task",
             message=f"{task.created_by} created: {task.title}",

@@ -59,7 +59,10 @@ def test_list_tasks():
 
 def test_list_tasks_with_status_filter():
     from swarm.task_queue.models import (
-        create_task, list_tasks, update_task_status, TaskStatus,
+        create_task,
+        list_tasks,
+        update_task_status,
+        TaskStatus,
     )
 
     task = create_task(title="Filter test", created_by="test")
@@ -70,7 +73,9 @@ def test_list_tasks_with_status_filter():
 
 def test_update_task_status():
     from swarm.task_queue.models import (
-        create_task, update_task_status, TaskStatus,
+        create_task,
+        update_task_status,
+        TaskStatus,
     )
 
     task = create_task(title="Status test", created_by="test")
@@ -80,7 +85,9 @@ def test_update_task_status():
 
 def test_update_task_running_sets_started_at():
     from swarm.task_queue.models import (
-        create_task, update_task_status, TaskStatus,
+        create_task,
+        update_task_status,
+        TaskStatus,
     )
 
     task = create_task(title="Running test", created_by="test")
@@ -90,7 +97,9 @@ def test_update_task_running_sets_started_at():
 
 def test_update_task_completed_sets_completed_at():
     from swarm.task_queue.models import (
-        create_task, update_task_status, TaskStatus,
+        create_task,
+        update_task_status,
+        TaskStatus,
     )
 
     task = create_task(title="Complete test", created_by="test")
@@ -314,6 +323,7 @@ class TestExtractTaskFromMessage:
 
     def test_add_to_queue(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         result = _extract_task_from_message("Add refactor the login to the task queue")
         assert result is not None
         assert result["agent"] == "timmy"
@@ -321,33 +331,42 @@ class TestExtractTaskFromMessage:
 
     def test_schedule_this(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         result = _extract_task_from_message("Schedule this for later")
         assert result is not None
 
     def test_create_a_task(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         result = _extract_task_from_message("Create a task to fix the login page")
         assert result is not None
         assert "title" in result
 
     def test_normal_message_returns_none(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         assert _extract_task_from_message("Hello, how are you?") is None
 
     def test_meta_question_about_tasks_returns_none(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         assert _extract_task_from_message("How do I create a task?") is None
 
     def test_what_is_question_returns_none(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         assert _extract_task_from_message("What is a task queue?") is None
 
     def test_explain_question_returns_none(self):
         from dashboard.routes.agents import _extract_task_from_message
-        assert _extract_task_from_message("Can you explain how to create a task?") is None
+
+        assert (
+            _extract_task_from_message("Can you explain how to create a task?") is None
+        )
 
     def test_what_would_question_returns_none(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         assert _extract_task_from_message("What would a task flow look like?") is None
 
 
@@ -356,22 +375,32 @@ class TestExtractAgentFromMessage:
 
     def test_extracts_forge(self):
         from dashboard.routes.agents import _extract_agent_from_message
-        assert _extract_agent_from_message("Create a task for Forge to refactor") == "forge"
+
+        assert (
+            _extract_agent_from_message("Create a task for Forge to refactor")
+            == "forge"
+        )
 
     def test_extracts_echo(self):
         from dashboard.routes.agents import _extract_agent_from_message
-        assert _extract_agent_from_message("Add research for Echo to the queue") == "echo"
+
+        assert (
+            _extract_agent_from_message("Add research for Echo to the queue") == "echo"
+        )
 
     def test_case_insensitive(self):
         from dashboard.routes.agents import _extract_agent_from_message
+
         assert _extract_agent_from_message("Schedule this for SEER") == "seer"
 
     def test_defaults_to_timmy(self):
         from dashboard.routes.agents import _extract_agent_from_message
+
         assert _extract_agent_from_message("Create a task to fix the bug") == "timmy"
 
     def test_ignores_unknown_agent(self):
         from dashboard.routes.agents import _extract_agent_from_message
+
         assert _extract_agent_from_message("Create a task for BobAgent") == "timmy"
 
 
@@ -380,26 +409,32 @@ class TestExtractPriorityFromMessage:
 
     def test_urgent(self):
         from dashboard.routes.agents import _extract_priority_from_message
+
         assert _extract_priority_from_message("urgent: fix the server") == "urgent"
 
     def test_critical(self):
         from dashboard.routes.agents import _extract_priority_from_message
+
         assert _extract_priority_from_message("This is critical, do it now") == "urgent"
 
     def test_asap(self):
         from dashboard.routes.agents import _extract_priority_from_message
+
         assert _extract_priority_from_message("Fix this ASAP") == "urgent"
 
     def test_high_priority(self):
         from dashboard.routes.agents import _extract_priority_from_message
+
         assert _extract_priority_from_message("This is important work") == "high"
 
     def test_low_priority(self):
         from dashboard.routes.agents import _extract_priority_from_message
+
         assert _extract_priority_from_message("minor cleanup task") == "low"
 
     def test_default_normal(self):
         from dashboard.routes.agents import _extract_priority_from_message
+
         assert _extract_priority_from_message("Fix the login page") == "normal"
 
 
@@ -408,25 +443,31 @@ class TestTitleCleaning:
 
     def test_strips_agent_from_title(self):
         from dashboard.routes.agents import _extract_task_from_message
-        result = _extract_task_from_message("Create a task for Forge to refactor the login")
+
+        result = _extract_task_from_message(
+            "Create a task for Forge to refactor the login"
+        )
         assert result is not None
         assert "forge" not in result["title"].lower()
         assert "for" not in result["title"].lower().split()[0:1]  # "for" stripped
 
     def test_strips_priority_from_title(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         result = _extract_task_from_message("Create an urgent task to fix the server")
         assert result is not None
         assert "urgent" not in result["title"].lower()
 
     def test_title_is_capitalized(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         result = _extract_task_from_message("Add refactor the login to the task queue")
         assert result is not None
         assert result["title"][0].isupper()
 
     def test_title_capped_at_120_chars(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         long_msg = "Create a task to " + "x" * 200
         result = _extract_task_from_message(long_msg)
         assert result is not None
@@ -438,7 +479,10 @@ class TestFullExtraction:
 
     def test_task_includes_agent_and_priority(self):
         from dashboard.routes.agents import _extract_task_from_message
-        result = _extract_task_from_message("Create a high priority task for Forge to refactor auth")
+
+        result = _extract_task_from_message(
+            "Create a high priority task for Forge to refactor auth"
+        )
         assert result is not None
         assert result["agent"] == "forge"
         assert result["priority"] == "high"
@@ -446,7 +490,10 @@ class TestFullExtraction:
 
     def test_create_with_all_fields(self):
         from dashboard.routes.agents import _extract_task_from_message
-        result = _extract_task_from_message("Add an urgent task for Mace to audit security to the queue")
+
+        result = _extract_task_from_message(
+            "Add an urgent task for Mace to audit security to the queue"
+        )
         assert result is not None
         assert result["agent"] == "mace"
         assert result["priority"] == "urgent"
@@ -482,50 +529,43 @@ class TestChatTimmyIntegration:
         assert resp.status_code == 200
         assert "Task queued" in resp.text or "urgent" in resp.text.lower()
 
-    @patch("dashboard.routes.agents.timmy_chat")
-    def test_chat_injects_datetime_context(self, mock_chat, client):
-        mock_chat.return_value = "Hello there!"
-        client.post(
+    def test_chat_queues_message_for_async_processing(self, client):
+        """Normal chat messages are now queued for async processing."""
+        resp = client.post(
             "/agents/timmy/chat",
-            data={"message": "Hello Timmy"},
+            data={"message": "Hello Timmy, how are you?"},
         )
-        mock_chat.assert_called_once()
-        call_arg = mock_chat.call_args[0][0]
-        assert "[System: Current date/time is" in call_arg
+        assert resp.status_code == 200
+        # Should queue the message, not respond immediately
+        assert "queued" in resp.text.lower() or "queue" in resp.text.lower()
+        # Should show position info
+        assert "position" in resp.text.lower() or "1/" in resp.text
+
+    def test_chat_creates_chat_response_task(self, client):
+        """Chat messages create a chat_response task type."""
+        from swarm.task_queue.models import list_tasks, TaskStatus
+
+        resp = client.post(
+            "/agents/timmy/chat",
+            data={"message": "Test message"},
+        )
+        assert resp.status_code == 200
+
+        # Check that a chat_response task was created
+        tasks = list_tasks(assigned_to="timmy")
+        chat_tasks = [t for t in tasks if t.task_type == "chat_response"]
+        assert len(chat_tasks) >= 1
 
     @patch("dashboard.routes.agents.timmy_chat")
-    @patch("dashboard.routes.agents._build_queue_context")
-    def test_chat_injects_queue_context_on_queue_query(self, mock_ctx, mock_chat, client):
-        mock_ctx.return_value = "[System: Task queue — 3 pending approval, 1 running, 5 completed.]"
-        mock_chat.return_value = "There are 3 tasks pending."
-        client.post(
-            "/agents/timmy/chat",
-            data={"message": "What tasks are in the queue?"},
-        )
-        mock_ctx.assert_called_once()
-        mock_chat.assert_called_once()
-        call_arg = mock_chat.call_args[0][0]
-        assert "[System: Task queue" in call_arg
-
-    @patch("dashboard.routes.agents.timmy_chat")
-    @patch("dashboard.routes.agents._build_queue_context")
-    def test_chat_no_queue_context_for_normal_message(self, mock_ctx, mock_chat, client):
+    def test_chat_no_queue_context_for_normal_message(self, mock_chat, client):
+        """Queue context is not built for normal queued messages."""
         mock_chat.return_value = "Hi!"
         client.post(
             "/agents/timmy/chat",
             data={"message": "Tell me a joke"},
         )
-        mock_ctx.assert_not_called()
-
-    @patch("dashboard.routes.agents.timmy_chat")
-    def test_chat_normal_message_uses_timmy(self, mock_chat, client):
-        mock_chat.return_value = "I'm doing well, thank you."
-        resp = client.post(
-            "/agents/timmy/chat",
-            data={"message": "How are you?"},
-        )
-        assert resp.status_code == 200
-        mock_chat.assert_called_once()
+        # timmy_chat is not called directly - message is queued
+        mock_chat.assert_not_called()
 
 
 class TestBuildQueueContext:
@@ -534,6 +574,7 @@ class TestBuildQueueContext:
     def test_returns_string_with_counts(self):
         from dashboard.routes.agents import _build_queue_context
         from swarm.task_queue.models import create_task
+
         create_task(title="Context test task", created_by="test")
         ctx = _build_queue_context()
         assert "[System: Task queue" in ctx
@@ -541,7 +582,11 @@ class TestBuildQueueContext:
 
     def test_returns_empty_on_error(self):
         from dashboard.routes.agents import _build_queue_context
-        with patch("swarm.task_queue.models.get_counts_by_status", side_effect=Exception("DB error")):
+
+        with patch(
+            "swarm.task_queue.models.get_counts_by_status",
+            side_effect=Exception("DB error"),
+        ):
             ctx = _build_queue_context()
             assert isinstance(ctx, str)
             assert ctx == ""

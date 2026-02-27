@@ -7,6 +7,11 @@
   <div class="msg-meta">TIMMY // {{ timestamp }}</div>
   <div class="msg-body timmy-md">{{ response | e }}</div>
 </div>
+{% if queue_info %}
+<div class="queue-status" data-task-id="{{ task_id }}" data-position="{{ queue_info.position }}" data-total="{{ queue_info.total }}">
+  <small class="text-muted">Position in queue: {{ queue_info.position }}/{{ queue_info.total }}</small>
+</div>
+{% endif %}
 <script>
   (function() {
     var el = document.currentScript.previousElementSibling.querySelector('.timmy-md');
