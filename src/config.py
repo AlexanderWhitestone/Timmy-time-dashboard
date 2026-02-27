@@ -72,6 +72,10 @@ class Settings(BaseSettings):
     # Default is False (telemetry disabled) to align with sovereign AI vision.
     telemetry_enabled: bool = False
 
+    # CORS allowed origins for the web chat interface (GitHub Pages, etc.)
+    # Set CORS_ORIGINS as a comma-separated list, e.g. "http://localhost:3000,https://example.com"
+    cors_origins: list[str] = ["*"]
+
     # Environment mode: development | production
     # In production, security settings are strictly enforced.
     timmy_env: Literal["development", "production"] = "development"
