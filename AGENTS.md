@@ -4,6 +4,21 @@ Read [`CLAUDE.md`](CLAUDE.md) for architecture patterns and conventions.
 
 ---
 
+## Communication Protocol
+
+**Before making changes, always:**
+1. Read CLAUDE.md and AGENTS.md fully
+2. Explore the relevant src/ modules to understand existing patterns
+3. Explain what you're changing and **why** in plain English
+4. Provide decision rationale - don't just make changes, explain the reasoning
+
+**For Timmy's growth goals:**
+- Improve reasoning in complex/uncertain situations: think step-by-step, consider alternatives
+- When uncertain, state uncertainty explicitly rather than guessing
+- Document major decisions in DECISIONS.md
+
+---
+
 ## Non-Negotiable Rules
 
 1. **Tests must stay green.** Run `make test` before committing.

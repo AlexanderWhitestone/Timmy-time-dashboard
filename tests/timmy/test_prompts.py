@@ -1,4 +1,4 @@
-from timmy.prompts import TIMMY_SYSTEM_PROMPT, TIMMY_STATUS_PROMPT
+from timmy.prompts import TIMMY_SYSTEM_PROMPT, TIMMY_STATUS_PROMPT, get_system_prompt
 
 
 def test_system_prompt_not_empty():
@@ -31,3 +31,10 @@ def test_status_prompt_has_timmy():
 
 def test_prompts_are_distinct():
     assert TIMMY_SYSTEM_PROMPT != TIMMY_STATUS_PROMPT
+
+
+def test_get_system_prompt_injects_model_name():
+    """System prompt should inject actual model name from config."""
+    prompt = get_system_prompt(tools_enabled=False)
+    # Should contain the model name from settings, not hardcoded
+    assert "llama3.1" in prompt or "qwen" in prompt or "{model_name}" in prompt

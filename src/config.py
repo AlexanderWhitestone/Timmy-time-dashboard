@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     # ── Git / DevOps ──────────────────────────────────────────────────────
     git_default_repo_dir: str = "~/repos"
 
+    # Repository root - auto-detected but can be overridden
+    # This is the main project directory where .git lives
+    repo_root: str = ""
+
     # ── Creative — Image Generation (Pixel) ───────────────────────────────
     flux_model_id: str = "black-forest-labs/FLUX.1-schnell"
     image_output_dir: str = "data/images"
@@ -105,7 +109,9 @@ class Settings(BaseSettings):
     # External users and agents can submit work orders for improvements.
     work_orders_enabled: bool = True
     work_orders_auto_execute: bool = False  # Master switch for auto-execution
-    work_orders_auto_threshold: str = "low"  # Max priority that auto-executes: "low" | "medium" | "high" | "none"
+    work_orders_auto_threshold: str = (
+        "low"  # Max priority that auto-executes: "low" | "medium" | "high" | "none"
+    )
 
     # ── Custom Weights & Models ──────────────────────────────────────
     # Directory for custom model weights (GGUF, safetensors, HF checkpoints).
@@ -140,6 +146,21 @@ class Settings(BaseSettings):
     # Background meditation interval in seconds (0 = disabled).
     scripture_meditation_interval: int = 0
 
+    def _compute_repo_root(self) -> str:
+        """Auto-detect repo root if not set."""
+        if self.repo_root:
+            return self.repo_root
+        # Walk up from this file to find .git
+        import os
+
+        path = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.dirname(os.path.dirname(path))  # src/ -> project root
+        while path != os.path.dirname(path):
+            if os.path.exists(os.path.join(path, ".git")):
+                return path
+            path = os.path.dirname(path)
+        return os.getcwd()
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -148,6 +169,9 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+# Ensure repo_root is computed if not set
+if not settings.repo_root:
+    settings.repo_root = settings._compute_repo_root()
 
 # ── Model fallback configuration ────────────────────────────────────────────
 # Primary model for reliable tool calling (llama3.1:8b-instruct)
@@ -160,6 +184,7 @@ def check_ollama_model_available(model_name: str) -> bool:
     """Check if a specific Ollama model is available locally."""
     try:
         import urllib.request
+
         url = settings.ollama_url.replace("localhost", "127.0.0.1")
         req = urllib.request.Request(
             f"{url}/api/tags",
@@ -168,6 +193,7 @@ def check_ollama_model_available(model_name: str) -> bool:
         )
         with urllib.request.urlopen(req, timeout=5) as response:
             import json
+
             data = json.loads(response.read().decode())
             models = [m.get("name", "").split(":")[0] for m in data.get("models", [])]
             # Check for exact match or model name without tag
@@ -180,11 +206,11 @@ def get_effective_ollama_model() -> str:
     """Get the effective Ollama model, with fallback logic."""
     # If user has overridden, use their setting
     user_model = settings.ollama_model
-    
+
     # Check if user's model is available
     if check_ollama_model_available(user_model):
         return user_model
-    
+
     # Try primary
     if check_ollama_model_available(OLLAMA_MODEL_PRIMARY):
         _startup_logger.warning(
@@ -192,7 +218,7 @@ def get_effective_ollama_model() -> str:
             f"Using primary: {OLLAMA_MODEL_PRIMARY}"
         )
         return OLLAMA_MODEL_PRIMARY
-    
+
     # Try fallback
     if check_ollama_model_available(OLLAMA_MODEL_FALLBACK):
         _startup_logger.warning(
@@ -200,7 +226,7 @@ def get_effective_ollama_model() -> str:
             f"Using fallback: {OLLAMA_MODEL_FALLBACK}"
         )
         return OLLAMA_MODEL_FALLBACK
-    
+
     # Last resort - return user's setting and hope for the best
     return user_model
 
@@ -222,7 +248,7 @@ if settings.timmy_env == "production":
     if _missing:
         _startup_logger.error(
             "PRODUCTION SECURITY ERROR: The following secrets must be set: %s\n"
-            "Generate with: python3 -c \"import secrets; print(secrets.token_hex(32))\"\n"
+            'Generate with: python3 -c "import secrets; print(secrets.token_hex(32))"\n'
             "Set in .env file or environment variables.",
             ", ".join(_missing),
         )
