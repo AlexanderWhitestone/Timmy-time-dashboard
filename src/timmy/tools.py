@@ -154,7 +154,9 @@ def create_research_tools(base_dir: str | Path | None = None):
     toolkit.register(search_tools.web_search, name="web_search")
 
     # File reading
-    base_path = Path(base_dir) if base_dir else Path.cwd()
+    from config import settings
+
+    base_path = Path(base_dir) if base_dir else Path(settings.repo_root)
     file_tools = FileTools(base_dir=base_path)
     toolkit.register(file_tools.read_file, name="read_file")
     toolkit.register(file_tools.list_files, name="list_files")
@@ -180,7 +182,9 @@ def create_code_tools(base_dir: str | Path | None = None):
     toolkit.register(python_tools.run_python_code, name="python")
 
     # File operations
-    base_path = Path(base_dir) if base_dir else Path.cwd()
+    from config import settings
+
+    base_path = Path(base_dir) if base_dir else Path(settings.repo_root)
     file_tools = FileTools(base_dir=base_path)
     toolkit.register(file_tools.read_file, name="read_file")
     toolkit.register(file_tools.save_file, name="write_file")
@@ -262,7 +266,9 @@ def create_data_tools(base_dir: str | Path | None = None):
     toolkit.register(python_tools.run_python_code, name="python")
 
     # File reading
-    base_path = Path(base_dir) if base_dir else Path.cwd()
+    from config import settings
+
+    base_path = Path(base_dir) if base_dir else Path(settings.repo_root)
     file_tools = FileTools(base_dir=base_path)
     toolkit.register(file_tools.read_file, name="read_file")
     toolkit.register(file_tools.list_files, name="list_files")
@@ -284,7 +290,7 @@ def create_writing_tools(base_dir: str | Path | None = None):
     toolkit = Toolkit(name="writing")
 
     # File operations
-    base_path = Path(base_dir) if base_dir else Path.cwd()
+    base_path = Path(base_dir) if base_dir else Path(settings.repo_root)
     file_tools = FileTools(base_dir=base_path)
     toolkit.register(file_tools.read_file, name="read_file")
     toolkit.register(file_tools.save_file, name="write_file")
@@ -311,7 +317,7 @@ def create_security_tools(base_dir: str | Path | None = None):
     toolkit.register(search_tools.web_search, name="web_search")
 
     # File reading for logs/configs
-    base_path = Path(base_dir) if base_dir else Path.cwd()
+    base_path = Path(base_dir) if base_dir else Path(settings.repo_root)
     file_tools = FileTools(base_dir=base_path)
     toolkit.register(file_tools.read_file, name="read_file")
     toolkit.register(file_tools.list_files, name="list_files")
@@ -333,7 +339,7 @@ def create_devops_tools(base_dir: str | Path | None = None):
     toolkit.register(shell_tools.run_shell_command, name="shell")
 
     # File operations for config management
-    base_path = Path(base_dir) if base_dir else Path.cwd()
+    base_path = Path(base_dir) if base_dir else Path(settings.repo_root)
     file_tools = FileTools(base_dir=base_path)
     toolkit.register(file_tools.read_file, name="read_file")
     toolkit.register(file_tools.save_file, name="write_file")
@@ -425,8 +431,10 @@ def create_full_toolkit(base_dir: str | Path | None = None):
     shell_tools = ShellTools()
     toolkit.register(shell_tools.run_shell_command, name="shell")
 
-    # File operations
-    base_path = Path(base_dir) if base_dir else Path.cwd()
+    # File operations - use repo_root from settings
+    from config import settings
+
+    base_path = Path(base_dir) if base_dir else Path(settings.repo_root)
     file_tools = FileTools(base_dir=base_path)
     toolkit.register(file_tools.read_file, name="read_file")
     toolkit.register(file_tools.save_file, name="write_file")
@@ -452,6 +460,29 @@ def create_full_toolkit(base_dir: str | Path | None = None):
         toolkit.register(memory_search, name="memory_search")
     except Exception:
         logger.debug("Memory search not available")
+
+    # System introspection - query runtime environment (sovereign self-knowledge)
+    try:
+        from timmy.tools_intro import (
+            get_system_info,
+            check_ollama_health,
+            get_memory_status,
+        )
+
+        toolkit.register(get_system_info, name="get_system_info")
+        toolkit.register(check_ollama_health, name="check_ollama_health")
+        toolkit.register(get_memory_status, name="get_memory_status")
+    except Exception:
+        logger.debug("Introspection tools not available")
+
+    # Inter-agent delegation - dispatch tasks to swarm agents
+    try:
+        from timmy.tools_delegation import delegate_task, list_swarm_agents
+
+        toolkit.register(delegate_task, name="delegate_task")
+        toolkit.register(list_swarm_agents, name="list_swarm_agents")
+    except Exception:
+        logger.debug("Delegation tools not available")
 
     return toolkit
 
@@ -547,6 +578,21 @@ def get_all_available_tools() -> dict[str, dict]:
         "consult_grok": {
             "name": "Consult Grok",
             "description": "Premium frontier reasoning via xAI Grok (opt-in, Lightning-payable)",
+            "available_in": ["timmy"],
+        },
+        "get_system_info": {
+            "name": "System Info",
+            "description": "Introspect runtime environment - discover model, Python version, config",
+            "available_in": ["timmy"],
+        },
+        "check_ollama_health": {
+            "name": "Ollama Health",
+            "description": "Check if Ollama is accessible and what models are available",
+            "available_in": ["timmy"],
+        },
+        "get_memory_status": {
+            "name": "Memory Status",
+            "description": "Check status of Timmy's memory tiers (hot memory, vault)",
             "available_in": ["timmy"],
         },
         "aider": {
