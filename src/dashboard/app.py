@@ -35,6 +35,8 @@ from dashboard.routes.scripture import router as scripture_router
 from dashboard.routes.self_coding import router as self_coding_router
 from dashboard.routes.self_coding import self_modify_router
 from dashboard.routes.hands import router as hands_router
+from dashboard.routes.models import router as models_router
+from dashboard.routes.models import api_router as models_api_router
 from infrastructure.router.api import router as cascade_router
 
 logging.basicConfig(
@@ -206,6 +208,8 @@ app.include_router(work_orders_router)
 app.include_router(tasks_router)
 app.include_router(scripture_router)
 app.include_router(hands_router)
+app.include_router(models_router)
+app.include_router(models_api_router)
 app.include_router(cascade_router)
 
 

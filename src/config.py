@@ -94,6 +94,17 @@ class Settings(BaseSettings):
     work_orders_auto_execute: bool = False  # Master switch for auto-execution
     work_orders_auto_threshold: str = "low"  # Max priority that auto-executes: "low" | "medium" | "high" | "none"
 
+    # ── Custom Weights & Models ──────────────────────────────────────
+    # Directory for custom model weights (GGUF, safetensors, HF checkpoints).
+    # Models placed here can be registered at runtime and assigned to agents.
+    custom_weights_dir: str = "data/models"
+    # Enable the reward model for scoring agent outputs (PRM-style).
+    reward_model_enabled: bool = False
+    # Reward model name (must be available via Ollama or a custom weight path).
+    reward_model_name: str = ""
+    # Minimum votes for majority-vote reward scoring (odd number recommended).
+    reward_model_votes: int = 3
+
     # ── Browser Local Models (iPhone / WebGPU) ───────────────────────
     # Enable in-browser LLM inference via WebLLM for offline iPhone use.
     # When enabled, the mobile dashboard loads a small model directly
