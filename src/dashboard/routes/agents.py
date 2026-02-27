@@ -284,6 +284,8 @@ async def chat_timmy(request: Request, message: str = Form(...)):
     # Normal chat: always queue for async processing
     if not task_info:
         try:
+            import asyncio
+
             # Create a chat response task (auto-approved for timmy)
             # Priority is "high" to jump ahead of Timmy's self-generated "thought" tasks
             # but below any "urgent" tasks Timmy might create
@@ -299,6 +301,25 @@ async def chat_timmy(request: Request, message: str = Form(...)):
             )
             task_id = task.id
             queue_info = get_queue_status_for_task(task.id)
+
+            # Push queue position via WebSocket immediately
+            try:
+                from infrastructure.ws_manager.handler import ws_manager
+
+                asyncio.create_task(
+                    ws_manager.broadcast(
+                        "queue_update",
+                        {
+                            "task_id": task.id,
+                            "position": queue_info.get("position", 1),
+                            "total": queue_info.get("total", 1),
+                            "percent_ahead": queue_info.get("percent_ahead", 0),
+                            "status": "queued",
+                        },
+                    )
+                )
+            except Exception as e:
+                logger.debug("Failed to push queue update via WS: %s", e)
 
             # Acknowledge queuing
             position = queue_info.get("position", 1)
