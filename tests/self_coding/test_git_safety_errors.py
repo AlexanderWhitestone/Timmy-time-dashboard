@@ -36,6 +36,7 @@ class TestGitSafetyErrors:
             subprocess.run(["git", "init"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.name", "Test"], cwd=repo_path, check=True, capture_output=True)
+            subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo_path, check=True, capture_output=True)
             
             safety = GitSafety(repo_path=repo_path)
             
@@ -50,6 +51,7 @@ class TestGitSafetyErrors:
             subprocess.run(["git", "init"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.name", "Test"], cwd=repo_path, check=True, capture_output=True)
+            subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo_path, check=True, capture_output=True)
             
             # Create initial file
             (repo_path / "file.txt").write_text("original")
@@ -81,6 +83,7 @@ class TestGitSafetyErrors:
             subprocess.run(["git", "init"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.name", "Test"], cwd=repo_path, check=True, capture_output=True)
+            subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo_path, check=True, capture_output=True)
             
             safety = GitSafety(repo_path=repo_path)
             
@@ -109,6 +112,7 @@ class TestGitSafetyErrors:
             subprocess.run(["git", "init"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.name", "Test"], cwd=repo_path, check=True, capture_output=True)
+            subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo_path, check=True, capture_output=True)
             
             # Need an initial commit for HEAD to exist
             (repo_path / "initial.txt").write_text("initial")
@@ -135,6 +139,7 @@ class TestGitSafetyErrors:
             subprocess.run(["git", "init"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.name", "Test"], cwd=repo_path, check=True, capture_output=True)
+            subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo_path, check=True, capture_output=True)
             
             safety = GitSafety(repo_path=repo_path)
             
@@ -162,6 +167,7 @@ class TestGitSafetyErrors:
             subprocess.run(["git", "init"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.name", "Test"], cwd=repo_path, check=True, capture_output=True)
+            subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo_path, check=True, capture_output=True)
             
             # Need an initial commit for HEAD to exist
             (repo_path / "initial.txt").write_text("initial")
@@ -187,6 +193,7 @@ class TestGitSafetyErrors:
             subprocess.run(["git", "init"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.name", "Test"], cwd=repo_path, check=True, capture_output=True)
+            subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo_path, check=True, capture_output=True)
             
             # Initial commit
             (repo_path / "file.txt").write_text("content")
@@ -207,6 +214,7 @@ class TestGitSafetyErrors:
             subprocess.run(["git", "init"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.name", "Test"], cwd=repo_path, check=True, capture_output=True)
+            subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo_path, check=True, capture_output=True)
             
             safety = GitSafety(repo_path=repo_path)
             
@@ -235,6 +243,7 @@ class TestGitSafetyErrors:
             subprocess.run(["git", "init"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=repo_path, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.name", "Test"], cwd=repo_path, check=True, capture_output=True)
+            subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=repo_path, check=True, capture_output=True)
             
             # Initial commit on master (default branch name)
             (repo_path / "main.txt").write_text("main branch content")

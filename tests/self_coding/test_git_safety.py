@@ -43,7 +43,13 @@ def temp_git_repo():
             check=True,
             capture_output=True,
         )
-        
+        subprocess.run(
+            ["git", "config", "commit.gpgsign", "false"],
+            cwd=repo_path,
+            check=True,
+            capture_output=True,
+        )
+
         # Create initial file and commit
         (repo_path / "README.md").write_text("# Test Repo")
         subprocess.run(["git", "add", "."], cwd=repo_path, check=True, capture_output=True)

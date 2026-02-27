@@ -40,7 +40,11 @@ def temp_repo():
             ["git", "config", "user.name", "Test"],
             cwd=repo_path, check=True, capture_output=True,
         )
-        
+        subprocess.run(
+            ["git", "config", "commit.gpgsign", "false"],
+            cwd=repo_path, check=True, capture_output=True,
+        )
+
         # Create src structure
         src_path = repo_path / "src" / "myproject"
         src_path.mkdir(parents=True)
