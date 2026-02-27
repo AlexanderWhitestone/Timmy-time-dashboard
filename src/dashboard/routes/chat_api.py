@@ -15,7 +15,7 @@ import os
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, File, Request, UploadFile
+from fastapi import APIRouter, File, Request, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 
 from config import settings
@@ -106,26 +106,57 @@ async def api_chat(request: Request):
 async def api_upload(file: UploadFile = File(...)):
     """Accept a file upload and return its URL.
 
+    Includes security checks for file size and extension.
+
     Response:
         {"url": "/static/chat-uploads/...", "fileName": "...", "mimeType": "..."}
     """
+    # 1. Check file extension
+    filename = file.filename or "upload"
+    ext = filename.split(".")[-1].lower() if "." in filename else ""
+    if ext not in settings.allowed_upload_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File extension '.{ext}' not allowed. Allowed: {', '.join(settings.allowed_upload_extensions)}"
+        )
+
+    # 2. Check file size (streaming to avoid loading huge files into memory)
+    max_size = settings.max_upload_size_mb * 1024 * 1024
+    size = 0
     os.makedirs(_UPLOAD_DIR, exist_ok=True)
 
     suffix = uuid.uuid4().hex[:12]
-    safe_name = (file.filename or "upload").replace("/", "_").replace("\\", "_")
+    safe_name = filename.replace("/", "_").replace("\\", "_")
     stored_name = f"{suffix}-{safe_name}"
     file_path = os.path.join(_UPLOAD_DIR, stored_name)
 
-    contents = await file.read()
-    with open(file_path, "wb") as f:
-        f.write(contents)
+    try:
+        with open(file_path, "wb") as f:
+            while chunk := await file.read(8192):
+                size += len(chunk)
+                if size > max_size:
+                    f.close()
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"File too large. Maximum size is {settings.max_upload_size_mb}MB"
+                    )
+                f.write(chunk)
+    except Exception as exc:
+        if isinstance(exc, HTTPException):
+            raise exc
+        logger.error("Upload error: %s", exc)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        raise HTTPException(status_code=500, detail="Internal server error during upload")
 
     # Return a URL the mobile app can reference
     url = f"/uploads/{stored_name}"
 
     return {
         "url": url,
-        "fileName": file.filename or "upload",
+        "fileName": filename,
         "mimeType": file.content_type or "application/octet-stream",
     }
 

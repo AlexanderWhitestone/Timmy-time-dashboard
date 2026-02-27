@@ -152,6 +152,17 @@ class Settings(BaseSettings):
     # Background meditation interval in seconds (0 = disabled).
     scripture_meditation_interval: int = 0
 
+    # ── Security / Upload Limits ──────────────────────────────────────
+    # Maximum file size for uploads (default: 10MB)
+    max_upload_size_mb: int = 10
+    # Allowed file extensions for uploads
+    allowed_upload_extensions: list[str] = [
+        "jpg", "jpeg", "png", "gif", "webp",  # Images
+        "pdf", "txt", "md", "csv",           # Documents
+        "mp3", "wav", "ogg",                 # Audio
+        "mp4", "webm",                       # Video
+    ]
+
     def _compute_repo_root(self) -> str:
         """Auto-detect repo root if not set."""
         if self.repo_root:
