@@ -90,6 +90,17 @@ class Settings(BaseSettings):
     work_orders_auto_execute: bool = False  # Master switch for auto-execution
     work_orders_auto_threshold: str = "low"  # Max priority that auto-executes: "low" | "medium" | "high" | "none"
 
+    # ── Browser Local Models (iPhone / WebGPU) ───────────────────────
+    # Enable in-browser LLM inference via WebLLM for offline iPhone use.
+    # When enabled, the mobile dashboard loads a small model directly
+    # in the browser — no server or Ollama required.
+    browser_model_enabled: bool = True
+    # WebLLM model ID — must be a pre-compiled MLC model.
+    # Recommended for iPhone: SmolLM2-360M (fast) or Qwen3-0.6B (smart).
+    browser_model_id: str = "SmolLM2-360M-Instruct-q4f16_1-MLC"
+    # Fallback to server when browser model is unavailable or too slow.
+    browser_model_fallback: bool = True
+
     # ── Scripture / Biblical Integration ──────────────────────────────
     # Enable the sovereign biblical text module.  When enabled, Timmy
     # loads the local ESV text corpus and runs meditation workflows.

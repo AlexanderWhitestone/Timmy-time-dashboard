@@ -1,0 +1,546 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_styles %}
+<style>
+  .local-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 20px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* ── Model status panel ────────────────────────────────────── */
+  .model-status {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .model-status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+  .model-status-label { color: var(--text-dim); }
+  .model-status-value { color: var(--text-bright); font-weight: 600; }
+  .model-status-value.ready { color: #4ade80; }
+  .model-status-value.loading { color: #facc15; }
+  .model-status-value.error { color: #f87171; }
+  .model-status-value.offline { color: var(--text-dim); }
+
+  /* ── Progress bar ──────────────────────────────────────────── */
+  .progress-wrap {
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    padding: 0 14px 14px;
+  }
+  .progress-wrap.active { display: flex; }
+  .progress-bar-outer {
+    height: 6px;
+    background: rgba(8, 4, 18, 0.75);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-bar-inner {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--border-glow), #a78bfa);
+    border-radius: 3px;
+    transition: width 0.3s;
+  }
+  .progress-text {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+    min-height: 14px;
+  }
+
+  /* ── Model selector ────────────────────────────────────────── */
+  .model-select-wrap {
+    padding: 0 14px 14px;
+  }
+  .model-select {
+    width: 100%;
+    background: rgba(8, 4, 18, 0.75);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-bright);
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 10px 12px;
+    min-height: 44px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237c7c8a' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    touch-action: manipulation;
+  }
+  .model-select:focus {
+    outline: none;
+    border-color: var(--border-glow);
+  }
+
+  /* ── Action buttons ────────────────────────────────────────── */
+  .model-actions {
+    display: flex;
+    gap: 8px;
+    padding: 0 14px 14px;
+  }
+  .model-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    border-radius: var(--radius-md);
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    border: 1px solid var(--border);
+    background: rgba(24, 10, 45, 0.6);
+    color: var(--text-bright);
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.2s;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .model-btn:active { transform: scale(0.96); }
+  .model-btn.primary {
+    border-color: var(--border-glow);
+    background: rgba(124, 58, 237, 0.2);
+  }
+  .model-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* ── Chat area ─────────────────────────────────────────────── */
+  .local-chat-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .local-chat-log {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 14px;
+    max-height: 400px;
+    min-height: 200px;
+  }
+  .local-chat-input {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    background: rgba(24, 10, 45, 0.9);
+    border-top: 1px solid var(--border);
+  }
+  .local-chat-input input {
+    flex: 1;
+    background: rgba(8, 4, 18, 0.75);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    color: var(--text-bright);
+    font-family: var(--font);
+    font-size: 16px;
+    padding: 10px 12px;
+    min-height: 44px;
+  }
+  .local-chat-input input:focus {
+    outline: none;
+    border-color: var(--border-glow);
+    box-shadow: 0 0 0 1px var(--border-glow), 0 0 8px rgba(124, 58, 237, 0.2);
+  }
+  .local-chat-input input::placeholder { color: var(--text-dim); }
+  .local-chat-input button {
+    background: var(--border-glow);
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--text-bright);
+    font-family: var(--font);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 0 16px;
+    min-height: 44px;
+    min-width: 64px;
+    letter-spacing: 0.1em;
+    transition: background 0.15s, transform 0.1s;
+    touch-action: manipulation;
+  }
+  .local-chat-input button:active { transform: scale(0.96); }
+  .local-chat-input button:disabled { opacity: 0.4; }
+
+  /* ── Chat messages ─────────────────────────────────────────── */
+  .local-msg { margin-bottom: 12px; }
+  .local-msg .meta {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    margin-bottom: 3px;
+  }
+  .local-msg.user .meta { color: var(--orange); }
+  .local-msg.timmy .meta { color: var(--purple); }
+  .local-msg.system .meta { color: var(--text-dim); }
+  .local-msg .bubble {
+    background: rgba(24, 10, 45, 0.8);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+    word-break: break-word;
+  }
+  .local-msg.timmy .bubble { border-left: 3px solid var(--purple); }
+  .local-msg.user .bubble { border-color: var(--border-glow); }
+  .local-msg.system .bubble {
+    border-color: transparent;
+    background: rgba(8, 4, 18, 0.5);
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* ── Backend badge ─────────────────────────────────────────── */
+  .backend-badge {
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+  .backend-badge.local {
+    background: rgba(74, 222, 128, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+  }
+  .backend-badge.server {
+    background: rgba(250, 204, 21, 0.15);
+    color: #facc15;
+    border: 1px solid rgba(250, 204, 21, 0.3);
+  }
+
+  /* ── Stats panel ───────────────────────────────────────────── */
+  .model-stats {
+    padding: 0 14px 14px;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+    display: none;
+  }
+  .model-stats.visible { display: block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="local-wrap">
+
+  <!-- Model Status Panel -->
+  <div class="card mc-panel">
+    <div class="card-header mc-panel-header">// LOCAL AI MODEL</div>
+    <div class="model-status">
+      <div class="model-status-row">
+        <span class="model-status-label">STATUS</span>
+        <span class="model-status-value offline" id="model-state">NOT LOADED</span>
+      </div>
+      <div class="model-status-row">
+        <span class="model-status-label">BACKEND</span>
+        <span class="model-status-value" id="model-backend">DETECTING...</span>
+      </div>
+      <div class="model-status-row">
+        <span class="model-status-label">INFERENCE</span>
+        <span class="model-status-value" id="inference-mode">--</span>
+      </div>
+    </div>
+
+    <!-- Model selector -->
+    <div class="model-select-wrap">
+      <select class="model-select" id="model-select" aria-label="Select model"></select>
+    </div>
+
+    <!-- Progress bar -->
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-bar-outer">
+        <div class="progress-bar-inner" id="progress-bar"></div>
+      </div>
+      <div class="progress-text" id="progress-text"></div>
+    </div>
+
+    <!-- Actions -->
+    <div class="model-actions">
+      <button class="model-btn primary" id="btn-load" onclick="loadModel()">LOAD MODEL</button>
+      <button class="model-btn" id="btn-unload" onclick="unloadModel()" disabled>UNLOAD</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="model-stats" id="model-stats"></div>
+  </div>
+
+  <!-- Chat -->
+  <div class="card mc-panel local-chat-wrap">
+    <div class="card-header mc-panel-header">
+      // TIMMY <span class="backend-badge local" id="chat-backend-badge" style="display:none">LOCAL</span>
+    </div>
+    <div class="local-chat-log" id="local-chat">
+      <div class="local-msg system">
+        <div class="meta">SYSTEM</div>
+        <div class="bubble">
+          Load a model above to chat with Timmy locally on your device.
+          No server connection required.
+          {% if browser_model_fallback %}
+          Server fallback is enabled — if the local model fails, Timmy
+          will try the server instead.
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <form onsubmit="sendLocalMessage(event)" class="local-chat-input">
+      <input type="text"
+             id="local-message"
+             placeholder="Message Timmy..."
+             required
+             autocomplete="off"
+             autocapitalize="none"
+             autocorrect="off"
+             spellcheck="false"
+             enterkeyhint="send" />
+      <button type="submit" id="btn-send" disabled>SEND</button>
+    </form>
+  </div>
+
+</div>
+
+<script src="/static/local_llm.js"></script>
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+let llm = null;
+const serverFallback = {{ browser_model_fallback | tojson }};
+const defaultModelId = {{ browser_model_id | tojson }};
+
+// ── DOM refs ───────────────────────────────────────────────────────────────
+const elState      = document.getElementById('model-state');
+const elBackend    = document.getElementById('model-backend');
+const elInference  = document.getElementById('inference-mode');
+const elSelect     = document.getElementById('model-select');
+const elProgress   = document.getElementById('progress-wrap');
+const elBar        = document.getElementById('progress-bar');
+const elProgressTx = document.getElementById('progress-text');
+const elBtnLoad    = document.getElementById('btn-load');
+const elBtnUnload  = document.getElementById('btn-unload');
+const elBtnSend    = document.getElementById('btn-send');
+const elChat       = document.getElementById('local-chat');
+const elInput      = document.getElementById('local-message');
+const elBadge      = document.getElementById('chat-backend-badge');
+const elStats      = document.getElementById('model-stats');
+
+// ── Populate model selector ────────────────────────────────────────────────
+(function populateModels() {
+  const catalogue = window.LOCAL_MODEL_CATALOGUE || [];
+  catalogue.forEach(function(m) {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.label + ' (' + m.sizeHint + ')';
+    if (m.id === defaultModelId) opt.selected = true;
+    elSelect.appendChild(opt);
+  });
+})();
+
+// ── Detect capabilities ────────────────────────────────────────────────────
+(function detectCaps() {
+  const supported = LocalLLM.isSupported();
+  const hasGPU = typeof navigator !== 'undefined' && 'gpu' in navigator;
+  elBackend.textContent = hasGPU ? 'WebGPU' : supported ? 'WASM' : 'UNSUPPORTED';
+  if (!supported) {
+    elBackend.classList.add('error');
+    elBtnLoad.disabled = true;
+    addSystemMessage('Your browser does not support WebGPU or WebAssembly. Update to iOS 26+ / Safari 26+ for local AI.');
+  }
+})();
+
+// ── Load model ─────────────────────────────────────────────────────────────
+async function loadModel() {
+  if (llm && llm.ready) {
+    await unloadModel();
+  }
+
+  const modelId = elSelect.value;
+  elBtnLoad.disabled = true;
+  elBtnUnload.disabled = true;
+  elBtnSend.disabled = true;
+  elProgress.classList.add('active');
+  setState('loading', 'DOWNLOADING...');
+
+  llm = new LocalLLM({
+    modelId: modelId,
+    onProgress: function(report) {
+      if (report.progress !== undefined) {
+        const pct = Math.round(report.progress * 100);
+        elBar.style.width = pct + '%';
+        elProgressTx.textContent = report.text || (pct + '%');
+      } else if (report.text) {
+        elProgressTx.textContent = report.text;
+      }
+    },
+    onReady: function() {
+      setState('ready', 'READY');
+      elProgress.classList.remove('active');
+      elBtnLoad.disabled = false;
+      elBtnUnload.disabled = false;
+      elBtnSend.disabled = false;
+      elBadge.style.display = '';
+      elBadge.className = 'backend-badge local';
+      elBadge.textContent = 'LOCAL';
+      elInference.textContent = 'ON-DEVICE';
+      elInput.focus();
+      addSystemMessage('Model loaded. Timmy is running locally on your device — fully offline, fully sovereign.');
+      updateStats();
+    },
+    onError: function(err) {
+      setState('error', 'FAILED');
+      elProgress.classList.remove('active');
+      elBtnLoad.disabled = false;
+      addSystemMessage('Failed to load model: ' + err.message);
+      if (serverFallback) {
+        addSystemMessage('Server fallback enabled. Chat will use the server instead.');
+        elBtnSend.disabled = false;
+        elBadge.style.display = '';
+        elBadge.className = 'backend-badge server';
+        elBadge.textContent = 'SERVER';
+        elInference.textContent = 'SERVER';
+      }
+    },
+  });
+
+  try {
+    await llm.init();
+  } catch (e) {
+    // Error handled by onError callback
+  }
+}
+
+// ── Unload model ───────────────────────────────────────────────────────────
+async function unloadModel() {
+  if (llm) {
+    await llm.unload();
+    llm = null;
+  }
+  setState('offline', 'NOT LOADED');
+  elBtnUnload.disabled = true;
+  elBtnSend.disabled = true;
+  elBadge.style.display = 'none';
+  elInference.textContent = '--';
+  elStats.classList.remove('visible');
+}
+
+// ── Send message ───────────────────────────────────────────────────────────
+async function sendLocalMessage(event) {
+  event.preventDefault();
+  const message = elInput.value.trim();
+  if (!message) return;
+
+  addMessage('user', 'YOU', message);
+  elInput.value = '';
+  elBtnSend.disabled = true;
+
+  // Try local model first
+  if (llm && llm.ready) {
+    try {
+      const replyBubble = addMessage('timmy', 'TIMMY (LOCAL)', '');
+      let fullText = '';
+      await llm.chat(message, {
+        onToken: function(delta, accumulated) {
+          fullText = accumulated;
+          replyBubble.textContent = fullText;
+          elChat.scrollTop = elChat.scrollHeight;
+        }
+      });
+      if (!fullText) {
+        replyBubble.textContent = await llm.chat(message);
+      }
+      elBtnSend.disabled = false;
+      updateStats();
+      return;
+    } catch (err) {
+      addSystemMessage('Local inference failed: ' + err.message);
+      if (!serverFallback) {
+        elBtnSend.disabled = false;
+        return;
+      }
+    }
+  }
+
+  // Server fallback
+  if (serverFallback) {
+    try {
+      const response = await fetch('/agents/timmy/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'message=' + encodeURIComponent(message)
+      });
+      const html = await response.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      const timmyResponse = doc.querySelector('.chat-message.timmy, .msg-body');
+      const text = timmyResponse ? timmyResponse.textContent.trim() : 'Response received.';
+      addMessage('timmy', 'TIMMY (SERVER)', text);
+    } catch (e) {
+      addMessage('timmy', 'TIMMY', 'Sorry, both local and server inference failed. Check your connection.');
+    }
+  } else {
+    addMessage('system', 'SYSTEM', 'Load a model to start chatting.');
+  }
+  elBtnSend.disabled = false;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function setState(cls, text) {
+  elState.className = 'model-status-value ' + cls;
+  elState.textContent = text;
+}
+
+function addMessage(type, label, text) {
+  const div = document.createElement('div');
+  div.className = 'local-msg ' + type;
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.textContent = label;
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+  div.appendChild(meta);
+  div.appendChild(bubble);
+  elChat.appendChild(div);
+  elChat.scrollTop = elChat.scrollHeight;
+  return bubble;
+}
+
+function addSystemMessage(text) {
+  addMessage('system', 'SYSTEM', text);
+}
+
+async function updateStats() {
+  if (!llm) return;
+  try {
+    const stats = await llm.getStats();
+    if (stats) {
+      elStats.textContent = stats;
+      elStats.classList.add('visible');
+    }
+  } catch (e) {
+    // Stats are optional
+  }
+}
+</script>
+{% endblock %}
