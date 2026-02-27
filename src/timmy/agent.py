@@ -5,11 +5,16 @@ Memory Architecture:
 - Tier 2 (Vault): memory/ — structured markdown, append-only
 - Tier 3 (Semantic): Vector search over vault files
 
+Model Management:
+- Pulls requested model automatically if not available
+- Falls back through capability-based model chains
+- Multi-modal support with vision model fallbacks
+
 Handoff Protocol maintains continuity across sessions.
 """
 
 import logging
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from agno.agent import Agent
 from agno.db.sqlite import SqliteDb
@@ -23,6 +28,23 @@ if TYPE_CHECKING:
     from timmy.backends import GrokBackend, TimmyAirLLMAgent
 
 logger = logging.getLogger(__name__)
+
+# Fallback chain for text/tool models (in order of preference)
+DEFAULT_MODEL_FALLBACKS = [
+    "llama3.1:8b-instruct",
+    "llama3.1",
+    "qwen2.5:14b",
+    "qwen2.5:7b",
+    "llama3.2:3b",
+]
+
+# Fallback chain for vision models
+VISION_MODEL_FALLBACKS = [
+    "llama3.2:3b",
+    "llava:7b",
+    "qwen2.5-vl:3b",
+    "moondream:1.8b",
+]
 
 # Union type for callers that want to hint the return type.
 TimmyAgent = Union[Agent, "TimmyAirLLMAgent", "GrokBackend"]
@@ -38,6 +60,120 @@ _SMALL_MODEL_PATTERNS = (
     "qwen2:0.5b",
     "qwen2:1.5b",
 )
+
+
+def _check_model_available(model_name: str) -> bool:
+    """Check if an Ollama model is available locally."""
+    try:
+        import urllib.request
+        import json
+        
+        url = settings.ollama_url.replace("localhost", "127.0.0.1")
+        req = urllib.request.Request(
+            f"{url}/api/tags",
+            method="GET",
+            headers={"Accept": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = json.loads(response.read().decode())
+            models = [m.get("name", "") for m in data.get("models", [])]
+            # Check for exact match or model name without tag
+            return any(
+                model_name == m or model_name == m.split(":")[0] or m.startswith(model_name)
+                for m in models
+            )
+    except Exception as exc:
+        logger.debug("Could not check model availability: %s", exc)
+        return False
+
+
+def _pull_model(model_name: str) -> bool:
+    """Attempt to pull a model from Ollama.
+    
+    Returns:
+        True if successful or model already exists
+    """
+    try:
+        import urllib.request
+        import json
+        
+        logger.info("Pulling model: %s", model_name)
+        
+        url = settings.ollama_url.replace("localhost", "127.0.0.1")
+        req = urllib.request.Request(
+            f"{url}/api/pull",
+            method="POST",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps({"name": model_name, "stream": False}).encode(),
+        )
+        
+        with urllib.request.urlopen(req, timeout=300) as response:
+            if response.status == 200:
+                logger.info("Successfully pulled model: %s", model_name)
+                return True
+            else:
+                logger.error("Failed to pull %s: HTTP %s", model_name, response.status)
+                return False
+                
+    except Exception as exc:
+        logger.error("Error pulling model %s: %s", model_name, exc)
+        return False
+
+
+def _resolve_model_with_fallback(
+    requested_model: Optional[str] = None,
+    require_vision: bool = False,
+    auto_pull: bool = True,
+) -> tuple[str, bool]:
+    """Resolve model with automatic pulling and fallback.
+    
+    Args:
+        requested_model: Preferred model to use
+        require_vision: Whether the model needs vision capabilities
+        auto_pull: Whether to attempt pulling missing models
+        
+    Returns:
+        Tuple of (model_name, is_fallback)
+    """
+    model = requested_model or settings.ollama_model
+    
+    # Check if requested model is available
+    if _check_model_available(model):
+        logger.debug("Using available model: %s", model)
+        return model, False
+    
+    # Try to pull the requested model
+    if auto_pull:
+        logger.info("Model %s not available locally, attempting to pull...", model)
+        if _pull_model(model):
+            return model, False
+        logger.warning("Failed to pull %s, checking fallbacks...", model)
+    
+    # Use appropriate fallback chain
+    fallback_chain = VISION_MODEL_FALLBACKS if require_vision else DEFAULT_MODEL_FALLBACKS
+    
+    for fallback_model in fallback_chain:
+        if _check_model_available(fallback_model):
+            logger.warning(
+                "Using fallback model %s (requested: %s)",
+                fallback_model, model
+            )
+            return fallback_model, True
+        
+        # Try to pull the fallback
+        if auto_pull and _pull_model(fallback_model):
+            logger.info(
+                "Pulled and using fallback model %s (requested: %s)",
+                fallback_model, model
+            )
+            return fallback_model, True
+    
+    # Absolute last resort - return the requested model and hope for the best
+    logger.error(
+        "No models available in fallback chain. Requested: %s",
+        model
+    )
+    return model, False
 
 
 def _model_supports_tools(model_name: str) -> bool:
@@ -106,7 +242,16 @@ def create_timmy(
         return TimmyAirLLMAgent(model_size=size)
 
     # Default: Ollama via Agno.
-    model_name = settings.ollama_model
+    # Resolve model with automatic pulling and fallback
+    model_name, is_fallback = _resolve_model_with_fallback(
+        requested_model=None,
+        require_vision=False,
+        auto_pull=True,
+    )
+    
+    if is_fallback:
+        logger.info("Using fallback model %s (requested was unavailable)", model_name)
+    
     use_tools = _model_supports_tools(model_name)
 
     # Conditionally include tools — small models get none

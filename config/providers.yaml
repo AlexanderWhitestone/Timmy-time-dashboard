@@ -24,11 +24,31 @@ providers:
     priority: 1
     url: "http://localhost:11434"
     models:
-      - name: llama3.2
+      # Text + Tools models
+      - name: llama3.1:8b-instruct
         default: true
         context_window: 128000
+        capabilities: [text, tools, json, streaming]
+      - name: llama3.2:3b
+        context_window: 128000
+        capabilities: [text, tools, json, streaming, vision]
+      - name: qwen2.5:14b
+        context_window: 32000
+        capabilities: [text, tools, json, streaming]
       - name: deepseek-r1:1.5b
         context_window: 32000
+        capabilities: [text, json, streaming]
+      
+      # Vision models
+      - name: llava:7b
+        context_window: 4096
+        capabilities: [text, vision, streaming]
+      - name: qwen2.5-vl:3b
+        context_window: 32000
+        capabilities: [text, vision, tools, json, streaming]
+      - name: moondream:1.8b
+        context_window: 2048
+        capabilities: [text, vision, streaming]
     
   # Secondary: Local AirLLM (if installed)
   - name: airllm-local
@@ -38,8 +58,11 @@ providers:
     models:
       - name: 70b
         default: true
+        capabilities: [text, tools, json, streaming]
       - name: 8b
+        capabilities: [text, tools, json, streaming]
       - name: 405b
+        capabilities: [text, tools, json, streaming]
     
   # Tertiary: OpenAI (if API key available)
   - name: openai-backup
@@ -52,8 +75,10 @@ providers:
       - name: gpt-4o-mini
         default: true
         context_window: 128000
+        capabilities: [text, vision, tools, json, streaming]
       - name: gpt-4o
         context_window: 128000
+        capabilities: [text, vision, tools, json, streaming]
     
   # Quaternary: Anthropic (if API key available)
   - name: anthropic-backup
@@ -65,10 +90,37 @@ providers:
       - name: claude-3-haiku-20240307
         default: true
         context_window: 200000
+        capabilities: [text, vision, streaming]
       - name: claude-3-sonnet-20240229
         context_window: 200000
+        capabilities: [text, vision, tools, streaming]
 
-# ── Custom Models ──────────────────────────────────────────────────────
+# ── Capability-Based Fallback Chains ────────────────────────────────────────
+# When a model doesn't support a required capability (e.g., vision),
+# the system falls back through these chains in order.
+
+fallback_chains:
+  # Vision-capable models (for image understanding)
+  vision:
+    - llama3.2:3b          # Fast, good vision
+    - qwen2.5-vl:3b        # Excellent vision, small
+    - llava:7b             # Classic vision model
+    - moondream:1.8b       # Tiny, fast vision
+  
+  # Tool-calling models (for function calling)
+  tools:
+    - llama3.1:8b-instruct # Best tool use
+    - qwen2.5:7b           # Reliable tools
+    - llama3.2:3b          # Small but capable
+  
+  # General text generation (any model)
+  text:
+    - llama3.1:8b-instruct
+    - qwen2.5:14b
+    - deepseek-r1:1.5b
+    - llama3.2:3b
+
+# ── Custom Models ───────────────────────────────────────────────────────────
 # Register custom model weights for per-agent assignment.
 # Supports GGUF (Ollama), safetensors, and HuggingFace checkpoint dirs.
 # Models can also be registered at runtime via the /api/v1/models API.
@@ -91,13 +143,27 @@ custom_models: []
   #   context_window: 32000
   #   description: "Process reward model for scoring outputs"
 
-# ── Agent Model Assignments ─────────────────────────────────────────────
+# ── Agent Model Assignments ─────────────────────────────────────────────────
 # Map persona agent IDs to specific models.
 # Agents without an assignment use the global default (ollama_model).
 agent_model_assignments: {}
   # Example:
   # persona-forge: my-finetuned-llama
   # persona-echo: deepseek-r1:1.5b
+
+# ── Multi-Modal Settings ────────────────────────────────────────────────────
+multimodal:
+  # Automatically pull models when needed
+  auto_pull: true
+  
+  # Timeout for model pulling (seconds)
+  pull_timeout: 300
+  
+  # Maximum fallback depth (how many models to try before giving up)
+  max_fallback_depth: 3
+  
+  # Prefer smaller models for vision when available (faster)
+  prefer_small_vision: true
 
 # Cost tracking (optional, for budget monitoring)
 cost_tracking:
