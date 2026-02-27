@@ -1,22 +1,28 @@
-"""Swarm dashboard routes — /swarm/* endpoints.
+"""Swarm dashboard routes — /swarm/*, /internal/*, and /swarm/live endpoints.
 
 Provides REST endpoints for managing the swarm: listing agents,
-spawning sub-agents, posting tasks, and viewing auction results.
+spawning sub-agents, posting tasks, viewing auction results, Docker
+container agent HTTP API, and WebSocket live feed.
 """
 
 import asyncio
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter, Form, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 
 from swarm import learner as swarm_learner
 from swarm import registry
 from swarm.coordinator import coordinator
 from swarm.tasks import TaskStatus, update_task
+from infrastructure.ws_manager.handler import ws_manager
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/swarm", tags=["swarm"])
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
@@ -324,4 +330,93 @@ async def message_agent(agent_id: str, request: Request, message: str = Form(...
         },
     )
 
+
+# ── Internal HTTP API (Docker container agents) ─────────────────────────
+
+internal_router = APIRouter(prefix="/internal", tags=["internal"])
+
+
+class BidRequest(BaseModel):
+    task_id: str
+    agent_id: str
+    bid_sats: int
+    capabilities: Optional[str] = ""
+
+
+class BidResponse(BaseModel):
+    accepted: bool
+    task_id: str
+    agent_id: str
+    message: str
+
+
+class TaskSummary(BaseModel):
+    task_id: str
+    description: str
+    status: str
+
+
+@internal_router.get("/tasks", response_model=list[TaskSummary])
+def list_biddable_tasks():
+    """Return all tasks currently open for bidding."""
+    tasks = coordinator.list_tasks(status=TaskStatus.BIDDING)
+    return [
+        TaskSummary(
+            task_id=t.id,
+            description=t.description,
+            status=t.status.value,
+        )
+        for t in tasks
+    ]
+
+
+@internal_router.post("/bids", response_model=BidResponse)
+def submit_bid(bid: BidRequest):
+    """Accept a bid from a container agent."""
+    if bid.bid_sats <= 0:
+        raise HTTPException(status_code=422, detail="bid_sats must be > 0")
+
+    accepted = coordinator.auctions.submit_bid(
+        task_id=bid.task_id,
+        agent_id=bid.agent_id,
+        bid_sats=bid.bid_sats,
+    )
+
+    if accepted:
+        from swarm import stats as swarm_stats
+        swarm_stats.record_bid(bid.task_id, bid.agent_id, bid.bid_sats, won=False)
+        logger.info(
+            "Docker agent %s bid %d sats on task %s",
+            bid.agent_id, bid.bid_sats, bid.task_id,
+        )
+        return BidResponse(
+            accepted=True,
+            task_id=bid.task_id,
+            agent_id=bid.agent_id,
+            message="Bid accepted.",
+        )
+
+    return BidResponse(
+        accepted=False,
+        task_id=bid.task_id,
+        agent_id=bid.agent_id,
+        message="No open auction for this task — it may have already closed.",
+    )
+
+
+# ── WebSocket live feed ──────────────────────────────────────────────────
+
+@router.websocket("/live")
+async def swarm_live(websocket: WebSocket):
+    """WebSocket endpoint for live swarm event streaming."""
+    await ws_manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            logger.debug("WS received: %s", data[:100])
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket)
+    except Exception as exc:
+        logger.error("WebSocket error: %s", exc)
+        ws_manager.disconnect(websocket)
 

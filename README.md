@@ -2,109 +2,161 @@
 
 [![Tests](https://github.com/AlexanderWhitestone/Timmy-time-dashboard/actions/workflows/tests.yml/badge.svg)](https://github.com/AlexanderWhitestone/Timmy-time-dashboard/actions/workflows/tests.yml)
 
-A local-first, sovereign AI agent system.  Talk to Timmy, watch his swarm, gate API access with Bitcoin Lightning — all from a browser, no cloud AI required.
+A local-first, sovereign AI agent system. Talk to Timmy, watch his swarm, gate
+API access with Bitcoin Lightning — all from a browser, no cloud AI required.
 
 **[Live Docs →](https://alexanderwhitestone.github.io/Timmy-time-dashboard/)**
 
 ---
 
-## What's built
+## Quick Start
+
+```bash
+git clone https://github.com/AlexanderWhitestone/Timmy-time-dashboard.git
+cd Timmy-time-dashboard
+make install              # create venv + install deps
+cp .env.example .env      # configure environment
+
+ollama serve              # separate terminal
+ollama pull llama3.1:8b-instruct  # Required for reliable tool calling
+
+make dev                  # http://localhost:8000
+make test                 # no Ollama needed
+```
+
+**Note:** llama3.1:8b-instruct is used instead of llama3.2 because it is
+specifically fine-tuned for reliable tool/function calling.
+llama3.2 (3B) was found to hallucinate tool output consistently in testing.
+Fallback: qwen2.5:14b if llama3.1:8b-instruct is not available.
+
+---
+
+## What's Here
 
 | Subsystem | Description |
 |-----------|-------------|
 | **Timmy Agent** | Agno-powered agent (Ollama default, AirLLM optional for 70B/405B) |
 | **Mission Control** | FastAPI + HTMX dashboard — chat, health, swarm, marketplace |
-| **Swarm** | Multi-agent coordinator — spawn agents, post tasks, run Lightning auctions |
-| **L402 / Lightning** | Bitcoin Lightning payment gating for API access (mock backend; LND scaffolded) |
-| **Spark Intelligence** | Event capture, predictions, memory consolidation, advisory engine |
-| **Creative Studio** | Multi-persona creative pipeline — image, music, video generation |
-| **Tools** | Git, image, music, and video tools accessible by persona agents |
-| **Voice** | NLU intent detection + TTS (pyttsx3, no cloud) |
-| **WebSocket** | Real-time swarm live feed |
-| **Mobile** | Responsive layout with full iOS safe-area and touch support |
-| **Telegram** | Bridge Telegram messages to Timmy |
+| **Swarm** | Multi-agent coordinator — spawn agents, post tasks, Lightning auctions |
+| **L402 / Lightning** | Bitcoin Lightning payment gating for API access |
+| **Spark** | Event capture, predictions, memory consolidation, advisory |
+| **Creative Studio** | Multi-persona pipeline — image, music, video generation |
 | **Hands** | 6 autonomous scheduled agents — Oracle, Sentinel, Scout, Scribe, Ledger, Weaver |
-| **CLI** | `timmy`, `timmy-serve`, `self-tdd` entry points |
-
-**Full test suite, 100% passing.**
-
----
-
-## Prerequisites
-
-**Python 3.11+**
-```bash
-python3 --version   # must be 3.11+
-```
-If not: `brew install python@3.11`
-
-**Ollama** — runs the local LLM
-```bash
-brew install ollama
-# or download from https://ollama.com
-```
+| **Self-Coding** | Codebase-aware self-modification with git safety |
+| **Integrations** | Telegram bridge, Siri Shortcuts, voice NLU, mobile layout |
 
 ---
 
-## Quickstart
+## Commands
 
 ```bash
-# 1. Clone
-git clone https://github.com/AlexanderWhitestone/Timmy-time-dashboard.git
-cd Timmy-time-dashboard
+make dev            # start dashboard (http://localhost:8000)
+make test           # run all tests
+make test-cov       # tests + coverage report
+make lint           # run ruff/flake8
+make docker-up      # start via Docker
+make help           # see all commands
+```
 
-# 2. Install
-make install
-# or manually: python3 -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"
+**CLI tools:** `timmy`, `timmy-serve`, `self-tdd`, `self-modify`
 
-# 3. Start Ollama (separate terminal)
-ollama serve
-ollama pull llama3.1:8b-instruct  # Required for reliable tool calling
+---
 
-# Note: llama3.1:8b-instruct is used instead of llama3.2 because it is
-# specifically fine-tuned for reliable tool/function calling.
-# llama3.2 (3B) was found to hallucinate tool output consistently in testing.
-# Fallback: qwen2.5:14b if llama3.1:8b-instruct is not available.
+## Documentation
 
-# 4. Launch dashboard
-make dev
-# opens at http://localhost:8000
+| Document | Purpose |
+|----------|---------|
+| [CLAUDE.md](CLAUDE.md) | AI assistant development guide |
+| [AGENTS.md](AGENTS.md) | Multi-agent development standards |
+| [.env.example](.env.example) | Configuration reference |
+| [docs/](docs/) | Architecture docs, ADRs, audits |
+
+---
+
+## Configuration
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `OLLAMA_URL` | `http://localhost:11434` | Ollama host |
+| `OLLAMA_MODEL` | `llama3.1:8b-instruct` | Model for tool calling. Use llama3.1:8b-instruct for reliable tool use; fallback to qwen2.5:14b |
+| `DEBUG` | `false` | Enable `/docs` and `/redoc` |
+| `TIMMY_MODEL_BACKEND` | `ollama` | `ollama` \| `airllm` \| `auto` |
+| `AIRLLM_MODEL_SIZE` | `70b` | `8b` \| `70b` \| `405b` |
+| `L402_HMAC_SECRET` | *(default — change in prod)* | HMAC signing key for macaroons |
+| `L402_MACAROON_SECRET` | *(default — change in prod)* | Macaroon secret |
+| `LIGHTNING_BACKEND` | `mock` | `mock` (production-ready) \| `lnd` (scaffolded, not yet functional) |
+
+---
+
+## Architecture
+
+```
+Browser / Phone
+      │ HTTP + HTMX + WebSocket
+      ▼
+┌─────────────────────────────────────────┐
+│             FastAPI (dashboard.app)      │
+│  routes: agents, health, swarm,          │
+│          marketplace, voice, mobile      │
+└───┬─────────────┬──────────┬────────────┘
+    │             │          │
+    ▼             ▼          ▼
+Jinja2        Timmy       Swarm
+Templates     Agent       Coordinator
+(HTMX)        │           ├─ Registry (SQLite)
+              ├─ Ollama   ├─ AuctionManager (L402 bids)
+              └─ AirLLM   ├─ SwarmComms (Redis / in-memory)
+                          └─ SwarmManager (subprocess)
+    │
+    ├── Voice NLU + TTS (pyttsx3, local)
+    ├── WebSocket live feed (ws_manager)
+    ├── L402 Lightning proxy (macaroon + invoice)
+    ├── Push notifications (local + macOS native)
+    └── Siri Shortcuts API endpoints
+
+Persistence: timmy.db (Agno memory), data/swarm.db (registry + tasks)
+External:    Ollama :11434, optional Redis, optional LND gRPC
 ```
 
 ---
 
-## Common commands
+## Project Layout
 
-```bash
-make test       # run all tests (no Ollama needed)
-make test-cov   # test + coverage report
-make dev        # start dashboard (http://localhost:8000)
-make watch      # self-TDD watchdog (60s poll, alerts on regressions)
 ```
-
-Or with the bootstrap script (creates venv, tests, watchdog, server in one shot):
-```bash
-bash activate_self_tdd.sh
-bash activate_self_tdd.sh --big-brain   # also installs AirLLM
+src/
+  config.py           # pydantic-settings — all env vars live here
+  timmy/              # Core agent (agent.py, backends.py, cli.py, prompts.py)
+  hands/              # Autonomous scheduled agents (registry, scheduler, runner)
+  dashboard/          # FastAPI app, routes, Jinja2 templates
+  swarm/              # Multi-agent: coordinator, registry, bidder, tasks, comms
+  timmy_serve/        # L402 proxy, payment handler, TTS, serve CLI
+  spark/              # Intelligence engine — events, predictions, advisory
+  creative/           # Creative director + video assembler pipeline
+  tools/              # Git, image, music, video tools for persona agents
+  lightning/          # Lightning backend abstraction (mock + LND)
+  agent_core/         # Substrate-agnostic agent interface
+  voice/              # NLU intent detection
+  ws_manager/         # WebSocket connection manager
+  notifications/      # Push notification store
+  shortcuts/          # Siri Shortcuts endpoints
+  telegram_bot/       # Telegram bridge
+  self_tdd/           # Continuous test watchdog
+hands/                # Hand manifests — oracle/, sentinel/, etc.
+tests/                # one test file per module, all mocked
+static/style.css      # Dark mission-control theme (JetBrains Mono)
+docs/                 # GitHub Pages landing page
+AGENTS.md             # AI agent development standards ← read this
+.env.example          # Environment variable reference
+Makefile              # Common dev commands
 ```
 
 ---
 
-## CLI
-
-```bash
-timmy chat "What is sovereignty?"
-timmy think "Bitcoin and self-custody"
-timmy status
-
-timmy-serve start          # L402-gated API server (port 8402)
-timmy-serve invoice        # generate a Lightning invoice
-timmy-serve status
-```
-
----
-
-## Mobile access
+## Mobile Access
 
 The dashboard is fully mobile-optimized (iOS safe area, 44px touch targets, 16px
 input to prevent zoom, momentum scroll).
@@ -162,7 +214,7 @@ channel = "telegram"
 
 ---
 
-## AirLLM — big brain backend
+## AirLLM — Big Brain Backend
 
 Run 70B or 405B models locally with no GPU, using AirLLM's layer-by-layer loading.
 Apple Silicon uses MLX automatically.
@@ -188,121 +240,39 @@ AIRLLM_MODEL_SIZE=70b
 
 ---
 
-## Configuration
+## CLI
 
 ```bash
-cp .env.example .env
-# edit .env
+timmy chat "What is sovereignty?"
+timmy think "Bitcoin and self-custody"
+timmy status
+
+timmy-serve start          # L402-gated API server (port 8402)
+timmy-serve invoice        # generate a Lightning invoice
+timmy-serve status
 ```
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `OLLAMA_URL` | `http://localhost:11434` | Ollama host |
-| `OLLAMA_MODEL` | `llama3.1:8b-instruct` | Model for tool calling. Use llama3.1:8b-instruct for reliable tool use; fallback to qwen2.5:14b |
-| `DEBUG` | `false` | Enable `/docs` and `/redoc` |
-| `TIMMY_MODEL_BACKEND` | `ollama` | `ollama` \| `airllm` \| `auto` |
-| `AIRLLM_MODEL_SIZE` | `70b` | `8b` \| `70b` \| `405b` |
-| `L402_HMAC_SECRET` | *(default — change in prod)* | HMAC signing key for macaroons |
-| `L402_MACAROON_SECRET` | *(default — change in prod)* | Macaroon secret |
-| `LIGHTNING_BACKEND` | `mock` | `mock` (production-ready) \| `lnd` (scaffolded, not yet functional) |
-
----
-
-## Architecture
-
-```
-Browser / Phone
-      │ HTTP + HTMX + WebSocket
-      ▼
-┌─────────────────────────────────────────┐
-│             FastAPI (dashboard.app)      │
-│  routes: agents, health, swarm,          │
-│          marketplace, voice, mobile      │
-└───┬─────────────┬──────────┬────────────┘
-    │             │          │
-    ▼             ▼          ▼
-Jinja2        Timmy       Swarm
-Templates     Agent       Coordinator
-(HTMX)        │           ├─ Registry (SQLite)
-              ├─ Ollama   ├─ AuctionManager (L402 bids)
-              └─ AirLLM   ├─ SwarmComms (Redis / in-memory)
-                          └─ SwarmManager (subprocess)
-    │
-    ├── Voice NLU + TTS (pyttsx3, local)
-    ├── WebSocket live feed (ws_manager)
-    ├── L402 Lightning proxy (macaroon + invoice)
-    ├── Push notifications (local + macOS native)
-    └── Siri Shortcuts API endpoints
-
-Persistence: timmy.db (Agno memory), data/swarm.db (registry + tasks)
-External:    Ollama :11434, optional Redis, optional LND gRPC
-```
-
----
-
-## Project layout
-
-```
-src/
-  config.py           # pydantic-settings — all env vars live here
-  timmy/              # Core agent (agent.py, backends.py, cli.py, prompts.py)
-  hands/              # Autonomous scheduled agents (registry, scheduler, runner)
-  dashboard/          # FastAPI app, routes, Jinja2 templates
-  swarm/              # Multi-agent: coordinator, registry, bidder, tasks, comms
-  timmy_serve/        # L402 proxy, payment handler, TTS, serve CLI
-  spark/              # Intelligence engine — events, predictions, advisory
-  creative/           # Creative director + video assembler pipeline
-  tools/              # Git, image, music, video tools for persona agents
-  lightning/          # Lightning backend abstraction (mock + LND)
-  agent_core/         # Substrate-agnostic agent interface
-  voice/              # NLU intent detection
-  ws_manager/         # WebSocket connection manager
-  notifications/      # Push notification store
-  shortcuts/          # Siri Shortcuts endpoints
-  telegram_bot/       # Telegram bridge
-  self_tdd/           # Continuous test watchdog
-hands/                # Hand manifests — oracle/, sentinel/, etc.
-tests/                # one test file per module, all mocked
-static/style.css      # Dark mission-control theme (JetBrains Mono)
-docs/                 # GitHub Pages landing page
-AGENTS.md             # AI agent development standards ← read this
-.env.example          # Environment variable reference
-Makefile              # Common dev commands
+Or with the bootstrap script (creates venv, tests, watchdog, server in one shot):
+```bash
+bash scripts/activate_self_tdd.sh
+bash scripts/activate_self_tdd.sh --big-brain   # also installs AirLLM
 ```
 
 ---
 
 ## Troubleshooting
 
-**`ollama: command not found`** — install from `brew install ollama` or ollama.com
-
-**`connection refused` in chat** — run `ollama serve` in a separate terminal
-
-**`ModuleNotFoundError: No module named 'sqlalchemy'`** — re-run install to pick up the updated `agno[sqlite]` dependency:
-`make install`
-
-**`ModuleNotFoundError: No module named 'dashboard'`** — activate the venv:
-`source .venv/bin/activate && pip install -e ".[dev]"`
-
-**Health panel shows DOWN** — Ollama isn't running; chat still works but returns
-the offline error message
-
-**L402 startup warnings** — set `L402_HMAC_SECRET` and `L402_MACAROON_SECRET` in
-`.env` to silence them (required for production)
-
----
-
-## For AI agents contributing to this repo
-
-Read [`AGENTS.md`](AGENTS.md).  It covers per-agent assignments, architecture
-patterns, coding conventions, and the v2→v3 roadmap.
+- **`ollama: command not found`** — `brew install ollama` or ollama.com
+- **`connection refused`** — run `ollama serve` first
+- **`ModuleNotFoundError`** — `source .venv/bin/activate && make install`
+- **Health panel shows DOWN** — Ollama isn't running; chat returns offline message
 
 ---
 
 ## Roadmap
 
-| Version | Name       | Status      | Milestone |
-|---------|------------|-------------|-----------|
-| 1.0.0   | Genesis    | ✅ Complete | Agno + Ollama + SQLite + Dashboard |
-| 2.0.0   | Exodus     | 🔄 In progress | Swarm + L402 + Voice + Marketplace + Hands |
-| 3.0.0   | Revelation | 📋 Planned  | Lightning treasury + single `.app` bundle |
+| Version | Name | Status |
+|---------|------|--------|
+| 1.0 | Genesis | Complete — Agno + Ollama + SQLite + Dashboard |
+| 2.0 | Exodus | In progress — Swarm + L402 + Voice + Marketplace + Hands |
+| 3.0 | Revelation | Planned — Lightning treasury + single `.app` bundle |

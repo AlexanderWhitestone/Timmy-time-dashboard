@@ -5,16 +5,20 @@ API endpoints and HTMX views for the self-coding system:
 - Stats dashboard
 - Manual task execution
 - Real-time status updates
+- Self-modification loop (/self-modify/*)
 """
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel
+
+from config import settings
 
 from self_coding import (
     CodebaseIndexer,
@@ -205,7 +209,7 @@ async def api_execute(request: ExecuteRequest):
     This is the API endpoint for manual task execution.
     In production, this should require authentication and confirmation.
     """
-    from tools.self_edit import SelfEditTool
+    from creative.tools.self_edit import SelfEditTool
     
     tool = SelfEditTool()
     result = await tool.execute(request.task_description)
@@ -328,7 +332,7 @@ async def execute_task(
 ):
     """HTMX endpoint to execute a task."""
     from dashboard.app import templates
-    from tools.self_edit import SelfEditTool
+    from creative.tools.self_edit import SelfEditTool
     
     tool = SelfEditTool()
     result = await tool.execute(task_description)
@@ -366,3 +370,59 @@ async def journal_entry_detail(request: Request, attempt_id: int):
             "entry": entry,
         },
     )
+
+
+# ── Self-Modification Routes (/self-modify/*) ───────────────────────────
+
+self_modify_router = APIRouter(prefix="/self-modify", tags=["self-modify"])
+
+
+@self_modify_router.post("/run")
+async def run_self_modify(
+    instruction: str = Form(...),
+    target_files: str = Form(""),
+    dry_run: bool = Form(False),
+    speak_result: bool = Form(False),
+):
+    """Execute a self-modification loop."""
+    if not settings.self_modify_enabled:
+        raise HTTPException(403, "Self-modification is disabled")
+
+    from self_coding.self_modify.loop import SelfModifyLoop, ModifyRequest
+
+    files = [f.strip() for f in target_files.split(",") if f.strip()]
+    request = ModifyRequest(
+        instruction=instruction,
+        target_files=files,
+        dry_run=dry_run,
+    )
+
+    loop = SelfModifyLoop()
+    result = await asyncio.to_thread(loop.run, request)
+
+    if speak_result and result.success:
+        try:
+            from timmy_serve.voice_tts import voice_tts
+            if voice_tts.available:
+                voice_tts.speak(
+                    f"Code modification complete. "
+                    f"{len(result.files_changed)} files changed. Tests passing."
+                )
+        except Exception:
+            pass
+
+    return {
+        "success": result.success,
+        "files_changed": result.files_changed,
+        "test_passed": result.test_passed,
+        "commit_sha": result.commit_sha,
+        "branch_name": result.branch_name,
+        "error": result.error,
+        "attempts": result.attempts,
+    }
+
+
+@self_modify_router.get("/status")
+async def self_modify_status():
+    """Return whether self-modification is enabled."""
+    return {"enabled": settings.self_modify_enabled}

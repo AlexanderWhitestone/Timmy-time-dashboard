@@ -25,7 +25,7 @@ async def setup_discord(payload: TokenPayload):
     Send POST with JSON body: {"token": "<your-bot-token>"}
     Get the token from https://discord.com/developers/applications
     """
-    from chat_bridge.vendors.discord import discord_bot
+    from integrations.chat_bridge.vendors.discord import discord_bot
 
     token = payload.token.strip()
     if not token:
@@ -51,7 +51,7 @@ async def setup_discord(payload: TokenPayload):
 @router.get("/status")
 async def discord_status():
     """Return current Discord bot status."""
-    from chat_bridge.vendors.discord import discord_bot
+    from integrations.chat_bridge.vendors.discord import discord_bot
 
     return discord_bot.status().to_dict()
 
@@ -70,8 +70,8 @@ async def join_from_image(
     The bot validates the invite and returns the OAuth2 URL for the
     server admin to authorize the bot.
     """
-    from chat_bridge.invite_parser import invite_parser
-    from chat_bridge.vendors.discord import discord_bot
+    from integrations.chat_bridge.invite_parser import invite_parser
+    from integrations.chat_bridge.vendors.discord import discord_bot
 
     invite_info = None
 
@@ -129,7 +129,7 @@ async def join_from_image(
 @router.get("/oauth-url")
 async def discord_oauth_url():
     """Get the bot's OAuth2 authorization URL for adding to servers."""
-    from chat_bridge.vendors.discord import discord_bot
+    from integrations.chat_bridge.vendors.discord import discord_bot
 
     url = discord_bot.get_oauth2_url()
     if url:

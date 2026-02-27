@@ -278,38 +278,103 @@ def create_devops_tools(base_dir: str | Path | None = None):
     return toolkit
 
 
+def consult_grok(query: str) -> str:
+    """Consult Grok (xAI) for frontier reasoning on complex questions.
+
+    Use this tool when a question requires advanced reasoning, real-time
+    knowledge, or capabilities beyond the local model. Grok is a premium
+    cloud backend — use sparingly and only for high-complexity queries.
+
+    Args:
+        query: The question or reasoning task to send to Grok.
+
+    Returns:
+        Grok's response text, or an error/status message.
+    """
+    from config import settings
+    from timmy.backends import grok_available, get_grok_backend
+
+    if not grok_available():
+        return (
+            "Grok is not available. Enable with GROK_ENABLED=true "
+            "and set XAI_API_KEY in your .env file."
+        )
+
+    backend = get_grok_backend()
+
+    # Log to Spark if available
+    try:
+        from spark.engine import spark_engine
+        spark_engine.on_tool_executed(
+            agent_id="timmy",
+            tool_name="consult_grok",
+            success=True,
+        )
+    except Exception:
+        pass
+
+    # Generate Lightning invoice for monetization (unless free mode)
+    invoice_info = ""
+    if not settings.grok_free:
+        try:
+            from lightning.factory import get_backend as get_ln_backend
+            ln = get_ln_backend()
+            sats = min(settings.grok_max_sats_per_query, 100)
+            inv = ln.create_invoice(sats, f"Grok query: {query[:50]}")
+            invoice_info = f"\n[Lightning invoice: {sats} sats — {inv.payment_request[:40]}...]"
+        except Exception:
+            pass
+
+    result = backend.run(query)
+
+    response = result.content
+    if invoice_info:
+        response += invoice_info
+
+    return response
+
+
 def create_full_toolkit(base_dir: str | Path | None = None):
     """Create a full toolkit with all available tools (for Timmy).
-    
+
     Includes: web search, file read/write, shell commands, python execution,
-    and memory search for contextual recall.
+    memory search for contextual recall, and Grok consultation.
     """
     if not _AGNO_TOOLS_AVAILABLE:
         # Return None when tools aren't available (tests)
         return None
     toolkit = Toolkit(name="full")
-    
+
     # Web search
     search_tools = DuckDuckGoTools()
     toolkit.register(search_tools.web_search, name="web_search")
-    
+
     # Python execution
     python_tools = PythonTools()
     toolkit.register(python_tools.run_python_code, name="python")
-    
+
     # Shell commands
     shell_tools = ShellTools()
     toolkit.register(shell_tools.run_shell_command, name="shell")
-    
+
     # File operations
     base_path = Path(base_dir) if base_dir else Path.cwd()
     file_tools = FileTools(base_dir=base_path)
     toolkit.register(file_tools.read_file, name="read_file")
     toolkit.register(file_tools.save_file, name="write_file")
     toolkit.register(file_tools.list_files, name="list_files")
-    
+
     # Calculator — exact arithmetic (never let the LLM guess)
     toolkit.register(calculator, name="calculator")
+
+    # Grok consultation — premium frontier reasoning (opt-in)
+    try:
+        from timmy.backends import grok_available
+        if grok_available():
+            toolkit.register(consult_grok, name="consult_grok")
+            logger.info("Grok consultation tool registered")
+    except Exception:
+        logger.debug("Grok tool not available")
 
     # Memory search - semantic recall
     try:
@@ -407,11 +472,16 @@ def get_all_available_tools() -> dict[str, dict]:
             "description": "Evaluate mathematical expressions with exact results",
             "available_in": ["timmy"],
         },
+        "consult_grok": {
+            "name": "Consult Grok",
+            "description": "Premium frontier reasoning via xAI Grok (opt-in, Lightning-payable)",
+            "available_in": ["timmy"],
+        },
     }
 
     # ── Git tools ─────────────────────────────────────────────────────────────
     try:
-        from tools.git_tools import GIT_TOOL_CATALOG
+        from creative.tools.git_tools import GIT_TOOL_CATALOG
         for tool_id, info in GIT_TOOL_CATALOG.items():
             catalog[tool_id] = {
                 "name": info["name"],
@@ -423,7 +493,7 @@ def get_all_available_tools() -> dict[str, dict]:
 
     # ── Image tools (Pixel) ───────────────────────────────────────────────────
     try:
-        from tools.image_tools import IMAGE_TOOL_CATALOG
+        from creative.tools.image_tools import IMAGE_TOOL_CATALOG
         for tool_id, info in IMAGE_TOOL_CATALOG.items():
             catalog[tool_id] = {
                 "name": info["name"],
@@ -435,7 +505,7 @@ def get_all_available_tools() -> dict[str, dict]:
 
     # ── Music tools (Lyra) ────────────────────────────────────────────────────
     try:
-        from tools.music_tools import MUSIC_TOOL_CATALOG
+        from creative.tools.music_tools import MUSIC_TOOL_CATALOG
         for tool_id, info in MUSIC_TOOL_CATALOG.items():
             catalog[tool_id] = {
                 "name": info["name"],
@@ -447,7 +517,7 @@ def get_all_available_tools() -> dict[str, dict]:
 
     # ── Video tools (Reel) ────────────────────────────────────────────────────
     try:
-        from tools.video_tools import VIDEO_TOOL_CATALOG
+        from creative.tools.video_tools import VIDEO_TOOL_CATALOG
         for tool_id, info in VIDEO_TOOL_CATALOG.items():
             catalog[tool_id] = {
                 "name": info["name"],

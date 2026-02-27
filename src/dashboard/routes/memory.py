@@ -7,7 +7,7 @@ from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
-from memory.vector_store import (
+from timmy.memory.vector_store import (
     store_memory,
     search_memories,
     get_memory_stats,

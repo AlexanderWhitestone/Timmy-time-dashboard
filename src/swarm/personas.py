@@ -14,7 +14,7 @@ from __future__ import annotations
 from typing import TypedDict
 
 
-class PersonaMeta(TypedDict):
+class PersonaMeta(TypedDict, total=False):
     id: str
     name: str
     role: str
@@ -24,6 +24,11 @@ class PersonaMeta(TypedDict):
     bid_base: int              # typical bid when task matches persona
     bid_jitter: int            # ± random jitter added to bid_base
     preferred_keywords: list[str]
+    # Optional: custom model override for this persona.
+    # When set, this persona uses this model instead of the global default.
+    # Value is a model name registered in the ModelRegistry, or an Ollama
+    # model name like "llama3.2" or "deepseek-r1:1.5b".
+    model: str
 
 
 PERSONAS: dict[str, PersonaMeta] = {

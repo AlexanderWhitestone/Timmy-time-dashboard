@@ -8,7 +8,7 @@ from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
-from work_orders.models import (
+from swarm.work_orders.models import (
     WorkOrder,
     WorkOrderCategory,
     WorkOrderPriority,
@@ -20,7 +20,7 @@ from work_orders.models import (
     list_work_orders,
     update_work_order_status,
 )
-from work_orders.risk import compute_risk_score, should_auto_execute
+from swarm.work_orders.risk import compute_risk_score, should_auto_execute
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ async def submit_work_order(
 
     # Notify
     try:
-        from notifications.push import notifier
+        from infrastructure.notifications.push import notifier
         notifier.notify(
             title="New Work Order",
             message=f"{wo.submitter} submitted: {wo.title}",
@@ -116,7 +116,7 @@ async def submit_work_order_json(request: Request):
     )
 
     try:
-        from notifications.push import notifier
+        from infrastructure.notifications.push import notifier
         notifier.notify(
             title="New Work Order",
             message=f"{wo.submitter} submitted: {wo.title}",
@@ -315,7 +315,7 @@ async def execute_order(wo_id: str):
     update_work_order_status(wo_id, WorkOrderStatus.IN_PROGRESS)
 
     try:
-        from work_orders.executor import work_order_executor
+        from swarm.work_orders.executor import work_order_executor
         success, result = work_order_executor.execute(wo)
         if success:
             update_work_order_status(wo_id, WorkOrderStatus.COMPLETED, result=result)

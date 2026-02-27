@@ -28,12 +28,21 @@ class Settings(BaseSettings):
     # "airllm"  — always use AirLLM (requires pip install ".[bigbrain]")
     # "auto"    — use AirLLM on Apple Silicon if airllm is installed,
     #             fall back to Ollama otherwise
-    timmy_model_backend: Literal["ollama", "airllm", "auto"] = "ollama"
+    timmy_model_backend: Literal["ollama", "airllm", "grok", "auto"] = "ollama"
 
     # AirLLM model size when backend is airllm or auto.
     # Larger = smarter, but needs more RAM / disk.
     # 8b  ~16 GB  |  70b  ~140 GB  |  405b  ~810 GB
     airllm_model_size: Literal["8b", "70b", "405b"] = "70b"
+
+    # ── Grok (xAI) — opt-in premium cloud backend ────────────────────────
+    # Grok is a premium augmentation layer — local-first ethos preserved.
+    # Only used when explicitly enabled and query complexity warrants it.
+    grok_enabled: bool = False
+    xai_api_key: str = ""
+    grok_default_model: str = "grok-3-fast"
+    grok_max_sats_per_query: int = 200
+    grok_free: bool = False  # Skip Lightning invoice when user has own API key
 
     # ── Spark Intelligence ────────────────────────────────────────────────
     # Enable/disable the Spark cognitive layer.
@@ -76,6 +85,10 @@ class Settings(BaseSettings):
     # Default is False (telemetry disabled) to align with sovereign AI vision.
     telemetry_enabled: bool = False
 
+    # CORS allowed origins for the web chat interface (GitHub Pages, etc.)
+    # Set CORS_ORIGINS as a comma-separated list, e.g. "http://localhost:3000,https://example.com"
+    cors_origins: list[str] = ["*"]
+
     # Environment mode: development | production
     # In production, security settings are strictly enforced.
     timmy_env: Literal["development", "production"] = "development"
@@ -93,6 +106,28 @@ class Settings(BaseSettings):
     work_orders_enabled: bool = True
     work_orders_auto_execute: bool = False  # Master switch for auto-execution
     work_orders_auto_threshold: str = "low"  # Max priority that auto-executes: "low" | "medium" | "high" | "none"
+
+    # ── Custom Weights & Models ──────────────────────────────────────
+    # Directory for custom model weights (GGUF, safetensors, HF checkpoints).
+    # Models placed here can be registered at runtime and assigned to agents.
+    custom_weights_dir: str = "data/models"
+    # Enable the reward model for scoring agent outputs (PRM-style).
+    reward_model_enabled: bool = False
+    # Reward model name (must be available via Ollama or a custom weight path).
+    reward_model_name: str = ""
+    # Minimum votes for majority-vote reward scoring (odd number recommended).
+    reward_model_votes: int = 3
+
+    # ── Browser Local Models (iPhone / WebGPU) ───────────────────────
+    # Enable in-browser LLM inference via WebLLM for offline iPhone use.
+    # When enabled, the mobile dashboard loads a small model directly
+    # in the browser — no server or Ollama required.
+    browser_model_enabled: bool = True
+    # WebLLM model ID — must be a pre-compiled MLC model.
+    # Recommended for iPhone: SmolLM2-360M (fast) or Qwen3-0.6B (smart).
+    browser_model_id: str = "SmolLM2-360M-Instruct-q4f16_1-MLC"
+    # Fallback to server when browser model is unavailable or too slow.
+    browser_model_fallback: bool = True
 
     # ── Scripture / Biblical Integration ──────────────────────────────
     # Enable the sovereign biblical text module.  When enabled, Timmy

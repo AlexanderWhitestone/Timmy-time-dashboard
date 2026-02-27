@@ -132,7 +132,7 @@ def run_storyboard(project_id: str) -> dict:
 
     project.status = "storyboard"
 
-    from tools.image_tools import generate_storyboard
+    from creative.tools.image_tools import generate_storyboard
 
     scene_descriptions = [s["description"] for s in project.scenes]
     result = generate_storyboard(scene_descriptions)
@@ -159,7 +159,7 @@ def run_music(
 
     project.status = "music"
 
-    from tools.music_tools import generate_song
+    from creative.tools.music_tools import generate_song
 
     # Default duration: ~15s per scene, minimum 60s
     target_duration = duration or max(60, len(project.scenes) * 15)
@@ -192,7 +192,7 @@ def run_video_generation(project_id: str) -> dict:
 
     project.status = "video"
 
-    from tools.video_tools import generate_video_clip, image_to_video
+    from creative.tools.video_tools import generate_video_clip, image_to_video
 
     clips = []
     for i, scene in enumerate(project.scenes):

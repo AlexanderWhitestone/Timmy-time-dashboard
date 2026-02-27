@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -12,21 +13,17 @@ from fastapi.templating import Jinja2Templates
 from config import settings
 from dashboard.routes.agents import router as agents_router
 from dashboard.routes.health import router as health_router
-from dashboard.routes.mobile_test import router as mobile_test_router
 from dashboard.routes.swarm import router as swarm_router
+from dashboard.routes.swarm import internal_router as swarm_internal_router
 from dashboard.routes.marketplace import router as marketplace_router
 from dashboard.routes.voice import router as voice_router
-from dashboard.routes.voice_enhanced import router as voice_enhanced_router
 from dashboard.routes.mobile import router as mobile_router
-from dashboard.routes.swarm_ws import router as swarm_ws_router
 from dashboard.routes.briefing import router as briefing_router
 from dashboard.routes.telegram import router as telegram_router
-from dashboard.routes.swarm_internal import router as swarm_internal_router
 from dashboard.routes.tools import router as tools_router
 from dashboard.routes.spark import router as spark_router
 from dashboard.routes.creative import router as creative_router
 from dashboard.routes.discord import router as discord_router
-from dashboard.routes.self_modify import router as self_modify_router
 from dashboard.routes.events import router as events_router
 from dashboard.routes.ledger import router as ledger_router
 from dashboard.routes.memory import router as memory_router
@@ -36,8 +33,12 @@ from dashboard.routes.work_orders import router as work_orders_router
 from dashboard.routes.tasks import router as tasks_router
 from dashboard.routes.scripture import router as scripture_router
 from dashboard.routes.self_coding import router as self_coding_router
+from dashboard.routes.self_coding import self_modify_router
 from dashboard.routes.hands import router as hands_router
-from router.api import router as cascade_router
+from dashboard.routes.grok import router as grok_router
+from dashboard.routes.models import router as models_router
+from dashboard.routes.models import api_router as models_api_router
+from infrastructure.router.api import router as cascade_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -60,7 +61,7 @@ async def _briefing_scheduler() -> None:
     exists (< 30 min old).
     """
     from timmy.briefing import engine as briefing_engine
-    from notifications.push import notify_briefing_ready
+    from infrastructure.notifications.push import notify_briefing_ready
 
     await asyncio.sleep(2)  # Let server finish starting before first run
 
@@ -131,16 +132,16 @@ async def lifespan(app: FastAPI):
             logger.info("MCP auto-bootstrap: %d tools registered", len(registered))
     except Exception as exc:
         logger.warning("MCP auto-bootstrap failed: %s", exc)
-    
+
     # Initialise Spark Intelligence engine
     from spark.engine import spark_engine
     if spark_engine.enabled:
         logger.info("Spark Intelligence active — event capture enabled")
 
     # Auto-start chat integrations (skip silently if unconfigured)
-    from telegram_bot.bot import telegram_bot
-    from chat_bridge.vendors.discord import discord_bot
-    from chat_bridge.registry import platform_registry
+    from integrations.telegram_bot.bot import telegram_bot
+    from integrations.chat_bridge.vendors.discord import discord_bot
+    from integrations.chat_bridge.registry import platform_registry
     platform_registry.register(discord_bot)
 
     if settings.telegram_token:
@@ -173,25 +174,31 @@ app = FastAPI(
     redoc_url="/redoc" if settings.debug else None,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory=str(PROJECT_ROOT / "static")), name="static")
 
 app.include_router(health_router)
 app.include_router(agents_router)
-app.include_router(mobile_test_router)
 app.include_router(swarm_router)
+app.include_router(swarm_internal_router)
 app.include_router(marketplace_router)
 app.include_router(voice_router)
-app.include_router(voice_enhanced_router)
 app.include_router(mobile_router)
-app.include_router(swarm_ws_router)
 app.include_router(briefing_router)
 app.include_router(telegram_router)
-app.include_router(swarm_internal_router)
 app.include_router(tools_router)
 app.include_router(spark_router)
 app.include_router(creative_router)
 app.include_router(discord_router)
+app.include_router(self_coding_router)
 app.include_router(self_modify_router)
 app.include_router(events_router)
 app.include_router(ledger_router)
@@ -201,8 +208,10 @@ app.include_router(upgrades_router)
 app.include_router(work_orders_router)
 app.include_router(tasks_router)
 app.include_router(scripture_router)
-app.include_router(self_coding_router)
 app.include_router(hands_router)
+app.include_router(grok_router)
+app.include_router(models_router)
+app.include_router(models_api_router)
 app.include_router(cascade_router)
 
 
@@ -214,5 +223,5 @@ async def index(request: Request):
 @app.get("/shortcuts/setup")
 async def shortcuts_setup():
     """Siri Shortcuts setup guide."""
-    from shortcuts.siri import get_setup_guide
+    from integrations.shortcuts.siri import get_setup_guide
     return get_setup_guide()
