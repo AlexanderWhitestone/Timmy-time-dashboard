@@ -4,7 +4,7 @@
 
 ## Basic Information
 
-**Name:** TestUser
+**Name:** Not
 **Location:** (unknown)  
 **Occupation:** (unknown)  
 **Technical Level:** (to be assessed)
@@ -40,4 +40,4 @@
 
 ---
 
-*Last updated: 2026-02-25*
+*Last updated: 2026-02-27*

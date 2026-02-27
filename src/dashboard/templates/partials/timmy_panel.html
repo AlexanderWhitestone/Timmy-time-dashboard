@@ -7,12 +7,20 @@
           <span class="status-dot {{ 'green' if agent.status == 'idle' else 'amber' }}"></span>
         {% endif %}
         // TIMMY INTERFACE
+        <span id="timmy-status" class="ms-2" style="font-size: 0.75rem; color: #888;">
+          <span class="htmx-indicator">checking...</span>
+        </span>
       </span>
       <button class="mc-btn-clear"
               hx-delete="/agents/timmy/history"
               hx-target="#chat-log"
               hx-swap="innerHTML"
               hx-confirm="Clear conversation history?">CLEAR</button>
+    </div>
+
+    <div id="current-task-banner" class="current-task-banner" style="display: none; background: #1a1a2e; padding: 8px 12px; border-bottom: 1px solid #333;">
+      <small style="color: #00ff88;">&#9679; WORKING:</small>
+      <span id="current-task-title" style="color: #fff;"></span>
     </div>
 
     <div class="chat-log flex-grow-1 overflow-auto p-3" id="chat-log"
@@ -87,4 +95,84 @@
       htmx.process(form);
     }, 100);
   }
+
+  // Poll for Timmy's queue status (fallback) + WebSocket for real-time
+(function() {
+  var statusEl = document.getElementById('timmy-status');
+  var banner = document.getElementById('current-task-banner');
+  var taskTitle = document.getElementById('current-task-title');
+  var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  var ws;
+  var chatLog = document.getElementById('chat-log');
+
+  function updateFromData(data) {
+    if (data.is_working && data.current_task) {
+      statusEl.innerHTML = '<span style="color: #ffaa00;">working...</span>';
+      banner.style.display = 'block';
+      taskTitle.textContent = data.current_task.title;
+    } else if (data.tasks_ahead > 0) {
+      statusEl.innerHTML = '<span style="color: #888;">queue: ' + data.tasks_ahead + ' ahead</span>';
+      banner.style.display = 'none';
+    } else {
+      statusEl.innerHTML = '<span style="color: #00ff88;">ready</span>';
+      banner.style.display = 'none';
+    }
+  }
+
+  function fetchStatus() {
+    fetch('/api/queue/status?assigned_to=timmy')
+      .then(r => r.json())
+      .then(updateFromData)
+      .catch(() => {});
+  }
+
+  function appendMessage(role, content, timestamp) {
+    var div = document.createElement('div');
+    div.className = 'chat-message ' + role;
+    div.innerHTML = '<div class="msg-meta">' + (role === 'user' ? 'YOU' : 'TIMMY') + ' // ' + timestamp + '</div><div class="msg-body timmy-md">' + content.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+    chatLog.appendChild(div);
+    // Render markdown if available
+    if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+      var md = div.querySelector('.timmy-md');
+      md.innerHTML = DOMPurify.sanitize(marked.parse(md.textContent));
+    }
+    // Scroll to bottom
+    chatLog.scrollTop = chatLog.scrollHeight;
+  }
+
+  function connectWs() {
+    try {
+      ws = new WebSocket(protocol + '//' + window.location.host + '/ws');
+      ws.onmessage = function(event) {
+        try {
+          var msg = JSON.parse(event.data);
+          // Refresh on task events
+          if (msg.type === 'task_event') {
+            fetchStatus();
+          } else if (msg.type === 'timmy_thought') {
+            // Timmy thought - could show in UI
+          } else if (msg.event === 'task_created' || msg.event === 'task_completed' || 
+                     msg.event === 'task_approved') {
+            fetchStatus();
+          } else if (msg.type === 'timmy_response') {
+            // Timmy pushed a response!
+            var now = new Date();
+            var ts = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+            appendMessage('agent', msg.response, ts);
+          }
+        } catch(e) {}
+      };
+      ws.onclose = function() {
+        setTimeout(connectWs, 5000);
+      };
+    } catch(e) {}
+  }
+
+  // Initial fetch + start WebSocket
+  fetchStatus();
+  connectWs();
+
+  // Also poll periodically as fallback (every 10s)
+  setInterval(fetchStatus, 10000);
+})();
 </script>

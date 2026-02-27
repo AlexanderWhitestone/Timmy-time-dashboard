@@ -59,7 +59,10 @@ def test_list_tasks():
 
 def test_list_tasks_with_status_filter():
     from swarm.task_queue.models import (
-        create_task, list_tasks, update_task_status, TaskStatus,
+        create_task,
+        list_tasks,
+        update_task_status,
+        TaskStatus,
     )
 
     task = create_task(title="Filter test", created_by="test")
@@ -70,7 +73,9 @@ def test_list_tasks_with_status_filter():
 
 def test_update_task_status():
     from swarm.task_queue.models import (
-        create_task, update_task_status, TaskStatus,
+        create_task,
+        update_task_status,
+        TaskStatus,
     )
 
     task = create_task(title="Status test", created_by="test")
@@ -80,7 +85,9 @@ def test_update_task_status():
 
 def test_update_task_running_sets_started_at():
     from swarm.task_queue.models import (
-        create_task, update_task_status, TaskStatus,
+        create_task,
+        update_task_status,
+        TaskStatus,
     )
 
     task = create_task(title="Running test", created_by="test")
@@ -90,7 +97,9 @@ def test_update_task_running_sets_started_at():
 
 def test_update_task_completed_sets_completed_at():
     from swarm.task_queue.models import (
-        create_task, update_task_status, TaskStatus,
+        create_task,
+        update_task_status,
+        TaskStatus,
     )
 
     task = create_task(title="Complete test", created_by="test")
@@ -314,6 +323,7 @@ class TestExtractTaskFromMessage:
 
     def test_add_to_queue(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         result = _extract_task_from_message("Add refactor the login to the task queue")
         assert result is not None
         assert result["agent"] == "timmy"
@@ -321,33 +331,42 @@ class TestExtractTaskFromMessage:
 
     def test_schedule_this(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         result = _extract_task_from_message("Schedule this for later")
         assert result is not None
 
     def test_create_a_task(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         result = _extract_task_from_message("Create a task to fix the login page")
         assert result is not None
         assert "title" in result
 
     def test_normal_message_returns_none(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         assert _extract_task_from_message("Hello, how are you?") is None
 
     def test_meta_question_about_tasks_returns_none(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         assert _extract_task_from_message("How do I create a task?") is None
 
     def test_what_is_question_returns_none(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         assert _extract_task_from_message("What is a task queue?") is None
 
     def test_explain_question_returns_none(self):
         from dashboard.routes.agents import _extract_task_from_message
-        assert _extract_task_from_message("Can you explain how to create a task?") is None
+
+        assert (
+            _extract_task_from_message("Can you explain how to create a task?") is None
+        )
 
     def test_what_would_question_returns_none(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         assert _extract_task_from_message("What would a task flow look like?") is None
 
 
@@ -356,22 +375,32 @@ class TestExtractAgentFromMessage:
 
     def test_extracts_forge(self):
         from dashboard.routes.agents import _extract_agent_from_message
-        assert _extract_agent_from_message("Create a task for Forge to refactor") == "forge"
+
+        assert (
+            _extract_agent_from_message("Create a task for Forge to refactor")
+            == "forge"
+        )
 
     def test_extracts_echo(self):
         from dashboard.routes.agents import _extract_agent_from_message
-        assert _extract_agent_from_message("Add research for Echo to the queue") == "echo"
+
+        assert (
+            _extract_agent_from_message("Add research for Echo to the queue") == "echo"
+        )
 
     def test_case_insensitive(self):
         from dashboard.routes.agents import _extract_agent_from_message
+
         assert _extract_agent_from_message("Schedule this for SEER") == "seer"
 
     def test_defaults_to_timmy(self):
         from dashboard.routes.agents import _extract_agent_from_message
+
         assert _extract_agent_from_message("Create a task to fix the bug") == "timmy"
 
     def test_ignores_unknown_agent(self):
         from dashboard.routes.agents import _extract_agent_from_message
+
         assert _extract_agent_from_message("Create a task for BobAgent") == "timmy"
 
 
@@ -380,26 +409,32 @@ class TestExtractPriorityFromMessage:
 
     def test_urgent(self):
         from dashboard.routes.agents import _extract_priority_from_message
+
         assert _extract_priority_from_message("urgent: fix the server") == "urgent"
 
     def test_critical(self):
         from dashboard.routes.agents import _extract_priority_from_message
+
         assert _extract_priority_from_message("This is critical, do it now") == "urgent"
 
     def test_asap(self):
         from dashboard.routes.agents import _extract_priority_from_message
+
         assert _extract_priority_from_message("Fix this ASAP") == "urgent"
 
     def test_high_priority(self):
         from dashboard.routes.agents import _extract_priority_from_message
+
         assert _extract_priority_from_message("This is important work") == "high"
 
     def test_low_priority(self):
         from dashboard.routes.agents import _extract_priority_from_message
+
         assert _extract_priority_from_message("minor cleanup task") == "low"
 
     def test_default_normal(self):
         from dashboard.routes.agents import _extract_priority_from_message
+
         assert _extract_priority_from_message("Fix the login page") == "normal"
 
 
@@ -408,25 +443,31 @@ class TestTitleCleaning:
 
     def test_strips_agent_from_title(self):
         from dashboard.routes.agents import _extract_task_from_message
-        result = _extract_task_from_message("Create a task for Forge to refactor the login")
+
+        result = _extract_task_from_message(
+            "Create a task for Forge to refactor the login"
+        )
         assert result is not None
         assert "forge" not in result["title"].lower()
         assert "for" not in result["title"].lower().split()[0:1]  # "for" stripped
 
     def test_strips_priority_from_title(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         result = _extract_task_from_message("Create an urgent task to fix the server")
         assert result is not None
         assert "urgent" not in result["title"].lower()
 
     def test_title_is_capitalized(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         result = _extract_task_from_message("Add refactor the login to the task queue")
         assert result is not None
         assert result["title"][0].isupper()
 
     def test_title_capped_at_120_chars(self):
         from dashboard.routes.agents import _extract_task_from_message
+
         long_msg = "Create a task to " + "x" * 200
         result = _extract_task_from_message(long_msg)
         assert result is not None
@@ -438,7 +479,10 @@ class TestFullExtraction:
 
     def test_task_includes_agent_and_priority(self):
         from dashboard.routes.agents import _extract_task_from_message
-        result = _extract_task_from_message("Create a high priority task for Forge to refactor auth")
+
+        result = _extract_task_from_message(
+            "Create a high priority task for Forge to refactor auth"
+        )
         assert result is not None
         assert result["agent"] == "forge"
         assert result["priority"] == "high"
@@ -446,7 +490,10 @@ class TestFullExtraction:
 
     def test_create_with_all_fields(self):
         from dashboard.routes.agents import _extract_task_from_message
-        result = _extract_task_from_message("Add an urgent task for Mace to audit security to the queue")
+
+        result = _extract_task_from_message(
+            "Add an urgent task for Mace to audit security to the queue"
+        )
         assert result is not None
         assert result["agent"] == "mace"
         assert result["priority"] == "urgent"
@@ -482,50 +529,43 @@ class TestChatTimmyIntegration:
         assert resp.status_code == 200
         assert "Task queued" in resp.text or "urgent" in resp.text.lower()
 
-    @patch("dashboard.routes.agents.timmy_chat")
-    def test_chat_injects_datetime_context(self, mock_chat, client):
-        mock_chat.return_value = "Hello there!"
-        client.post(
+    def test_chat_queues_message_for_async_processing(self, client):
+        """Normal chat messages are now queued for async processing."""
+        resp = client.post(
             "/agents/timmy/chat",
-            data={"message": "Hello Timmy"},
+            data={"message": "Hello Timmy, how are you?"},
         )
-        mock_chat.assert_called_once()
-        call_arg = mock_chat.call_args[0][0]
-        assert "[System: Current date/time is" in call_arg
+        assert resp.status_code == 200
+        # Should queue the message, not respond immediately
+        assert "queued" in resp.text.lower() or "queue" in resp.text.lower()
+        # Should show position info
+        assert "position" in resp.text.lower() or "1/" in resp.text
+
+    def test_chat_creates_chat_response_task(self, client):
+        """Chat messages create a chat_response task type."""
+        from swarm.task_queue.models import list_tasks, TaskStatus
+
+        resp = client.post(
+            "/agents/timmy/chat",
+            data={"message": "Test message"},
+        )
+        assert resp.status_code == 200
+
+        # Check that a chat_response task was created
+        tasks = list_tasks(assigned_to="timmy")
+        chat_tasks = [t for t in tasks if t.task_type == "chat_response"]
+        assert len(chat_tasks) >= 1
 
     @patch("dashboard.routes.agents.timmy_chat")
-    @patch("dashboard.routes.agents._build_queue_context")
-    def test_chat_injects_queue_context_on_queue_query(self, mock_ctx, mock_chat, client):
-        mock_ctx.return_value = "[System: Task queue — 3 pending approval, 1 running, 5 completed.]"
-        mock_chat.return_value = "There are 3 tasks pending."
-        client.post(
-            "/agents/timmy/chat",
-            data={"message": "What tasks are in the queue?"},
-        )
-        mock_ctx.assert_called_once()
-        mock_chat.assert_called_once()
-        call_arg = mock_chat.call_args[0][0]
-        assert "[System: Task queue" in call_arg
-
-    @patch("dashboard.routes.agents.timmy_chat")
-    @patch("dashboard.routes.agents._build_queue_context")
-    def test_chat_no_queue_context_for_normal_message(self, mock_ctx, mock_chat, client):
+    def test_chat_no_queue_context_for_normal_message(self, mock_chat, client):
+        """Queue context is not built for normal queued messages."""
         mock_chat.return_value = "Hi!"
         client.post(
             "/agents/timmy/chat",
             data={"message": "Tell me a joke"},
         )
-        mock_ctx.assert_not_called()
-
-    @patch("dashboard.routes.agents.timmy_chat")
-    def test_chat_normal_message_uses_timmy(self, mock_chat, client):
-        mock_chat.return_value = "I'm doing well, thank you."
-        resp = client.post(
-            "/agents/timmy/chat",
-            data={"message": "How are you?"},
-        )
-        assert resp.status_code == 200
-        mock_chat.assert_called_once()
+        # timmy_chat is not called directly - message is queued
+        mock_chat.assert_not_called()
 
 
 class TestBuildQueueContext:
@@ -534,6 +574,7 @@ class TestBuildQueueContext:
     def test_returns_string_with_counts(self):
         from dashboard.routes.agents import _build_queue_context
         from swarm.task_queue.models import create_task
+
         create_task(title="Context test task", created_by="test")
         ctx = _build_queue_context()
         assert "[System: Task queue" in ctx
@@ -541,7 +582,11 @@ class TestBuildQueueContext:
 
     def test_returns_empty_on_error(self):
         from dashboard.routes.agents import _build_queue_context
-        with patch("swarm.task_queue.models.get_counts_by_status", side_effect=Exception("DB error")):
+
+        with patch(
+            "swarm.task_queue.models.get_counts_by_status",
+            side_effect=Exception("DB error"),
+        ):
             ctx = _build_queue_context()
             assert isinstance(ctx, str)
             assert ctx == ""
@@ -558,3 +603,296 @@ def test_briefing_task_queue_summary():
     create_task(title="Briefing integration test", created_by="test")
     summary = _gather_task_queue_summary()
     assert "pending" in summary.lower() or "task" in summary.lower()
+
+
+# ── Backlog Tests ──────────────────────────────────────────────────────────
+
+
+def test_backlogged_status_exists():
+    """BACKLOGGED is a valid task status."""
+    from swarm.task_queue.models import TaskStatus
+
+    assert TaskStatus.BACKLOGGED.value == "backlogged"
+
+
+def test_backlog_task():
+    """Tasks can be moved to backlogged status with a reason."""
+    from swarm.task_queue.models import create_task, update_task_status, TaskStatus, get_task
+
+    task = create_task(title="To backlog", created_by="test")
+    updated = update_task_status(
+        task.id, TaskStatus.BACKLOGGED,
+        result="Backlogged: no handler",
+        backlog_reason="No handler for task type: external",
+    )
+    assert updated.status == TaskStatus.BACKLOGGED
+    refreshed = get_task(task.id)
+    assert refreshed.backlog_reason == "No handler for task type: external"
+
+
+def test_list_backlogged_tasks():
+    """list_backlogged_tasks returns only backlogged tasks."""
+    from swarm.task_queue.models import (
+        create_task, update_task_status, TaskStatus, list_backlogged_tasks,
+    )
+
+    task = create_task(title="Backlog list test", created_by="test", assigned_to="timmy")
+    update_task_status(
+        task.id, TaskStatus.BACKLOGGED, backlog_reason="test reason",
+    )
+    backlogged = list_backlogged_tasks(assigned_to="timmy")
+    assert any(t.id == task.id for t in backlogged)
+
+
+def test_list_backlogged_tasks_filters_by_agent():
+    """list_backlogged_tasks filters by assigned_to."""
+    from swarm.task_queue.models import (
+        create_task, update_task_status, TaskStatus, list_backlogged_tasks,
+    )
+
+    task = create_task(title="Agent filter test", created_by="test", assigned_to="forge")
+    update_task_status(task.id, TaskStatus.BACKLOGGED, backlog_reason="test")
+    backlogged = list_backlogged_tasks(assigned_to="echo")
+    assert not any(t.id == task.id for t in backlogged)
+
+
+def test_get_all_actionable_tasks():
+    """get_all_actionable_tasks returns approved and pending tasks in priority order."""
+    from swarm.task_queue.models import (
+        create_task, update_task_status, TaskStatus, get_all_actionable_tasks,
+    )
+
+    t1 = create_task(title="Low prio", created_by="test", assigned_to="drain-test", priority="low")
+    t2 = create_task(title="Urgent", created_by="test", assigned_to="drain-test", priority="urgent")
+    update_task_status(t2.id, TaskStatus.APPROVED)  # Approve the urgent one
+
+    tasks = get_all_actionable_tasks("drain-test")
+    assert len(tasks) >= 2
+    # Urgent should come before low
+    ids = [t.id for t in tasks]
+    assert ids.index(t2.id) < ids.index(t1.id)
+
+
+def test_briefing_includes_backlogged():
+    """Briefing summary includes backlogged count."""
+    from swarm.task_queue.models import (
+        create_task, update_task_status, TaskStatus, get_task_summary_for_briefing,
+    )
+
+    task = create_task(title="Briefing backlog test", created_by="test")
+    update_task_status(task.id, TaskStatus.BACKLOGGED, backlog_reason="No handler")
+    summary = get_task_summary_for_briefing()
+    assert "backlogged" in summary
+    assert "recent_backlogged" in summary
+
+
+# ── Task Processor Tests ────────────────────────────────────────────────
+
+
+class TestTaskProcessor:
+    """Tests for the TaskProcessor drain and backlog logic."""
+
+    @pytest.mark.asyncio
+    async def test_drain_empty_queue(self):
+        """drain_queue with no tasks returns zero counts."""
+        from swarm.task_processor import TaskProcessor
+
+        tp = TaskProcessor("drain-empty-test")
+        summary = await tp.drain_queue()
+        assert summary["processed"] == 0
+        assert summary["backlogged"] == 0
+        assert summary["skipped"] == 0
+
+    @pytest.mark.asyncio
+    async def test_drain_backlogs_unhandled_tasks(self):
+        """Tasks with no registered handler get backlogged during drain."""
+        from swarm.task_processor import TaskProcessor
+        from swarm.task_queue.models import create_task, get_task, TaskStatus
+
+        tp = TaskProcessor("drain-backlog-test")
+        # No handlers registered — should backlog
+        task = create_task(
+            title="Unhandleable task",
+            task_type="unknown_type",
+            assigned_to="drain-backlog-test",
+            created_by="test",
+            requires_approval=False,
+            auto_approve=True,
+        )
+
+        summary = await tp.drain_queue()
+        assert summary["backlogged"] >= 1
+
+        refreshed = get_task(task.id)
+        assert refreshed.status == TaskStatus.BACKLOGGED
+        assert refreshed.backlog_reason is not None
+
+    @pytest.mark.asyncio
+    async def test_drain_processes_handled_tasks(self):
+        """Tasks with a registered handler get processed during drain."""
+        from swarm.task_processor import TaskProcessor
+        from swarm.task_queue.models import create_task, get_task, TaskStatus
+
+        tp = TaskProcessor("drain-process-test")
+        tp.register_handler("test_type", lambda task: "done")
+
+        task = create_task(
+            title="Handleable task",
+            task_type="test_type",
+            assigned_to="drain-process-test",
+            created_by="test",
+            requires_approval=False,
+            auto_approve=True,
+        )
+
+        summary = await tp.drain_queue()
+        assert summary["processed"] >= 1
+
+        refreshed = get_task(task.id)
+        assert refreshed.status == TaskStatus.COMPLETED
+
+    @pytest.mark.asyncio
+    async def test_drain_skips_pending_approval(self):
+        """Tasks requiring approval are skipped during drain."""
+        from swarm.task_processor import TaskProcessor
+        from swarm.task_queue.models import create_task, get_task, TaskStatus
+
+        tp = TaskProcessor("drain-skip-test")
+        tp.register_handler("chat_response", lambda task: "ok")
+
+        task = create_task(
+            title="Needs approval",
+            task_type="chat_response",
+            assigned_to="drain-skip-test",
+            created_by="user",
+            requires_approval=True,
+            auto_approve=False,
+        )
+
+        summary = await tp.drain_queue()
+        assert summary["skipped"] >= 1
+
+        refreshed = get_task(task.id)
+        assert refreshed.status == TaskStatus.PENDING_APPROVAL
+
+    @pytest.mark.asyncio
+    async def test_process_single_task_backlogs_on_no_handler(self):
+        """process_single_task backlogs when no handler is registered."""
+        from swarm.task_processor import TaskProcessor
+        from swarm.task_queue.models import create_task, get_task, TaskStatus
+
+        tp = TaskProcessor("single-backlog-test")
+        task = create_task(
+            title="No handler",
+            task_type="exotic_type",
+            assigned_to="single-backlog-test",
+            created_by="test",
+            requires_approval=False,
+        )
+
+        result = await tp.process_single_task(task)
+        assert result is None
+
+        refreshed = get_task(task.id)
+        assert refreshed.status == TaskStatus.BACKLOGGED
+
+    @pytest.mark.asyncio
+    async def test_process_single_task_backlogs_permanent_error(self):
+        """process_single_task backlogs tasks with permanent errors."""
+        from swarm.task_processor import TaskProcessor
+        from swarm.task_queue.models import create_task, get_task, TaskStatus
+
+        tp = TaskProcessor("perm-error-test")
+
+        def bad_handler(task):
+            raise RuntimeError("not supported operation")
+
+        tp.register_handler("broken_type", bad_handler)
+        task = create_task(
+            title="Perm error",
+            task_type="broken_type",
+            assigned_to="perm-error-test",
+            created_by="test",
+            requires_approval=False,
+        )
+
+        result = await tp.process_single_task(task)
+        assert result is None
+
+        refreshed = get_task(task.id)
+        assert refreshed.status == TaskStatus.BACKLOGGED
+
+    @pytest.mark.asyncio
+    async def test_process_single_task_fails_transient_error(self):
+        """process_single_task marks transient errors as FAILED (retryable)."""
+        from swarm.task_processor import TaskProcessor
+        from swarm.task_queue.models import create_task, get_task, TaskStatus
+
+        tp = TaskProcessor("transient-error-test")
+
+        def flaky_handler(task):
+            raise ConnectionError("Ollama connection refused")
+
+        tp.register_handler("flaky_type", flaky_handler)
+        task = create_task(
+            title="Transient error",
+            task_type="flaky_type",
+            assigned_to="transient-error-test",
+            created_by="test",
+            requires_approval=False,
+        )
+
+        result = await tp.process_single_task(task)
+        assert result is None
+
+        refreshed = get_task(task.id)
+        assert refreshed.status == TaskStatus.FAILED
+
+
+# ── Backlog Route Tests ─────────────────────────────────────────────────
+
+
+def test_api_list_backlogged(client):
+    resp = client.get("/api/tasks/backlog")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "tasks" in data
+    assert "count" in data
+
+
+def test_api_unbacklog_task(client):
+    from swarm.task_queue.models import create_task, update_task_status, TaskStatus
+
+    task = create_task(title="To unbacklog", created_by="test")
+    update_task_status(task.id, TaskStatus.BACKLOGGED, backlog_reason="test")
+
+    resp = client.patch(f"/api/tasks/{task.id}/unbacklog")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["success"] is True
+    assert data["task"]["status"] == "approved"
+
+
+def test_api_unbacklog_wrong_status(client):
+    from swarm.task_queue.models import create_task
+
+    task = create_task(title="Not backlogged", created_by="test")
+    resp = client.patch(f"/api/tasks/{task.id}/unbacklog")
+    assert resp.status_code == 400
+
+
+def test_htmx_unbacklog(client):
+    from swarm.task_queue.models import create_task, update_task_status, TaskStatus
+
+    task = create_task(title="HTMX unbacklog", created_by="test")
+    update_task_status(task.id, TaskStatus.BACKLOGGED, backlog_reason="test")
+
+    resp = client.post(f"/tasks/{task.id}/unbacklog")
+    assert resp.status_code == 200
+
+
+def test_task_counts_include_backlogged(client):
+    resp = client.get("/api/tasks/counts")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "backlogged" in data
