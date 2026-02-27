@@ -51,6 +51,16 @@ class PersonaNode(SwarmNode):
         self._meta = meta
         self._persona_id = persona_id
         self._use_learner = use_learner
+
+        # Resolve model: registry assignment > persona default > global default
+        self._model_name: Optional[str] = meta.get("model")
+        try:
+            from infrastructure.models.registry import model_registry
+            assigned = model_registry.get_agent_model(agent_id)
+            if assigned:
+                self._model_name = assigned.name
+        except Exception:
+            pass  # Graceful degradation — use persona/global default
         
         # Initialize tool executor for task execution
         self._tool_executor: Optional[ToolExecutor] = None
@@ -213,6 +223,11 @@ class PersonaNode(SwarmNode):
         """Return the task ID currently being executed, if any."""
         return self._current_task
     
+    @property
+    def model_name(self) -> Optional[str]:
+        """Return the model this agent uses, or None for global default."""
+        return self._model_name
+
     @property
     def tool_capabilities(self) -> list[str]:
         """Return list of available tool names."""
