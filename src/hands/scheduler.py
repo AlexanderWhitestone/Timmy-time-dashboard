@@ -25,6 +25,7 @@ from typing import Any, Callable, Optional
 
 from hands.models import HandConfig, HandState, HandStatus, TriggerType
 from hands.registry import HandRegistry
+from hands.runner import HandRunner
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +65,7 @@ class HandScheduler:
             job_defaults: Default job configuration for APScheduler
         """
         self.registry = registry
+        self.runner = HandRunner(registry)
         self._scheduler: Optional[Any] = None
         self._running = False
         self._job_ids: dict[str, str] = {}
@@ -351,16 +353,14 @@ class HandScheduler:
         
         logger.info("Executing Hand %s (trigger: %s)", hand_name, trigger.value)
         
-        # TODO: Phase 4+ - Call actual Hand implementation via HandRunner
-        # For now, just log the execution
-        
-        output = f"Hand {hand_name} executed (placeholder implementation)"
+        # Call actual Hand implementation via HandRunner
+        outcome, output = await self.runner.run_hand(hand_name, trigger)
         
         # Log execution
         await self.registry.log_execution(
             hand_name=hand_name,
             trigger=trigger.value,
-            outcome=HandOutcome.SUCCESS.value,
+            outcome=outcome.value,
             output=output,
         )
         
