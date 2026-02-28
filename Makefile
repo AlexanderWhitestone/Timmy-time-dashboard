@@ -87,6 +87,24 @@ watch:
 test:
 	$(PYTEST) tests/ -q --tb=short
 
+test-unit:
+	$(PYTEST) tests -m "unit" --tb=short -v
+
+test-integration:
+	$(PYTEST) tests -m "integration" --tb=short -v
+
+test-functional:
+	$(PYTEST) tests -m "functional and not slow and not selenium" --tb=short -v
+
+test-e2e:
+	$(PYTEST) tests -m "e2e" --tb=short -v
+
+test-fast:
+	$(PYTEST) tests -m "unit or integration" --tb=short -v
+
+test-ci:
+	$(PYTEST) tests -m "not skip_ci" --tb=short --cov=src --cov-report=term-missing
+
 test-cov:
 	$(PYTEST) tests/ --cov=src --cov-report=term-missing --cov-report=xml -q
 
@@ -103,9 +121,21 @@ test-ollama:
 # ── Code quality ──────────────────────────────────────────────────────────────
 
 lint:
-	@$(PYTHON) -m ruff check src/ tests/ 2>/dev/null || \
-	 $(PYTHON) -m flake8 src/ tests/ 2>/dev/null || \
-	 echo "No linter installed — run: pip install ruff"
+	$(PYTHON) -m black --check src tests --line-length=100
+	$(PYTHON) -m isort --check-only src tests --profile=black --line-length=100
+
+format:
+	$(PYTHON) -m black src tests --line-length=100
+	$(PYTHON) -m isort src tests --profile=black --line-length=100
+
+type-check:
+	mypy src --ignore-missing-imports --no-error-summary
+
+pre-commit-install:
+	pre-commit install
+
+pre-commit-run:
+	pre-commit run --all-files
 
 # ── Housekeeping ──────────────────────────────────────────────────────────────
 
@@ -230,6 +260,16 @@ help:
 	@echo "  make test-cov-html    tests + HTML coverage report"
 	@echo "  make watch            self-TDD watchdog (60s poll)"
 	@echo "  make lint             run ruff or flake8"
+	@echo "  make format           format code (black, isort)"
+	@echo "  make type-check       run type checking (mypy)"
+	@echo "  make pre-commit-run   run all pre-commit checks"
+	@echo "  make test-unit        run unit tests only"
+	@echo "  make test-integration run integration tests only"
+	@echo "  make test-functional  run functional tests only"
+	@echo "  make test-e2e         run E2E tests only"
+	@echo "  make test-fast        run fast tests (unit + integration)"
+	@echo "  make test-ci          run CI tests (exclude skip_ci)"
+	@echo "  make pre-commit-install install pre-commit hooks"
 	@echo "  make clean            remove build artefacts and caches"
 	@echo ""
 	@echo "  Docker (Advanced)"

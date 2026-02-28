@@ -7,15 +7,20 @@ import os
 
 import pytest
 import httpx
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
+
+try:
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.support.ui import WebDriverWait
+    HAS_SELENIUM = True
+except ImportError:
+    HAS_SELENIUM = False
 
 pytestmark = pytest.mark.skipif(
-    os.environ.get("SELENIUM_UI") != "1",
-    reason="Set SELENIUM_UI=1 to run Selenium UI tests",
+    not HAS_SELENIUM or os.environ.get("SELENIUM_UI") != "1",
+    reason="Selenium not installed or SELENIUM_UI not set to 1",
 )
 
 DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "http://localhost:8000")

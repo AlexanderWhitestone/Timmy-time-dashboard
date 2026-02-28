@@ -33,7 +33,7 @@ from creative.assembler import (
     add_subtitles,
     export_final,
 )
-from fixtures.media import (
+from tests.fixtures.media import (
     make_storyboard,
     make_audio_track,
     make_video_clip,
