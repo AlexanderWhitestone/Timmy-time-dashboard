@@ -1,7 +1,8 @@
-# ── Timmy Time — docker-compose ─────────────────────────────────────────────
+# ── Timmy Time — Development Compose ────────────────────────────────────────
 #
 # Services
 #   dashboard   FastAPI app + swarm coordinator (always on)
+#   timmy       Sovereign AI agent (separate container)
 #   agent       Swarm worker template — scale with:
 #                 docker compose up --scale agent=N --profile agents
 #
@@ -14,6 +15,27 @@
 #   make docker-agent    add one agent worker
 #   make docker-down     stop everything
 #   make docker-logs     tail logs
+#
+# ── Security note: root user in dev ─────────────────────────────────────────
+# This dev compose runs containers as root (user: "0:0") so that
+# bind-mounted host files (./src, ./static) are readable regardless of
+# host UID/GID — the #1 cause of 403 errors on macOS.
+#
+# Production (docker-compose.prod.yml) uses NO bind mounts and runs as
+# the Dockerfile's non-root "timmy" user.  Never expose this dev compose
+# to untrusted networks.
+#
+# ── Ollama host access ──────────────────────────────────────────────────────
+# By default OLLAMA_URL points to http://host.docker.internal:11434 which
+# reaches Ollama running on the Docker host (macOS/Windows native).
+#
+# Linux:  The extra_hosts entry maps host.docker.internal → host-gateway,
+#         which resolves to the host IP on Docker 20.10+.  If you run an
+#         older Docker version, set OLLAMA_URL=http://172.17.0.1:11434
+#         in your .env file instead.
+#
+# Containerised Ollama:  Use docker-compose.microservices.yml which runs
+#         Ollama as a sibling container on the same network.
 
 services:
 
@@ -22,12 +44,7 @@ services:
     build: .
     image: timmy-time:latest
     container_name: timmy-dashboard
-    # Run as root in the dev compose because bind-mounted host files
-    # (./src, ./static) may not be readable by the image's non-root
-    # "timmy" user — this is the #1 cause of 403 errors on macOS.
-    # Production (docker-compose.prod.yml) uses no bind mounts and
-    # correctly runs as the Dockerfile's non-root USER.
-    user: "0:0"
+    user: "0:0"  # dev only — see security note above
     ports:
       - "8000:8000"
     volumes:
@@ -36,14 +53,13 @@ services:
       - ./static:/app/static  # live-reload: CSS/asset changes reflect immediately
     environment:
       DEBUG: "true"
-      # Point to host Ollama (Mac default).  Override in .env if different.
       OLLAMA_URL: "${OLLAMA_URL:-http://host.docker.internal:11434}"
       # Grok (xAI) — opt-in premium cloud backend
       GROK_ENABLED: "${GROK_ENABLED:-false}"
       XAI_API_KEY: "${XAI_API_KEY:-}"
       GROK_DEFAULT_MODEL: "${GROK_DEFAULT_MODEL:-grok-3-fast}"
     extra_hosts:
-      - "host.docker.internal:host-gateway"  # Linux compatibility
+      - "host.docker.internal:host-gateway"  # Linux: maps to host IP
     networks:
       - swarm-net
     restart: unless-stopped

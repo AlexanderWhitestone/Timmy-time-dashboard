@@ -1,0 +1,23 @@
+# ── Elasticsearch — Single-node config for Timmy Time ───────────────────────
+#
+# Minimal config for a single-node deployment.  For multi-node clusters
+# see: https://www.elastic.co/guide/en/elasticsearch/reference/current/docker.html
+
+cluster.name: timmy-logs
+node.name: timmy-es-01
+
+# Single-node discovery (no cluster formation overhead)
+discovery.type: single-node
+
+# Bind to all interfaces inside the container
+network.host: 0.0.0.0
+
+# Security: disable X-Pack security for internal-only deployments.
+# Enable and configure TLS if exposing Elasticsearch externally.
+xpack.security.enabled: false
+
+# Memory: let the JVM use container-aware defaults
+# (set ES_JAVA_OPTS in docker-compose for explicit heap)
+
+# Index lifecycle — auto-delete old logs after 30 days
+# Applied via ILM policy created by Logstash on first boot.

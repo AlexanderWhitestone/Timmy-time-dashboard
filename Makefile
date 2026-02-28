@@ -2,7 +2,8 @@
         up down logs \
         docker-build docker-up docker-down docker-agent docker-logs docker-shell \
         test-docker test-docker-cov test-docker-functional test-docker-build test-docker-down \
-        cloud-deploy cloud-up cloud-down cloud-logs cloud-status cloud-update
+        cloud-deploy cloud-up cloud-down cloud-logs cloud-status cloud-update \
+        logs-up logs-down logs-kibana
 
 PYTEST      := poetry run pytest
 UVICORN     := poetry run uvicorn
@@ -259,6 +260,22 @@ cloud-scale:
 cloud-pull-model:
 	docker exec timmy-ollama ollama pull $${MODEL:-llama3.2}
 
+# ── ELK Logging ──────────────────────────────────────────────────────────────
+# Overlay on top of the production stack for centralised log aggregation.
+# Kibana UI: http://localhost:5601
+
+logs-up:
+	docker compose -f docker-compose.prod.yml -f docker-compose.logging.yml up -d
+
+logs-down:
+	docker compose -f docker-compose.prod.yml -f docker-compose.logging.yml down
+
+logs-kibana:
+	@echo "Opening Kibana at http://localhost:5601 ..."
+	@command -v open >/dev/null 2>&1 && open http://localhost:5601 || \
+	 command -v xdg-open >/dev/null 2>&1 && xdg-open http://localhost:5601 || \
+	 echo "  → Open http://localhost:5601 in your browser"
+
 # ── Housekeeping ──────────────────────────────────────────────────────────────
 
 clean:
@@ -330,4 +347,10 @@ help:
 	@echo "  make cloud-droplet    create DigitalOcean droplet (needs doctl)"
 	@echo "  make cloud-scale N=4  scale agent workers"
 	@echo "  make cloud-pull-model MODEL=llama3.2  pull LLM model"
+	@echo ""
+	@echo "  ELK Log Aggregation"
+	@echo "  ─────────────────────────────────────────────────"
+	@echo "  make logs-up          start prod + ELK stack"
+	@echo "  make logs-down        stop prod + ELK stack"
+	@echo "  make logs-kibana      open Kibana UI (http://localhost:5601)"
 	@echo ""
