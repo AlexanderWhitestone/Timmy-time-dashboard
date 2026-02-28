@@ -876,6 +876,49 @@ class TestTaskProcessor:
         refreshed = get_task(task.id)
         assert refreshed.status == TaskStatus.APPROVED
 
+    @pytest.mark.asyncio
+    async def test_task_request_type_has_handler(self):
+        """task_request tasks are processed (not backlogged) when a handler is registered.
+
+        Regression test: previously task_request had no handler, causing all
+        user-queued tasks from chat to be immediately backlogged.
+        """
+        from swarm.task_processor import TaskProcessor
+        from swarm.task_queue.models import create_task, get_task, TaskStatus
+
+        tp = TaskProcessor("task-request-test")
+        tp.register_handler("task_request", lambda task: f"Completed: {task.title}")
+
+        task = create_task(
+            title="Refactor the login module",
+            description="Create a task to refactor the login module",
+            task_type="task_request",
+            assigned_to="task-request-test",
+            created_by="user",
+        )
+
+        result = await tp.process_single_task(task)
+        assert result is not None
+
+        refreshed = get_task(task.id)
+        assert refreshed.status == TaskStatus.COMPLETED
+        assert "Refactor" in refreshed.result
+
+    def test_chat_queue_request_creates_task_request_type(self, client):
+        """Chat messages that match queue patterns create task_request tasks."""
+        from swarm.task_queue.models import list_tasks
+
+        client.post(
+            "/agents/timmy/chat",
+            data={"message": "Add refactor the login module to the task queue"},
+        )
+
+        tasks = list_tasks(assigned_to="timmy")
+        task_request_tasks = [t for t in tasks if t.task_type == "task_request"]
+        assert len(task_request_tasks) >= 1
+        assert any("login" in t.title.lower() or "refactor" in t.title.lower()
+                    for t in task_request_tasks)
+
 
 # ── Backlog Route Tests ─────────────────────────────────────────────────
 
