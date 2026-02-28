@@ -1,38 +1,38 @@
 # ── Timmy Time Dashboard — Multi-stage Optimized Build ─────────────────────
 #
 # Multi-stage build for fast, lean image:
-#   1. builder   Install dependencies
+#   1. builder   Export deps via Poetry + install with pip
 #   2. runtime   Copy only what's needed for production
 #
 # Build: docker build -f docker/Dockerfile.dashboard -t timmy-dashboard:latest .
 # Run:   docker run -p 8000:8000 -v timmy-data:/app/data timmy-dashboard:latest
 
 # ── Stage 1: Builder ──────────────────────────────────────────────────────────
-FROM python:3.12-slim as builder
+FROM python:3.12-slim AS builder
 
 WORKDIR /build
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    curl \
-    git \
+    gcc curl git \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy only pyproject.toml for dependency caching
-COPY pyproject.toml .
+# Install Poetry + export plugin for dependency export
+RUN pip install --no-cache-dir poetry poetry-plugin-export
 
-# Create minimal package structure
-RUN mkdir -p src/timmy src/dashboard src/swarm src/infrastructure && \
-    touch src/__init__.py src/timmy/__init__.py src/dashboard/__init__.py \
-          src/swarm/__init__.py src/infrastructure/__init__.py config.py
+# Copy only dependency files for layer caching
+COPY pyproject.toml poetry.lock ./
 
-# Install Python dependencies (with caching)
-RUN pip install --no-cache-dir --user -e ".[swarm,telegram]"
+# Export pinned requirements and install with pip
+RUN poetry export --extras swarm --extras telegram --without-hashes \
+        -f requirements.txt -o requirements.txt
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir --user -r requirements.txt
 
 
 # ── Stage 2: Runtime ─────────────────────────────────────────────────────────
-FROM python:3.12-slim as runtime
+FROM python:3.12-slim AS runtime
 
 WORKDIR /app
 
@@ -48,7 +48,6 @@ COPY --from=builder /root/.local /root/.local
 # Copy application source
 COPY src/ ./src/
 COPY static/ ./static/
-COPY config.py .
 
 # Create data directory
 RUN mkdir -p /app/data

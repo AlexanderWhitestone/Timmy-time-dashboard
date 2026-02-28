@@ -85,7 +85,7 @@ async def stop_agent(agent_id: str):
 @router.get("/tasks")
 async def list_tasks(status: Optional[str] = None):
     """List swarm tasks, optionally filtered by status."""
-    task_status = TaskStatus(status) if status else None
+    task_status = TaskStatus(status.lower()) if status else None
     tasks = coordinator.list_tasks(task_status)
     return {
         "tasks": [

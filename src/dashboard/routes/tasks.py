@@ -181,8 +181,8 @@ async def api_list_tasks(
     limit: int = 100,
 ):
     """List tasks with optional filters."""
-    s = TaskStatus(status) if status else None
-    p = TaskPriority(priority) if priority else None
+    s = TaskStatus(status.lower()) if status else None
+    p = TaskPriority(priority.lower()) if priority else None
 
     tasks = list_tasks(status=s, priority=p, assigned_to=assigned_to, limit=limit)
     return {
