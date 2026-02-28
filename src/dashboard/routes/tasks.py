@@ -201,10 +201,11 @@ async def api_create_task(request: Request):
         assigned_to=body.get("assigned_to", "timmy"),
         created_by=body.get("created_by", "user"),
         priority=body.get("priority", "normal"),
-        requires_approval=body.get("requires_approval", True),
-        auto_approve=body.get("auto_approve", False),
+        requires_approval=body.get("requires_approval", False),
+        auto_approve=body.get("auto_approve", True),
         parent_task_id=body.get("parent_task_id"),
         steps=body.get("steps"),
+        task_type=body.get("task_type", "chat_response"),
     )
 
     # Notify
@@ -222,7 +223,7 @@ async def form_create_task(
     description: str = Form(""),
     assigned_to: str = Form("timmy"),
     priority: str = Form("normal"),
-    requires_approval: bool = Form(True),
+    requires_approval: bool = Form(False),
 ):
     """Create a task from the dashboard form (Form-encoded)."""
     task = create_task(

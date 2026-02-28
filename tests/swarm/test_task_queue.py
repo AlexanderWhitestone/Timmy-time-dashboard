@@ -27,7 +27,7 @@ def test_create_task():
     )
     assert task.id
     assert task.title == "Test task"
-    assert task.status == TaskStatus.PENDING_APPROVAL
+    assert task.status == TaskStatus.APPROVED
     assert task.priority == TaskPriority.NORMAL
     assert task.assigned_to == "timmy"
     assert task.created_by == "user"
@@ -122,13 +122,14 @@ def test_get_counts_by_status():
 
     create_task(title="Count test", created_by="test")
     counts = get_counts_by_status()
-    assert "pending_approval" in counts
+    assert "approved" in counts
 
 
 def test_get_pending_count():
     from swarm.task_queue.models import create_task, get_pending_count
 
-    create_task(title="Pending count test", created_by="test")
+    # Only escalations go to pending_approval
+    create_task(title="Pending count test", created_by="test", task_type="escalation")
     count = get_pending_count()
     assert count >= 1
 
@@ -148,11 +149,15 @@ def test_update_task_steps():
     assert retrieved.steps[0]["description"] == "Step 1"
 
 
-def test_auto_approve_not_triggered_by_default():
+def test_escalation_stays_pending():
+    """Only escalation tasks stay in pending_approval — everything else auto-approves."""
     from swarm.task_queue.models import create_task, TaskStatus
 
-    task = create_task(title="No auto", created_by="user", auto_approve=False)
+    task = create_task(title="Escalation test", created_by="timmy", task_type="escalation")
     assert task.status == TaskStatus.PENDING_APPROVAL
+
+    normal = create_task(title="Normal task", created_by="user")
+    assert normal.status == TaskStatus.APPROVED
 
 
 def test_get_task_summary_for_briefing():
@@ -204,7 +209,7 @@ def test_api_create_task(client):
     data = resp.json()
     assert data["success"] is True
     assert data["task"]["title"] == "API created task"
-    assert data["task"]["status"] == "pending_approval"
+    assert data["task"]["status"] == "approved"
 
 
 def test_api_task_counts(client):
@@ -230,12 +235,13 @@ def test_form_create_task(client):
 
 
 def test_approve_task_htmx(client):
-    # Create then approve
+    # Create an escalation (the only type that stays pending_approval)
     create_resp = client.post(
         "/api/tasks",
-        json={"title": "To approve", "assigned_to": "timmy"},
+        json={"title": "To approve", "assigned_to": "timmy", "task_type": "escalation"},
     )
     task_id = create_resp.json()["task"]["id"]
+    assert create_resp.json()["task"]["status"] == "pending_approval"
 
     resp = client.post(f"/tasks/{task_id}/approve")
     assert resp.status_code == 200
@@ -245,7 +251,7 @@ def test_approve_task_htmx(client):
 def test_veto_task_htmx(client):
     create_resp = client.post(
         "/api/tasks",
-        json={"title": "To veto", "assigned_to": "timmy"},
+        json={"title": "To veto", "assigned_to": "timmy", "task_type": "escalation"},
     )
     task_id = create_resp.json()["task"]["id"]
 
@@ -578,7 +584,7 @@ class TestBuildQueueContext:
         create_task(title="Context test task", created_by="test")
         ctx = _build_queue_context()
         assert "[System: Task queue" in ctx
-        assert "pending" in ctx.lower()
+        assert "queued" in ctx.lower()
 
     def test_returns_empty_on_error(self):
         from dashboard.routes.agents import _build_queue_context
@@ -752,22 +758,21 @@ class TestTaskProcessor:
         assert refreshed.status == TaskStatus.COMPLETED
 
     @pytest.mark.asyncio
-    async def test_drain_skips_pending_approval(self):
-        """Tasks requiring approval are skipped during drain."""
+    async def test_drain_skips_escalations(self):
+        """Escalation tasks stay in pending_approval and are skipped during drain."""
         from swarm.task_processor import TaskProcessor
         from swarm.task_queue.models import create_task, get_task, TaskStatus
 
         tp = TaskProcessor("drain-skip-test")
-        tp.register_handler("chat_response", lambda task: "ok")
+        tp.register_handler("escalation", lambda task: "ok")
 
         task = create_task(
-            title="Needs approval",
-            task_type="chat_response",
+            title="Needs human review",
+            task_type="escalation",
             assigned_to="drain-skip-test",
-            created_by="user",
-            requires_approval=True,
-            auto_approve=False,
+            created_by="timmy",
         )
+        assert task.status == TaskStatus.PENDING_APPROVAL
 
         summary = await tp.drain_queue()
         assert summary["skipped"] >= 1
@@ -847,6 +852,29 @@ class TestTaskProcessor:
 
         refreshed = get_task(task.id)
         assert refreshed.status == TaskStatus.FAILED
+
+    @pytest.mark.asyncio
+    async def test_reconcile_zombie_tasks(self):
+        """Zombie RUNNING tasks are reset to APPROVED on startup."""
+        from swarm.task_processor import TaskProcessor
+        from swarm.task_queue.models import create_task, get_task, update_task_status, TaskStatus
+
+        tp = TaskProcessor("zombie-test")
+
+        task = create_task(
+            title="Zombie task",
+            task_type="chat_response",
+            assigned_to="zombie-test",
+            created_by="test",
+        )
+        # Simulate a crash: task stuck in RUNNING
+        update_task_status(task.id, TaskStatus.RUNNING)
+
+        count = tp.reconcile_zombie_tasks()
+        assert count == 1
+
+        refreshed = get_task(task.id)
+        assert refreshed.status == TaskStatus.APPROVED
 
 
 # ── Backlog Route Tests ─────────────────────────────────────────────────

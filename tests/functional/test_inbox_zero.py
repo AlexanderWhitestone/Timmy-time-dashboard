@@ -177,37 +177,33 @@ class TestInboxZero:
         assert "No handler" in finished.result
         assert _pending_or_active_count() == 0, "Backlogged task should not block the queue"
 
-    async def test_pending_approval_requires_approval_is_skipped(self):
-        """Tasks needing human approval are skipped — they stay in the queue."""
+    async def test_escalation_is_skipped(self):
+        """Escalation tasks stay in pending_approval and are skipped by the processor."""
         proc = _make_processor()
 
         task = create_task(
-            title="Needs approval",
-            task_type="chat_response",
+            title="Needs human review",
+            task_type="escalation",
             assigned_to="timmy",
-            auto_approve=False,
-            requires_approval=True,
         )
         assert task.status == TaskStatus.PENDING_APPROVAL
 
         result = await proc.process_next_task()
-        assert result is None, "Task requiring approval should be skipped"
+        assert result is None, "Escalation should be skipped"
 
         finished = get_task(task.id)
         assert finished.status == TaskStatus.PENDING_APPROVAL, "Should remain pending"
 
     async def test_auto_approved_tasks_are_picked_up(self):
-        """Tasks that don't require approval get processed immediately."""
+        """All non-escalation tasks auto-approve and get processed immediately."""
         proc = _make_processor()
 
         task = create_task(
             title="No gate needed",
             task_type="chat_response",
             assigned_to="timmy",
-            auto_approve=False,
-            requires_approval=False,
         )
-        assert task.status == TaskStatus.PENDING_APPROVAL
+        assert task.status == TaskStatus.APPROVED
 
         result = await proc.process_next_task()
         assert result is not None

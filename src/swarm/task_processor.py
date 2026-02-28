@@ -3,9 +3,10 @@
 This module provides a background loop that Timmy uses to process tasks
 from the queue, including chat responses and self-generated tasks.
 
-On startup, the processor drains all pending/approved tasks before entering
-the steady-state polling loop.  Tasks that have no registered handler are
-moved to BACKLOGGED so they don't block the queue.
+On startup, the processor reconciles zombie tasks (stuck in RUNNING from
+a previous crash), drains all approved tasks, then enters the steady-state
+polling loop.  Tasks that have no registered handler are moved to BACKLOGGED
+so they don't block the queue.
 """
 
 import asyncio
@@ -18,6 +19,7 @@ from swarm.task_queue.models import (
     get_all_actionable_tasks,
     get_current_task_for_agent,
     get_next_pending_task,
+    list_tasks,
     update_task_status,
     update_task_steps,
     get_task,
@@ -63,6 +65,33 @@ class TaskProcessor:
                 logger.error("Failed to push message to user: %s", e)
         else:
             logger.debug("No user callback set, message not pushed: %s", content[:100])
+
+    def reconcile_zombie_tasks(self) -> int:
+        """Reset tasks stuck in RUNNING from a previous crash.
+
+        Called once on startup.  Any task in RUNNING status is assumed to
+        be orphaned (the process that was executing it died).  These are
+        moved back to APPROVED so the processor can retry them.
+
+        Returns the count of tasks reset.
+        """
+        zombies = list_tasks(status=TaskStatus.RUNNING, assigned_to=self.agent_id)
+        count = 0
+        for task in zombies:
+            update_task_status(
+                task.id,
+                TaskStatus.FAILED,
+                result="Server restarted — task did not complete. Will be retried.",
+            )
+            # Immediately re-queue as approved so it gets picked up again
+            update_task_status(task.id, TaskStatus.APPROVED, result=None)
+            count += 1
+            logger.info(
+                "Recycled zombie task: %s (%s)", task.title, task.id
+            )
+        if count:
+            logger.info("Reconciled %d zombie task(s) for %s", count, self.agent_id)
+        return count
 
     def _backlog_task(self, task: QueueTask, reason: str) -> None:
         """Move a task to the backlog with a reason."""
@@ -209,14 +238,15 @@ class TaskProcessor:
         """Process the next available task for this agent.
 
         Returns the task that was processed, or None if no tasks available.
+        Uses in-memory _current_task (not DB status) to check concurrency,
+        so zombie RUNNING rows from a previous crash don't block the queue.
         """
-        # Check if already working on something
-        current = get_current_task_for_agent(self.agent_id)
-        if current:
-            logger.debug("Already processing task: %s", current.id)
+        # Check if we're actively working on something right now
+        if self._current_task is not None:
+            logger.debug("Already processing task: %s", self._current_task.id)
             return None
 
-        # Get next task
+        # Get next approved task (pending_approval escalations are skipped)
         task = get_next_pending_task(self.agent_id)
         if not task:
             logger.debug("No pending tasks for %s", self.agent_id)

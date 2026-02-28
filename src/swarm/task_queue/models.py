@@ -48,13 +48,13 @@ class QueueTask:
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     title: str = ""
     description: str = ""
-    task_type: str = "chat_response"  # chat_response, thought, internal, external
+    task_type: str = "chat_response"  # chat_response, thought, internal, external, escalation
     assigned_to: str = "timmy"
     created_by: str = "user"
     status: TaskStatus = TaskStatus.PENDING_APPROVAL
     priority: TaskPriority = TaskPriority.NORMAL
-    requires_approval: bool = True
-    auto_approve: bool = False
+    requires_approval: bool = False
+    auto_approve: bool = True
     parent_task_id: Optional[str] = None
     result: Optional[str] = None
     steps: list = field(default_factory=list)
@@ -71,38 +71,22 @@ class QueueTask:
 
 
 # ── Auto-Approve Rules ──────────────────────────────────────────────────
-
-AUTO_APPROVE_RULES = [
-    {"assigned_to": "timmy", "type": "chat_response"},
-    {"assigned_to": "timmy", "type": "thought"},
-    {"assigned_to": "timmy", "type": "internal"},
-    {"assigned_to": "forge", "type": "run_tests"},
-    {"priority": "urgent", "created_by": "timmy"},
-    {"type": "bug_report", "created_by": "system"},
-]
+# All tasks are auto-approved by default.  The only exception is
+# task_type="escalation" — Timmy can explicitly escalate something to the
+# human, but even those never block the processor from working on other
+# tasks.
 
 
 def should_auto_approve(task: QueueTask) -> bool:
-    """Check if a task matches any auto-approve rule."""
-    if not task.auto_approve:
+    """Check if a task should be auto-approved.
+
+    Everything is approved automatically except explicit escalations
+    (task_type="escalation"), which stay in pending_approval for human
+    review but never block the queue.
+    """
+    if task.task_type == "escalation":
         return False
-    for rule in AUTO_APPROVE_RULES:
-        match = True
-        for key, val in rule.items():
-            if key == "type":
-                if task.task_type != val:
-                    match = False
-                    break
-                continue
-            task_val = getattr(task, key, None)
-            if isinstance(task_val, Enum):
-                task_val = task_val.value
-            if task_val != val:
-                match = False
-                break
-        if match:
-            return True
-    return False
+    return True
 
 
 # ── Database ─────────────────────────────────────────────────────────────
@@ -121,10 +105,10 @@ def _get_conn() -> sqlite3.Connection:
             task_type TEXT DEFAULT 'chat_response',
             assigned_to TEXT DEFAULT 'timmy',
             created_by TEXT DEFAULT 'user',
-            status TEXT DEFAULT 'pending_approval',
+            status TEXT DEFAULT 'approved',
             priority TEXT DEFAULT 'normal',
-            requires_approval INTEGER DEFAULT 1,
-            auto_approve INTEGER DEFAULT 0,
+            requires_approval INTEGER DEFAULT 0,
+            auto_approve INTEGER DEFAULT 1,
             parent_task_id TEXT,
             result TEXT,
             steps TEXT DEFAULT '[]',
@@ -199,8 +183,8 @@ def create_task(
     assigned_to: str = "timmy",
     created_by: str = "user",
     priority: str = "normal",
-    requires_approval: bool = True,
-    auto_approve: bool = False,
+    requires_approval: bool = False,
+    auto_approve: bool = True,
     parent_task_id: Optional[str] = None,
     steps: Optional[list] = None,
     task_type: str = "chat_response",
@@ -228,10 +212,13 @@ def create_task(
         queue_position=queue_position,
     )
 
-    # Check auto-approve
+    # Check auto-approve — escalations stay in pending_approval
     if should_auto_approve(task):
         task.status = TaskStatus.APPROVED
         task.requires_approval = False
+    else:
+        task.requires_approval = True
+        task.auto_approve = False
 
     conn = _get_conn()
     conn.execute(
@@ -421,12 +408,13 @@ def get_pending_count() -> int:
 def get_queue_position_ahead(assigned_to: str) -> int:
     """Get count of tasks ahead of new tasks for a given assignee.
 
-    Counts tasks that are pending_approval or approved (waiting to be processed).
+    Counts tasks that are approved or running (waiting to be processed).
+    Escalations in pending_approval are excluded — they don't block the queue.
     """
     conn = _get_conn()
     row = conn.execute(
-        """SELECT COUNT(*) as cnt FROM task_queue 
-           WHERE assigned_to = ? AND status IN ('pending_approval', 'approved', 'running')
+        """SELECT COUNT(*) as cnt FROM task_queue
+           WHERE assigned_to = ? AND status IN ('approved', 'running')
            AND created_at < datetime('now')""",
         (assigned_to,),
     ).fetchone()
@@ -482,12 +470,17 @@ def get_current_task_for_agent(assigned_to: str) -> Optional[QueueTask]:
 
 
 def get_next_pending_task(assigned_to: str) -> Optional[QueueTask]:
-    """Get the next pending/approved task for an agent to work on."""
+    """Get the next approved task for an agent to work on.
+
+    Only returns tasks in APPROVED status.  Escalations sitting in
+    PENDING_APPROVAL are intentionally skipped — they wait for human
+    review but never block the queue.
+    """
     conn = _get_conn()
     row = conn.execute(
-        """SELECT * FROM task_queue 
-           WHERE assigned_to = ? AND status IN ('approved', 'pending_approval')
-           ORDER BY 
+        """SELECT * FROM task_queue
+           WHERE assigned_to = ? AND status = 'approved'
+           ORDER BY
                CASE priority
                    WHEN 'urgent' THEN 1
                    WHEN 'high' THEN 2

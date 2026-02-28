@@ -237,6 +237,11 @@ async def _task_processor_loop() -> None:
     task_processor.register_handler("internal", handle_thought)
     task_processor.register_handler("bug_report", handle_bug_report)
 
+    # ── Reconcile zombie tasks from previous crash ──
+    zombie_count = task_processor.reconcile_zombie_tasks()
+    if zombie_count:
+        logger.info("Recycled %d zombie task(s) back to approved", zombie_count)
+
     # ── Startup drain: iterate through all pending tasks immediately ──
     logger.info("Draining task queue on startup…")
     try:
