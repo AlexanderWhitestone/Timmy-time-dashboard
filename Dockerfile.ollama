@@ -1,0 +1,49 @@
+# ── Ollama with Pre-loaded Models ──────────────────────────────────────────────
+#
+# This Dockerfile extends the official Ollama image with pre-loaded models
+# for faster startup and better performance.
+#
+# Build: docker build -f Dockerfile.ollama -t timmy-ollama:latest .
+# Run:   docker run -p 11434:11434 -v ollama-data:/root/.ollama timmy-ollama:latest
+
+FROM ollama/ollama:latest
+
+# Set environment variables
+ENV OLLAMA_HOST=0.0.0.0:11434
+
+# Create a startup script that pulls models on first run
+RUN mkdir -p /app
+COPY <<EOF /app/init-models.sh
+#!/bin/bash
+set -e
+
+echo "🚀 Ollama startup — checking for models..."
+
+# Start Ollama in the background
+ollama serve &
+OLLAMA_PID=$!
+
+# Wait for Ollama to be ready
+echo "⏳ Waiting for Ollama to be ready..."
+for i in {1..30}; do
+  if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
+    echo "✓ Ollama is ready"
+    break
+  fi
+  sleep 1
+done
+
+# Pull the default model if not already present
+echo "📥 Pulling llama3.2 model..."
+ollama pull llama3.2 || true
+
+echo "✓ Ollama initialization complete"
+
+# Keep the process running
+wait $OLLAMA_PID
+EOF
+
+RUN chmod +x /app/init-models.sh
+
+# Use the init script as the entrypoint
+ENTRYPOINT ["/app/init-models.sh"]

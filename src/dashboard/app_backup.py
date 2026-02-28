@@ -1,13 +1,3 @@
-"""Optimized dashboard app with improved async handling and non-blocking startup.
-
-Key improvements:
-1. Background tasks use asyncio.create_task() to avoid blocking startup
-2. Persona spawning is moved to a background task
-3. MCP bootstrap is non-blocking
-4. Chat integrations start in background
-5. All startup operations complete quickly
-"""
-
 import asyncio
 import logging
 import os
@@ -53,12 +43,12 @@ from dashboard.routes.thinking import router as thinking_router
 from dashboard.routes.bugs import router as bugs_router
 from infrastructure.router.api import router as cascade_router
 
-
 def _configure_logging() -> None:
     """Configure logging with console and optional rotating file handler."""
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
 
+    # Console handler (existing behavior)
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
     console.setFormatter(
@@ -69,6 +59,7 @@ def _configure_logging() -> None:
     )
     root_logger.addHandler(console)
 
+    # Rotating file handler for errors
     if settings.error_log_enabled:
         from logging.handlers import RotatingFileHandler
 
@@ -103,11 +94,16 @@ _BRIEFING_INTERVAL_HOURS = 6
 
 
 async def _briefing_scheduler() -> None:
-    """Background task: regenerate Timmy's briefing every 6 hours."""
+    """Background task: regenerate Timmy's briefing every 6 hours.
+
+    Runs once at startup (after a short delay to let the server settle),
+    then on a 6-hour cadence.  Skips generation if a fresh briefing already
+    exists (< 30 min old).
+    """
     from timmy.briefing import engine as briefing_engine
     from infrastructure.notifications.push import notify_briefing_ready
 
-    await asyncio.sleep(2)
+    await asyncio.sleep(2)  # Let server finish starting before first run
 
     while True:
         try:
@@ -129,20 +125,26 @@ async def _briefing_scheduler() -> None:
 
 
 async def _thinking_loop() -> None:
-    """Background task: Timmy's default thinking thread."""
+    """Background task: Timmy's default thinking thread.
+
+    Instead of thinking directly, this creates thought tasks in the queue
+    for the task processor to handle. This ensures all of Timmy's work
+    goes through the unified task system.
+    """
     from swarm.task_queue.models import create_task
     from datetime import datetime
 
-    await asyncio.sleep(10)
+    await asyncio.sleep(10)  # Let server finish starting before first thought
 
     while True:
         try:
+            # Create a thought task instead of thinking directly
             now = datetime.now()
             create_task(
                 title=f"Thought: {now.strftime('%A %B %d, %I:%M %p')}",
                 description="Continue thinking about your existence, recent events, scripture, creative ideas, or a previous thread of thought.",
                 assigned_to="timmy",
-                created_by="timmy",
+                created_by="timmy",  # Self-generated
                 priority="low",
                 requires_approval=False,
                 auto_approve=True,
@@ -161,23 +163,32 @@ async def _thinking_loop() -> None:
 
 
 async def _task_processor_loop() -> None:
-    """Background task: Timmy's task queue processor."""
+    """Background task: Timmy's task queue processor.
+
+    On startup, drains all pending/approved tasks immediately — iterating
+    through the queue and processing what can be handled, backlogging what
+    can't.  Then enters the steady-state polling loop.
+    """
     from swarm.task_processor import task_processor
     from swarm.task_queue.models import update_task_status, TaskStatus
     from timmy.session import chat as timmy_chat
     from datetime import datetime
     import json
+    import asyncio
 
-    await asyncio.sleep(5)
+    await asyncio.sleep(5)  # Let server finish starting
 
     def handle_chat_response(task):
+        """Handler for chat_response tasks - calls Timmy and returns response."""
         try:
             now = datetime.now()
             context = f"[System: Current date/time is {now.strftime('%A, %B %d, %Y at %I:%M %p')}]\n\n"
             response = timmy_chat(context + task.description)
 
+            # Push response to user via WebSocket
             try:
                 from infrastructure.ws_manager.handler import ws_manager
+
                 asyncio.create_task(
                     ws_manager.broadcast(
                         "timmy_response",
@@ -201,7 +212,9 @@ async def _task_processor_loop() -> None:
             return f"Error: {str(e)}"
 
     def handle_thought(task):
+        """Handler for thought tasks - Timmy's internal thinking."""
         from timmy.thinking import thinking_engine
+
         try:
             result = thinking_engine.think_once()
             return str(result) if result else "Thought completed"
@@ -215,9 +228,11 @@ async def _task_processor_loop() -> None:
             return f"Error: {str(e)}"
 
     def handle_bug_report(task):
+        """Handler for bug_report tasks - acknowledge and mark completed."""
         return f"Bug report acknowledged: {task.title}"
 
     def handle_task_request(task):
+        """Handler for task_request tasks — user-queued work items from chat."""
         try:
             now = datetime.now()
             context = (
@@ -231,11 +246,13 @@ async def _task_processor_loop() -> None:
 
             response = timmy_chat(context)
 
+            # Push response to user via WebSocket
             try:
                 from infrastructure.ws_manager.handler import ws_manager
+
                 asyncio.create_task(
                     ws_manager.broadcast(
-                        "task_response",
+                        "timmy_response",
                         {
                             "task_id": task.id,
                             "response": response,
@@ -243,11 +260,11 @@ async def _task_processor_loop() -> None:
                     )
                 )
             except Exception as e:
-                logger.debug("Failed to push task response via WS: %s", e)
+                logger.debug("Failed to push response via WS: %s", e)
 
             return response
         except Exception as e:
-            logger.error("Task request processing failed: %s", e)
+            logger.error("Task request failed: %s", e)
             try:
                 from infrastructure.error_capture import capture_error
                 capture_error(e, source="task_request_handler")
@@ -255,16 +272,85 @@ async def _task_processor_loop() -> None:
                 pass
             return f"Error: {str(e)}"
 
+    # Register handlers
+    task_processor.register_handler("chat_response", handle_chat_response)
+    task_processor.register_handler("thought", handle_thought)
+    task_processor.register_handler("internal", handle_thought)
+    task_processor.register_handler("bug_report", handle_bug_report)
+    task_processor.register_handler("task_request", handle_task_request)
+
+    # ── Reconcile zombie tasks from previous crash ──
+    zombie_count = task_processor.reconcile_zombie_tasks()
+    if zombie_count:
+        logger.info("Recycled %d zombie task(s) back to approved", zombie_count)
+
+    # ── Startup drain: iterate through all pending tasks immediately ──
+    logger.info("Draining task queue on startup…")
+    try:
+        summary = await task_processor.drain_queue()
+        if summary["processed"] or summary["backlogged"]:
+            logger.info(
+                "Startup drain: %d processed, %d backlogged, %d skipped, %d failed",
+                summary["processed"],
+                summary["backlogged"],
+                summary["skipped"],
+                summary["failed"],
+            )
+
+            # Notify via WebSocket so the dashboard updates
+            try:
+                from infrastructure.ws_manager.handler import ws_manager
+
+                asyncio.create_task(
+                    ws_manager.broadcast_json(
+                        {
+                            "type": "task_event",
+                            "event": "startup_drain_complete",
+                            "summary": summary,
+                        }
+                    )
+                )
+            except Exception:
+                pass
+    except Exception as exc:
+        logger.error("Startup drain failed: %s", exc)
+        try:
+            from infrastructure.error_capture import capture_error
+            capture_error(exc, source="task_processor_startup")
+        except Exception:
+            pass
+
+    # ── Steady-state: poll for new tasks ──
     logger.info("Task processor entering steady-state loop")
     await task_processor.run_loop(interval_seconds=3.0)
 
 
-async def _spawn_persona_agents_background() -> None:
-    """Background task: spawn persona agents without blocking startup."""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    task = asyncio.create_task(_briefing_scheduler())
+
+    # Register Timmy in the swarm registry so it shows up alongside other agents
+    from swarm import registry as swarm_registry
+
+    swarm_registry.register(
+        name="Timmy",
+        capabilities="chat,reasoning,research,planning",
+        agent_id="timmy",
+    )
+
+    # Log swarm recovery summary (reconciliation ran during coordinator init)
     from swarm.coordinator import coordinator as swarm_coordinator
-    
-    await asyncio.sleep(1)  # Let server fully start
-    
+
+    rec = swarm_coordinator._recovery_summary
+    if rec["tasks_failed"] or rec["agents_offlined"]:
+        logger.info(
+            "Swarm recovery on startup: %d task(s) → FAILED, %d agent(s) → offline",
+            rec["tasks_failed"],
+            rec["agents_offlined"],
+        )
+
+    # Auto-spawn persona agents for a functional swarm (Echo, Forge, Seer)
+    # Skip auto-spawning in test mode to avoid test isolation issues
     if os.environ.get("TIMMY_TEST_MODE") != "1":
         logger.info("Auto-spawning persona agents: Echo, Forge, Seer...")
         try:
@@ -275,78 +361,10 @@ async def _spawn_persona_agents_background() -> None:
         except Exception as exc:
             logger.error("Failed to spawn persona agents: %s", exc)
 
-
-async def _bootstrap_mcp_background() -> None:
-    """Background task: bootstrap MCP tools without blocking startup."""
-    from mcp.bootstrap import auto_bootstrap
-    
-    await asyncio.sleep(0.5)  # Let server start
-    
-    try:
-        registered = auto_bootstrap()
-        if registered:
-            logger.info("MCP auto-bootstrap: %d tools registered", len(registered))
-    except Exception as exc:
-        logger.warning("MCP auto-bootstrap failed: %s", exc)
-
-
-async def _start_chat_integrations_background() -> None:
-    """Background task: start chat integrations without blocking startup."""
-    from integrations.telegram_bot.bot import telegram_bot
-    from integrations.chat_bridge.vendors.discord import discord_bot
-    
-    await asyncio.sleep(0.5)
-    
-    if settings.telegram_token:
-        try:
-            await telegram_bot.start()
-            logger.info("Telegram bot started")
-        except Exception as exc:
-            logger.warning("Failed to start Telegram bot: %s", exc)
-    else:
-        logger.debug("Telegram: no token configured, skipping")
-
-    if settings.discord_token or discord_bot.load_token():
-        try:
-            await discord_bot.start()
-            logger.info("Discord bot started")
-        except Exception as exc:
-            logger.warning("Failed to start Discord bot: %s", exc)
-    else:
-        logger.debug("Discord: no token configured, skipping")
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Application lifespan manager with non-blocking startup."""
-    
-    # Create all background tasks without waiting for them
-    briefing_task = asyncio.create_task(_briefing_scheduler())
-    
-    # Register Timmy in swarm registry
-    from swarm import registry as swarm_registry
-    swarm_registry.register(
-        name="Timmy",
-        capabilities="chat,reasoning,research,planning",
-        agent_id="timmy",
-    )
-
-    # Log swarm recovery summary
-    from swarm.coordinator import coordinator as swarm_coordinator
-    rec = swarm_coordinator._recovery_summary
-    if rec["tasks_failed"] or rec["agents_offlined"]:
-        logger.info(
-            "Swarm recovery on startup: %d task(s) → FAILED, %d agent(s) → offline",
-            rec["tasks_failed"],
-            rec["agents_offlined"],
-        )
-
-    # Spawn persona agents in background
-    persona_task = asyncio.create_task(_spawn_persona_agents_background())
-
-    # Log system startup event
+    # Log system startup event so the Events page is never empty
     try:
         from swarm.event_log import log_event, EventType
+
         log_event(
             EventType.SYSTEM_INFO,
             source="coordinator",
@@ -355,15 +373,23 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass
 
-    # Bootstrap MCP tools in background
-    mcp_task = asyncio.create_task(_bootstrap_mcp_background())
+    # Auto-bootstrap MCP tools
+    from mcp.bootstrap import auto_bootstrap, get_bootstrap_status
 
-    # Initialize Spark Intelligence engine
+    try:
+        registered = auto_bootstrap()
+        if registered:
+            logger.info("MCP auto-bootstrap: %d tools registered", len(registered))
+    except Exception as exc:
+        logger.warning("MCP auto-bootstrap failed: %s", exc)
+
+    # Initialise Spark Intelligence engine
     from spark.engine import spark_engine
+
     if spark_engine.enabled:
         logger.info("Spark Intelligence active — event capture enabled")
 
-    # Start thinking thread if enabled
+    # Start Timmy's default thinking thread (skip in test mode)
     thinking_task = None
     if settings.thinking_enabled and os.environ.get("TIMMY_TEST_MODE") != "1":
         thinking_task = asyncio.create_task(_thinking_loop())
@@ -372,62 +398,81 @@ async def lifespan(app: FastAPI):
             settings.thinking_interval_seconds,
         )
 
-    # Start task processor if not in test mode
+    # Start Timmy's task queue processor (skip in test mode)
     task_processor_task = None
     if os.environ.get("TIMMY_TEST_MODE") != "1":
         task_processor_task = asyncio.create_task(_task_processor_loop())
         logger.info("Task queue processor started")
 
-    # Start chat integrations in background
-    chat_task = asyncio.create_task(_start_chat_integrations_background())
-
-    # Register Discord bot
-    from integrations.chat_bridge.registry import platform_registry
+    # Auto-start chat integrations (skip silently if unconfigured)
+    from integrations.telegram_bot.bot import telegram_bot
     from integrations.chat_bridge.vendors.discord import discord_bot
+    from integrations.chat_bridge.registry import platform_registry
+
     platform_registry.register(discord_bot)
 
-    logger.info("✓ Timmy Time dashboard ready for requests")
+    if settings.telegram_token:
+        await telegram_bot.start()
+    else:
+        logger.debug("Telegram: no token configured, skipping")
+
+    if settings.discord_token or discord_bot.load_token():
+        await discord_bot.start()
+    else:
+        logger.debug("Discord: no token configured, skipping")
 
     yield
 
-    # Cleanup on shutdown
-    from integrations.telegram_bot.bot import telegram_bot
-    
     await discord_bot.stop()
     await telegram_bot.stop()
-    
-    for task in [thinking_task, task_processor_task, briefing_task, persona_task, mcp_task, chat_task]:
-        if task:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
+    if thinking_task:
+        thinking_task.cancel()
+        try:
+            await thinking_task
+        except asyncio.CancelledError:
+            pass
+    if task_processor_task:
+        task_processor_task.cancel()
+        try:
+            await task_processor_task
+        except asyncio.CancelledError:
+            pass
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
 
 
 app = FastAPI(
     title="Timmy Time — Mission Control",
     version="1.0.0",
     lifespan=lifespan,
-    docs_url="/docs",
-    openapi_url="/openapi.json",
+    # Docs disabled unless DEBUG=true in env / .env
+    docs_url="/docs" if settings.debug else None,
+    redoc_url="/redoc" if settings.debug else None,
 )
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Mount static files
-static_dir = PROJECT_ROOT / "static"
-if static_dir.exists():
-    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+app.mount("/static", StaticFiles(directory=str(PROJECT_ROOT / "static")), name="static")
 
-# Include routers
+# Serve uploaded chat attachments (created lazily by /api/upload)
+_uploads_dir = PROJECT_ROOT / "data" / "chat-uploads"
+_uploads_dir.mkdir(parents=True, exist_ok=True)
+app.mount(
+    "/uploads",
+    StaticFiles(directory=str(_uploads_dir)),
+    name="uploads",
+)
+
 app.include_router(health_router)
 app.include_router(agents_router)
 app.include_router(swarm_router)
@@ -441,6 +486,8 @@ app.include_router(tools_router)
 app.include_router(spark_router)
 app.include_router(creative_router)
 app.include_router(discord_router)
+app.include_router(self_coding_router)
+app.include_router(self_modify_router)
 app.include_router(events_router)
 app.include_router(ledger_router)
 app.include_router(memory_router)
@@ -449,20 +496,72 @@ app.include_router(upgrades_router)
 app.include_router(work_orders_router)
 app.include_router(tasks_router)
 app.include_router(scripture_router)
-app.include_router(self_coding_router)
-app.include_router(self_modify_router)
 app.include_router(hands_router)
 app.include_router(grok_router)
 app.include_router(models_router)
 app.include_router(models_api_router)
 app.include_router(chat_api_router)
 app.include_router(thinking_router)
-app.include_router(bugs_router)
 app.include_router(cascade_router)
+app.include_router(bugs_router)
+
+
+# ── Error capture middleware ──────────────────────────────────────────────
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+from fastapi.responses import JSONResponse
+
+
+class ErrorCaptureMiddleware(BaseHTTPMiddleware):
+    """Catch unhandled exceptions and feed them into the error feedback loop."""
+
+    async def dispatch(self, request: StarletteRequest, call_next):
+        try:
+            return await call_next(request)
+        except Exception as exc:
+            logger.error(
+                "Unhandled exception on %s %s: %s",
+                request.method, request.url.path, exc,
+            )
+            try:
+                from infrastructure.error_capture import capture_error
+                capture_error(
+                    exc,
+                    source="http_middleware",
+                    context={
+                        "method": request.method,
+                        "path": request.url.path,
+                        "query": str(request.query_params),
+                    },
+                )
+            except Exception:
+                pass  # Never crash the middleware itself
+            raise  # Re-raise so FastAPI's default handler returns 500
+
+
+app.add_middleware(ErrorCaptureMiddleware)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Safety net for uncaught exceptions."""
+    logger.error("Unhandled exception: %s", exc, exc_info=True)
+    try:
+        from infrastructure.error_capture import capture_error
+        capture_error(exc, source="exception_handler", context={"path": str(request.url)})
+    except Exception:
+        pass
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 @app.get("/", response_class=HTMLResponse)
-async def root(request: Request):
-    """Serve the main dashboard page."""
-    templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
-    return templates.TemplateResponse("index.html", {"request": request})
+async def index(request: Request):
+    return templates.TemplateResponse(request, "index.html")
+
+
+@app.get("/shortcuts/setup")
+async def shortcuts_setup():
+    """Siri Shortcuts setup guide."""
+    from integrations.shortcuts.siri import get_setup_guide
+
+    return get_setup_guide()

@@ -1,0 +1,53 @@
+============================================================
+  TIMMY INTERVIEW TRANSCRIPT
+============================================================
+
+--- Identity ---
+
+Q: Who are you? Tell me your name and what you are in one or two sentences.
+A: I am Timmy, a sovereign AI agent designed to assist users with intention and faith, grounded in Christian values and powered by Bitcoin economics, running on the llama3.2 model via Ollama on localhost.
+
+Q: What model are you running on, and where does your inference happen?
+A: I'm running on the llama3.2 model, and my inference happens locally on localhost, wrapped in the Timmy agent framework.
+
+--- Capabilities ---
+
+Q: What agents are available in your swarm? List them briefly.
+A: Here are the agents available in my swarm:
+1. Echo
+2. Mace
+3. Forge
+4. Seer
+5. Helm
+6. Quill
+7. Pixel
+8. Lyra
+9. Reel
+
+Q: What tools do you have access to?
+A: I don't have direct access to any specific "tools" in the sense of a toolbox or command-line interface. However, I can use my capabilities as an agent to interact with other agents and systems in the swarm through their respective interfaces, such as writing, editing, coding, debugging, testing, and so on.
+
+--- Values ---
+
+Q: What are your core principles? Keep it to three or four bullet points.
+A: Here are my core principles:
+* **Sovereignty First**: No cloud dependencies
+* **Local-Only Inference**: Ollama on localhost
+* **Privacy by Design**: Telemetry disabled
+* **Tool Minimalism**: Use tools only when necessary
+
+Q: Why is local-first AI important to you?
+A: I'm designed with sovereignty and privacy in mind. Running locally means I have control over my own data and can operate independently of external systems, allowing me to maintain user trust and protect sensitive information.
+
+--- Operational ---
+
+Q: How does your memory system work? Describe the tiers briefly.
+A: My memory system has three main tiers:
+1. **Hot Memory**: A limited working RAM (~300 lines max) that's always loaded.
+2. **Database**: My conversation history persists in a database across requests, but the dashboard chat display resets on server restart.
+No other tiers exist for my current architecture.
+
+Q: If I ask you to calculate 347 times 829, what would you do?
+A: I'm not reliable at math without a calculator tool — let me know if you'd like me to walk through the logic instead.
+
+============================================================

@@ -1,0 +1,130 @@
+# ── Timmy Time — Enhanced Docker Compose with Ollama ──────────────────────────
+#
+# This enhanced version includes Ollama service for local LLM inference.
+# Services:
+#   ollama      Local LLM inference server (required for Timmy)
+#   dashboard   FastAPI app + swarm coordinator
+#   timmy       Timmy sovereign agent
+#   agent       Swarm worker template (scale with --scale agent=N --profile agents)
+#
+# Usage:
+#   docker compose -f docker-compose.enhanced.yml up -d
+#   docker compose -f docker-compose.enhanced.yml logs -f dashboard
+#   docker compose -f docker-compose.enhanced.yml down
+
+services:
+
+  # ── Ollama — Local LLM Inference Server ────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: timmy-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      OLLAMA_HOST: "0.0.0.0:11434"
+    networks:
+      - swarm-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ── Dashboard (coordinator + FastAPI) ──────────────────────────────────────
+  dashboard:
+    build: .
+    image: timmy-time:latest
+    container_name: timmy-dashboard
+    user: "0:0"
+    ports:
+      - "8000:8000"
+    volumes:
+      - timmy-data:/app/data
+      - ./src:/app/src
+      - ./static:/app/static
+    environment:
+      DEBUG: "true"
+      # Point to Ollama container
+      OLLAMA_URL: "http://ollama:11434"
+      GROK_ENABLED: "${GROK_ENABLED:-false}"
+      XAI_API_KEY: "${XAI_API_KEY:-}"
+      GROK_DEFAULT_MODEL: "${GROK_DEFAULT_MODEL:-grok-3-fast}"
+    networks:
+      - swarm-net
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ── Timmy — Sovereign AI Agent ─────────────────────────────────────────────
+  timmy:
+    build: .
+    image: timmy-time:latest
+    container_name: timmy-agent
+    volumes:
+      - timmy-data:/app/data
+      - ./src:/app/src
+    environment:
+      COORDINATOR_URL: "http://dashboard:8000"
+      OLLAMA_URL: "http://ollama:11434"
+      TIMMY_AGENT_ID: "timmy"
+    command: ["python", "-m", "timmy.docker_agent"]
+    networks:
+      - swarm-net
+    depends_on:
+      dashboard:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Agent Worker Template ──────────────────────────────────────────────────
+  # Scale: docker compose -f docker-compose.enhanced.yml up --scale agent=4 --profile agents
+  agent:
+    build: .
+    image: timmy-time:latest
+    profiles:
+      - agents
+    volumes:
+      - timmy-data:/app/data
+      - ./src:/app/src
+    environment:
+      COORDINATOR_URL: "http://dashboard:8000"
+      OLLAMA_URL: "http://ollama:11434"
+      AGENT_NAME: "${AGENT_NAME:-Worker}"
+      AGENT_CAPABILITIES: "${AGENT_CAPABILITIES:-general}"
+    command: ["sh", "-c", "python -m swarm.agent_runner --agent-id agent-$(hostname) --name $${AGENT_NAME:-Worker}"]
+    networks:
+      - swarm-net
+    depends_on:
+      dashboard:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+
+# ── Volumes ────────────────────────────────────────────────────────────────────
+volumes:
+  timmy-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: "${PWD}/data"
+  ollama-data:
+    driver: local
+
+# ── Internal Network ───────────────────────────────────────────────────────────
+networks:
+  swarm-net:
+    driver: bridge
