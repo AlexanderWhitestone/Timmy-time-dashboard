@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # "airllm"  — always use AirLLM (requires pip install ".[bigbrain]")
     # "auto"    — use AirLLM on Apple Silicon if airllm is installed,
     #             fall back to Ollama otherwise
-    timmy_model_backend: Literal["ollama", "airllm", "grok", "auto"] = "ollama"
+    timmy_model_backend: Literal["ollama", "airllm", "grok", "claude", "auto"] = "ollama"
 
     # AirLLM model size when backend is airllm or auto.
     # Larger = smarter, but needs more RAM / disk.
@@ -43,6 +43,12 @@ class Settings(BaseSettings):
     grok_default_model: str = "grok-3-fast"
     grok_max_sats_per_query: int = 200
     grok_free: bool = False  # Skip Lightning invoice when user has own API key
+
+    # ── Claude (Anthropic) — cloud fallback backend ────────────────────────
+    # Used when Ollama is offline and local inference isn't available.
+    # Set ANTHROPIC_API_KEY to enable.  Default model is Haiku (fast + cheap).
+    anthropic_api_key: str = ""
+    claude_model: str = "haiku"
 
     # ── Spark Intelligence ────────────────────────────────────────────────
     # Enable/disable the Spark cognitive layer.
