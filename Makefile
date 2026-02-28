@@ -1,43 +1,27 @@
-.PHONY: install install-bigbrain install-creative dev nuke fresh test test-cov test-cov-html watch lint clean help \
+.PHONY: install install-bigbrain dev nuke fresh test test-cov test-cov-html watch lint clean help \
         up down logs \
         docker-build docker-up docker-down docker-agent docker-logs docker-shell \
         cloud-deploy cloud-up cloud-down cloud-logs cloud-status cloud-update
 
-VENV        := .venv
-PYTHON      := $(VENV)/bin/python
-PIP         := $(VENV)/bin/pip
-PYTEST      := $(VENV)/bin/pytest
-UVICORN     := $(VENV)/bin/uvicorn
-SELF_TDD    := $(VENV)/bin/self-tdd
+PYTEST      := poetry run pytest
+UVICORN     := poetry run uvicorn
+SELF_TDD    := poetry run self-tdd
+PYTHON      := poetry run python
 
 # ── Setup ─────────────────────────────────────────────────────────────────────
 
-install: $(VENV)/bin/activate
-	$(PIP) install --quiet -e ".[dev]"
+install:
+	poetry install --with dev
 	@echo "✓ Ready. Run 'make dev' to start the dashboard."
 
-install-bigbrain: $(VENV)/bin/activate
-	$(PIP) install --quiet -e ".[dev,bigbrain]"
+install-bigbrain:
+	poetry install --with dev --extras bigbrain
 	@if [ "$$(uname -m)" = "arm64" ] && [ "$$(uname -s)" = "Darwin" ]; then \
-	    $(PIP) install --quiet "airllm[mlx]"; \
+	    poetry run pip install --quiet "airllm[mlx]"; \
 	    echo "✓ AirLLM + MLX installed (Apple Silicon detected)"; \
 	else \
 	    echo "✓ AirLLM installed (PyTorch backend)"; \
 	fi
-
-install-creative: $(VENV)/bin/activate
-	$(PIP) install --quiet -e ".[dev,creative]"
-	@if [ "$$(uname -m)" = "arm64" ] && [ "$$(uname -s)" = "Darwin" ]; then \
-	    echo "  Apple Silicon detected — installing PyTorch with Metal (MPS) support..."; \
-	    $(PIP) install --quiet --pre torch torchvision torchaudio \
-	        --index-url https://download.pytorch.org/whl/nightly/cpu; \
-	    echo "✓ Creative extras installed with Metal GPU acceleration"; \
-	else \
-	    echo "✓ Creative extras installed (diffusers, torch, ace-step)"; \
-	fi
-
-$(VENV)/bin/activate:
-	python3 -m venv $(VENV)
 
 # ── Development ───────────────────────────────────────────────────────────────
 
@@ -63,7 +47,7 @@ nuke:
 # Ensures no stale code, cached layers, or old DB state persists.
 fresh: nuke
 	docker compose down -v --rmi local 2>/dev/null || true
-	docker compose build --no-cache
+	DOCKER_BUILDKIT=1 docker compose build --no-cache
 	mkdir -p data
 	docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 	@echo ""
@@ -158,14 +142,14 @@ pre-commit-run:
 up:
 	mkdir -p data
 ifdef DEV
-	docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+	DOCKER_BUILDKIT=1 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 	@echo ""
 	@echo "  ✓ Timmy Time running in DEV mode at http://localhost:8000"
 	@echo "    Hot-reload active — Python, template, and CSS changes auto-apply"
 	@echo "    Logs: make logs"
 	@echo ""
 else
-	docker compose up -d --build
+	DOCKER_BUILDKIT=1 docker compose up -d --build
 	@echo ""
 	@echo "  ✓ Timmy Time running at http://localhost:8000"
 	@echo "    Logs: make logs"
@@ -181,7 +165,7 @@ logs:
 # ── Docker ────────────────────────────────────────────────────────────────────
 
 docker-build:
-	docker build -t timmy-time:latest .
+	DOCKER_BUILDKIT=1 docker build -t timmy-time:latest .
 
 docker-up:
 	mkdir -p data
@@ -261,9 +245,8 @@ help:
 	@echo ""
 	@echo "  Local Development"
 	@echo "  ─────────────────────────────────────────────────"
-	@echo "  make install          create venv + install dev deps"
+	@echo "  make install          install deps via Poetry"
 	@echo "  make install-bigbrain install with AirLLM (big-model backend)"
-	@echo "  make install-creative install with creative extras (torch, diffusers)"
 	@echo "  make dev              clean up + start dashboard (auto-fixes errno 48)"
 	@echo "  make nuke             kill port 8000, stop containers, reset state"
 	@echo "  make fresh            full clean rebuild (no cached layers/volumes)"

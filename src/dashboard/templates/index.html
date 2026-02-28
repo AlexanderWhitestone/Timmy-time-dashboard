@@ -50,8 +50,12 @@
 
 <script>
   function scrollChat() {
-    const log = document.getElementById('chat-log');
-    if (log) log.scrollTop = log.scrollHeight;
+    var log = document.getElementById('chat-log');
+    if (log) {
+      requestAnimationFrame(function() {
+        log.scrollTop = log.scrollHeight;
+      });
+    }
   }
   function scrollAgentLog(id) {
     const log = document.getElementById('agent-log-' + id);

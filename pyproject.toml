@@ -1,103 +1,74 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
 
-[project]
+[tool.poetry]
 name = "timmy-time"
 version = "1.0.0"
 description = "Mission Control for sovereign AI agents"
 readme = "README.md"
-requires-python = ">=3.11"
-license = { text = "MIT" }
-dependencies = [
-    "agno[sqlite]>=1.4.0",
-    "ollama>=0.3.0",
-    "openai>=1.0.0",
-    "fastapi>=0.115.0",
-    "uvicorn[standard]>=0.32.0",
-    "jinja2>=3.1.0",
-    "httpx>=0.27.0",
-    "python-multipart>=0.0.12",
-    "aiofiles>=24.0.0",
-    "typer>=0.12.0",
-    "rich>=13.0.0",
-    "pydantic-settings>=2.0.0",
-    "websockets>=12.0",
-    "GitPython>=3.1.40",
-    "moviepy>=2.0.0",
-    "requests>=2.31.0",
+license = "MIT"
+packages = [
+    { include = "config.py", from = "src" },
+    { include = "creative", from = "src" },
+    { include = "dashboard", from = "src" },
+    { include = "hands", from = "src" },
+    { include = "infrastructure", from = "src" },
+    { include = "integrations", from = "src" },
+    { include = "lightning", from = "src" },
+    { include = "mcp", from = "src" },
+    { include = "scripture", from = "src" },
+    { include = "self_coding", from = "src" },
+    { include = "spark", from = "src" },
+    { include = "swarm", from = "src" },
+    { include = "timmy", from = "src" },
+    { include = "timmy_serve", from = "src" },
 ]
 
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.0.0",
-    "pytest-asyncio>=0.24.0",
-    "pytest-cov>=5.0.0",
-    "pytest-timeout>=2.3.0",
-    "selenium>=4.20.0",
-]
-# Big-brain: run 8B / 70B / 405B models locally via layer-by-layer loading.
-# pip install ".[bigbrain]"
-# On Apple Silicon: pip install "airllm[mlx]" for the MLX-accelerated backend.
-bigbrain = [
-    "airllm>=2.9.0",
-]
-# Swarm: Redis-backed pub/sub for multi-agent communication.
-# pip install ".[swarm]"
-swarm = [
-    "redis>=5.0.0",
-]
-# Voice: text-to-speech output via pyttsx3.
-# pip install ".[voice]"
-voice = [
-    "pyttsx3>=2.90",
-]
-# Telegram: bridge Telegram messages to Timmy via python-telegram-bot.
-# pip install ".[telegram]"
-telegram = [
-    "python-telegram-bot>=21.0",
-]
-# Discord: bridge Discord messages to Timmy with native thread support.
-# pip install ".[discord]"
-# Optional: pip install pyzbar Pillow  (for QR code invite detection)
-discord = [
-    "discord.py>=2.3.0",
-]
-# Creative: GPU-accelerated image, music, and video generation.
-# pip install ".[creative]"
-creative = [
-    "diffusers>=0.30.0",
-    "transformers>=4.40.0",
-    "accelerate>=0.30.0",
-    "torch>=2.2.0",
-    "safetensors>=0.4.0",
-    "ace-step>=1.5.0",
-]
+[tool.poetry.dependencies]
+python = ">=3.11,<4"
+agno = { version = ">=1.4.0", extras = ["sqlite"] }
+ollama = ">=0.3.0"
+openai = ">=1.0.0"
+fastapi = ">=0.115.0"
+uvicorn = { version = ">=0.32.0", extras = ["standard"] }
+jinja2 = ">=3.1.0"
+httpx = ">=0.27.0"
+python-multipart = ">=0.0.12"
+aiofiles = ">=22.0.0"
+typer = ">=0.12.0"
+rich = ">=13.0.0"
+pydantic-settings = ">=2.0.0"
+websockets = ">=12.0"
+GitPython = ">=3.1.40"
+moviepy = ">=2.0.0"
+requests = ">=2.31.0"
+# Optional extras
+redis = { version = ">=5.0.0", optional = true }
+python-telegram-bot = { version = ">=21.0", optional = true }
+"discord.py" = { version = ">=2.3.0", optional = true }
+airllm = { version = ">=2.9.0", optional = true }
+pyttsx3 = { version = ">=2.90", optional = true }
 
-[project.scripts]
+[tool.poetry.extras]
+swarm = ["redis"]
+telegram = ["python-telegram-bot"]
+discord = ["discord.py"]
+bigbrain = ["airllm"]
+voice = ["pyttsx3"]
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.0.0"
+pytest-asyncio = ">=0.24.0"
+pytest-cov = ">=5.0.0"
+pytest-timeout = ">=2.3.0"
+selenium = ">=4.20.0"
+
+[tool.poetry.scripts]
 timmy = "timmy.cli:main"
 timmy-serve = "timmy_serve.cli:main"
 self-tdd = "self_coding.self_tdd.watchdog:main"
 self-modify = "self_coding.self_modify.cli:main"
-
-[tool.hatch.build.targets.wheel]
-sources = {"src" = ""}
-include = [
-    "src/config.py",
-    "src/creative",
-    "src/dashboard",
-    "src/hands",
-    "src/infrastructure",
-    "src/integrations",
-    "src/lightning",
-    "src/mcp",
-    "src/scripture",
-    "src/self_coding",
-    "src/spark",
-    "src/swarm",
-    "src/timmy",
-    "src/timmy_serve",
-]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

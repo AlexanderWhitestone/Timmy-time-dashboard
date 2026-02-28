@@ -11,32 +11,42 @@
 #                    timmy-time:latest \
 #                    python -m swarm.agent_runner --agent-id w1 --name Worker-1
 
+# ── Stage 1: Builder — export deps via Poetry, install via pip ──────────────
+FROM python:3.12-slim AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Install Poetry + export plugin (only needed for export, not in runtime)
+RUN pip install --no-cache-dir poetry poetry-plugin-export
+
+# Copy dependency files only (layer caching)
+COPY pyproject.toml poetry.lock ./
+
+# Export pinned requirements and install with pip cache mount
+RUN poetry export --extras swarm --extras telegram --without-hashes \
+        -f requirements.txt -o requirements.txt
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r requirements.txt
+
+# ── Stage 2: Runtime ───────────────────────────────────────────────────────
 FROM python:3.12-slim AS base
 
-# ── System deps ──────────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        gcc curl fonts-dejavu-core \
+        curl fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# ── Python deps (install before copying src for layer caching) ───────────────
-# Copy only pyproject.toml first so Docker can cache the dep-install layer.
-# The editable install (-e) happens after src is copied below.
-COPY pyproject.toml .
-
-# Create a minimal src layout so `pip install` can resolve the package metadata
-# without copying the full source tree (preserves Docker layer caching).
-RUN mkdir -p src/timmy src/timmy_serve src/self_tdd src/dashboard && \
-    touch src/timmy/__init__.py src/timmy/cli.py \
-          src/timmy_serve/__init__.py src/timmy_serve/cli.py \
-          src/self_tdd/__init__.py src/self_tdd/watchdog.py \
-          src/dashboard/__init__.py src/config.py
-
-RUN pip install --no-cache-dir -e ".[swarm,telegram]"
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # ── Application source ───────────────────────────────────────────────────────
-# Overwrite the stubs with real source code
 COPY src/ ./src/
 COPY static/ ./static/
 
@@ -48,8 +58,6 @@ RUN groupadd -r timmy && useradd -r -g timmy -d /app -s /sbin/nologin timmy \
     && chown -R timmy:timmy /app
 # Ensure static/ and data/ are world-readable so bind-mounted files
 # from the macOS host remain accessible when running as the timmy user.
-# Docker Desktop for Mac bind mounts inherit host permissions, which may
-# not include the container's timmy UID — chmod o+rX fixes 403 errors.
 RUN chmod -R o+rX /app/static /app/data
 USER timmy
 

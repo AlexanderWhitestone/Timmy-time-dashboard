@@ -255,12 +255,14 @@ async def _task_processor_loop() -> None:
                 pass
             return f"Error: {str(e)}"
 
-    # Register handlers
+    # Register handlers for all known task types
     task_processor.register_handler("chat_response", handle_chat_response)
     task_processor.register_handler("thought", handle_thought)
     task_processor.register_handler("internal", handle_thought)
     task_processor.register_handler("bug_report", handle_bug_report)
     task_processor.register_handler("task_request", handle_task_request)
+    task_processor.register_handler("escalation", handle_task_request)
+    task_processor.register_handler("external", handle_task_request)
 
     # ── Reconcile zombie tasks from previous crash ──
     zombie_count = task_processor.reconcile_zombie_tasks()
