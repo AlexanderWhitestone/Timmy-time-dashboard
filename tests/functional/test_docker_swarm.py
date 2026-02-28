@@ -21,6 +21,13 @@ httpx = pytest.importorskip("httpx")
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 COMPOSE_TEST = PROJECT_ROOT / "docker-compose.test.yml"
 
+# Skip all tests in this module if Docker is not available or FUNCTIONAL_DOCKER is not set
+pytestmark = pytest.mark.skipif(
+    subprocess.run(["which", "docker"], capture_output=True).returncode != 0
+    or subprocess.run(["which", "docker-compose"], capture_output=True).returncode != 0,
+    reason="Docker or docker-compose not installed"
+)
+
 
 def _compose(*args, timeout=60):
     cmd = ["docker", "compose", "-f", str(COMPOSE_TEST), "-p", "timmy-test", *args]
