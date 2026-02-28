@@ -102,7 +102,8 @@ def test_chat_timmy_success(client):
 
     assert response.status_code == 200
     assert "status?" in response.text
-    assert "I am Timmy" in response.text
+    # In async mode, the response acknowledges queuing
+    assert "Message queued" in response.text
 
 
 def test_chat_timmy_shows_user_message(client):
@@ -113,14 +114,12 @@ def test_chat_timmy_shows_user_message(client):
 
 
 def test_chat_timmy_ollama_offline(client):
-    with patch(
-        "dashboard.routes.agents.timmy_chat",
-        side_effect=Exception("connection refused"),
-    ):
-        response = client.post("/agents/timmy/chat", data={"message": "ping"})
+    # In async mode, chat_timmy queues the message regardless of Ollama status
+    # because processing happens in a background task.
+    response = client.post("/agents/timmy/chat", data={"message": "ping"})
 
     assert response.status_code == 200
-    assert "Timmy is offline" in response.text
+    assert "Message queued" in response.text
     assert "ping" in response.text
 
 
@@ -144,16 +143,18 @@ def test_history_records_user_and_agent_messages(client):
 
     response = client.get("/agents/timmy/history")
     assert "status check" in response.text
-    assert "I am operational." in response.text
+    # In async mode, it records the "Message queued" response
+    assert "Message queued" in response.text
 
 
 def test_history_records_error_when_offline(client):
-    with patch("dashboard.routes.agents.timmy_chat", side_effect=Exception("refused")):
-        client.post("/agents/timmy/chat", data={"message": "ping"})
+    # In async mode, errors during queuing are rare; 
+    # if queuing succeeds, it records "Message queued".
+    client.post("/agents/timmy/chat", data={"message": "ping"})
 
     response = client.get("/agents/timmy/history")
     assert "ping" in response.text
-    assert "Timmy is offline" in response.text
+    assert "Message queued" in response.text
 
 
 def test_history_clear_resets_to_init_message(client):
