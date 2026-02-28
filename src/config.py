@@ -147,6 +147,16 @@ class Settings(BaseSettings):
     thinking_enabled: bool = True
     thinking_interval_seconds: int = 300  # 5 minutes between thoughts
 
+    # ── OpenFang — vendored agent runtime ─────────────────────────────
+    # URL where the OpenFang sidecar listens.  Set to the Docker service
+    # name when running in compose, or localhost for bare-metal dev.
+    openfang_url: str = "http://localhost:8080"
+    # Enable/disable OpenFang integration.  When disabled, the tool
+    # executor falls back to Timmy's native (simulated) execution.
+    openfang_enabled: bool = False
+    # Timeout in seconds for OpenFang hand execution (some hands are slow).
+    openfang_timeout: int = 120
+
     # ── Error Logging ─────────────────────────────────────────────────
     error_log_enabled: bool = True
     error_log_dir: str = "logs"

@@ -424,6 +424,16 @@ async def lifespan(app: FastAPI):
     # Bootstrap MCP tools in background
     mcp_task = asyncio.create_task(_bootstrap_mcp_background())
 
+    # Register OpenFang vendor tools (if enabled)
+    if settings.openfang_enabled:
+        try:
+            from infrastructure.openfang.tools import register_openfang_tools
+
+            count = register_openfang_tools()
+            logger.info("OpenFang: registered %d vendor tools", count)
+        except Exception as exc:
+            logger.warning("OpenFang tool registration failed: %s", exc)
+
     # Initialize Spark Intelligence engine
     from spark.engine import spark_engine
     if spark_engine.enabled:
