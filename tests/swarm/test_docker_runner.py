@@ -3,12 +3,18 @@
 All subprocess calls are mocked so Docker is not required.
 """
 
+import subprocess
 from unittest.mock import MagicMock, patch, call
 
 import pytest
 
 from swarm.docker_runner import DockerAgentRunner, ManagedContainer
 
+# Skip all tests in this module if Docker is not available
+pytestmark = pytest.mark.skipif(
+    subprocess.run(["which", "docker"], capture_output=True).returncode != 0,
+    reason="Docker not installed"
+)
 
 class TestDockerAgentRunner:
     """Test container spawn/stop/list lifecycle."""

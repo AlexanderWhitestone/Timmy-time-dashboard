@@ -4,8 +4,15 @@ Tests the standalone Docker agent entry point that runs Timmy as a
 swarm participant in a container.
 """
 
+import subprocess
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+# Skip all tests in this module if Docker is not available
+pytestmark = pytest.mark.skipif(
+    subprocess.run(["which", "docker"], capture_output=True).returncode != 0,
+    reason="Docker not installed"
+)
 
 
 class TestDockerAgentMain:
