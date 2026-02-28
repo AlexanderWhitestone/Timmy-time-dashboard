@@ -1,4 +1,4 @@
-.PHONY: install install-bigbrain install-creative dev nuke test test-cov test-cov-html watch lint clean help \
+.PHONY: install install-bigbrain install-creative dev nuke fresh test test-cov test-cov-html watch lint clean help \
         up down logs \
         docker-build docker-up docker-down docker-agent docker-logs docker-shell \
         cloud-deploy cloud-up cloud-down cloud-logs cloud-status cloud-update
@@ -58,6 +58,18 @@ nuke:
 	@# Brief pause to let the OS release the socket
 	@sleep 0.5
 	@echo "  ✓ Port 8000 free, containers stopped, caches cleared"
+
+# Full clean rebuild: wipe containers, images, volumes, rebuild from scratch.
+# Ensures no stale code, cached layers, or old DB state persists.
+fresh: nuke
+	docker compose down -v --rmi local 2>/dev/null || true
+	docker compose build --no-cache
+	mkdir -p data
+	docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+	@echo ""
+	@echo "  ✓ Fresh rebuild complete — Timmy Time at http://localhost:8000"
+	@echo "    Hot-reload active. Logs: make logs"
+	@echo ""
 
 # Print the local IP addresses your phone can use to reach this machine.
 # Connect your phone to the same hotspot your Mac is sharing from,
@@ -254,6 +266,7 @@ help:
 	@echo "  make install-creative install with creative extras (torch, diffusers)"
 	@echo "  make dev              clean up + start dashboard (auto-fixes errno 48)"
 	@echo "  make nuke             kill port 8000, stop containers, reset state"
+	@echo "  make fresh            full clean rebuild (no cached layers/volumes)"
 	@echo "  make ip               print local IP addresses for phone testing"
 	@echo "  make test             run all tests"
 	@echo "  make test-cov         tests + coverage report (terminal + XML)"
