@@ -1,4 +1,4 @@
-"""Pytest configuration and shared fixtures."""
+"""Pytest configuration and fixtures for the test suite."""
 
 import os
 import sqlite3
@@ -7,6 +7,12 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+
+# Import pytest marker configuration
+try:
+    from . import conftest_markers  # noqa: F401
+except ImportError:
+    import conftest_markers  # noqa: F401
 from fastapi.testclient import TestClient
 
 # ── Stub heavy optional dependencies so tests run without them installed ──────
