@@ -1,0 +1,127 @@
+# ── Timmy Time — ELK Log Aggregation Overlay ────────────────────────────────
+#
+# Adds Elasticsearch + Logstash + Kibana alongside the production stack.
+# Use as an overlay on top of the prod compose:
+#
+#   docker compose \
+#     -f docker-compose.prod.yml \
+#     -f docker-compose.logging.yml \
+#     up -d
+#
+# ── How it works ────────────────────────────────────────────────────────────
+#
+#   1. Every container's Docker logging driver is set to GELF, which sends
+#      structured log events (JSON with container metadata) over UDP.
+#
+#   2. Logstash listens on :12201/udp, parses the GELF messages, extracts
+#      log levels, parses JSON payloads from FastAPI/uvicorn, and adds
+#      project metadata.
+#
+#   3. Logstash ships the enriched events to Elasticsearch, indexed by day
+#      (timmy-logs-YYYY.MM.dd) with a 30-day ILM retention policy.
+#
+#   4. Kibana provides the web UI on :5601 for searching, filtering,
+#      and building dashboards over the indexed logs.
+#
+# ── Access ──────────────────────────────────────────────────────────────────
+#   Kibana:         http://localhost:5601
+#   Elasticsearch:  http://localhost:9200  (API only, not exposed by default)
+#
+# ── Resource notes ──────────────────────────────────────────────────────────
+#   Elasticsearch: ~512 MB heap (ES_JAVA_OPTS below).  Increase for
+#                  high-throughput deployments.
+#   Logstash:      ~256 MB heap.  Lightweight for GELF → ES pipeline.
+#   Kibana:        ~300 MB RAM.  Stateless — safe to restart anytime.
+#
+#   Total overhead: ~1.1 GB RAM on top of the base production stack.
+
+services:
+
+  # ── Elasticsearch — log storage and search engine ─────────────────────────
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+    container_name: timmy-elasticsearch
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+      - ./deploy/elk/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    environment:
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    networks:
+      - swarm-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\\|yellow\"'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # ── Logstash — log pipeline (GELF in → Elasticsearch out) ────────────────
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.17.0
+    container_name: timmy-logstash
+    volumes:
+      - ./deploy/elk/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+    environment:
+      LS_JAVA_OPTS: "-Xms256m -Xmx256m"
+    ports:
+      - "12201:12201/udp"   # GELF input from Docker logging driver
+    networks:
+      - swarm-net
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Kibana — log visualisation UI ─────────────────────────────────────────
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.17.0
+    container_name: timmy-kibana
+    volumes:
+      - ./deploy/elk/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    ports:
+      - "5601:5601"
+    networks:
+      - swarm-net
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Override existing services to use GELF logging driver ─────────────────
+  # These extend the services defined in docker-compose.prod.yml.
+  # Docker merges the logging config into the existing service definition.
+
+  dashboard:
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://localhost:12201"
+        tag: "dashboard"
+    depends_on:
+      logstash:
+        condition: service_started
+
+  timmy:
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://localhost:12201"
+        tag: "timmy-agent"
+    depends_on:
+      logstash:
+        condition: service_started
+
+  ollama:
+    logging:
+      driver: gelf
+      options:
+        gelf-address: "udp://localhost:12201"
+        tag: "ollama"
+    depends_on:
+      logstash:
+        condition: service_started
+
+# ── Persistent volume for Elasticsearch indices ────────────────────────────
+volumes:
+  es-data:

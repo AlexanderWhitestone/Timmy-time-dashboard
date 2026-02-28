@@ -3,16 +3,6 @@
 import pytest
 
 
-@pytest.fixture(autouse=True)
-def tmp_swarm_db(tmp_path, monkeypatch):
-    """Isolate SQLite writes to a temp directory."""
-    db = tmp_path / "swarm.db"
-    monkeypatch.setattr("swarm.tasks.DB_PATH", db)
-    monkeypatch.setattr("swarm.registry.DB_PATH", db)
-    monkeypatch.setattr("swarm.stats.DB_PATH", db)
-    yield db
-
-
 # ── reconcile_on_startup: return shape ───────────────────────────────────────
 
 def test_reconcile_returns_summary_keys():

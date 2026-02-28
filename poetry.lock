@@ -6695,6 +6695,22 @@ pytest = ">=7"
 testing = ["process-tests", "pytest-xdist", "virtualenv"]
 
 [[package]]
+name = "pytest-randomly"
+version = "4.0.1"
+description = "Pytest plugin to randomly order tests and control random.seed."
+optional = false
+python-versions = ">=3.9"
+groups = ["main", "dev"]
+files = [
+    {file = "pytest_randomly-4.0.1-py3-none-any.whl", hash = "sha256:e0dfad2fd4f35e07beff1e47c17fbafcf98f9bf4531fd369d9260e2f858bfcb7"},
+    {file = "pytest_randomly-4.0.1.tar.gz", hash = "sha256:174e57bb12ac2c26f3578188490bd333f0e80620c3f47340158a86eca0593cd8"},
+]
+markers = {main = "extra == \"dev\""}
+
+[package.dependencies]
+pytest = "*"
+
+[[package]]
 name = "pytest-timeout"
 version = "2.4.0"
 description = "pytest plugin to abort hanging tests"
@@ -8243,7 +8259,7 @@ propcache = ">=0.2.1"
 
 [extras]
 bigbrain = ["airllm"]
-dev = ["pytest", "pytest-asyncio", "pytest-cov", "pytest-timeout", "selenium"]
+dev = ["pytest", "pytest-asyncio", "pytest-cov", "pytest-randomly", "pytest-timeout", "selenium"]
 discord = ["discord.py"]
 swarm = ["redis"]
 telegram = ["python-telegram-bot"]
@@ -8252,4 +8268,4 @@ voice = ["pyttsx3"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4"
-content-hash = "85d8729d15da0a549feb21bcfce386456f42595fb7c6f5729e542653f5239c24"
+content-hash = "8e608d71fafb99eda990a90f7879127522ec03fcd2bd34b115d2b4fde4c0fe87"

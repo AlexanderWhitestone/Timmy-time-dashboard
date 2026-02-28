@@ -4,18 +4,6 @@ import pytest
 from unittest.mock import MagicMock
 
 
-# ── Fixture: redirect SQLite DB to a temp directory ──────────────────────────
-
-@pytest.fixture(autouse=True)
-def tmp_swarm_db(tmp_path, monkeypatch):
-    db_path = tmp_path / "swarm.db"
-    monkeypatch.setattr("swarm.tasks.DB_PATH", db_path)
-    monkeypatch.setattr("swarm.registry.DB_PATH", db_path)
-    monkeypatch.setattr("swarm.stats.DB_PATH", db_path)
-    monkeypatch.setattr("swarm.learner.DB_PATH", db_path)
-    yield db_path
-
-
 # ── personas.py ───────────────────────────────────────────────────────────────
 
 def test_all_nine_personas_defined():
