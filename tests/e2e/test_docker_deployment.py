@@ -108,6 +108,7 @@ class TestDockerfiles:
         subprocess.run(["which", "docker"], capture_output=True).returncode != 0,
         reason="Docker not installed",
     )
+    @pytest.mark.timeout(300)
     def test_docker_image_build(self):
         result = subprocess.run(
             ["docker", "build", "-t", "timmy-time:test", "."],
