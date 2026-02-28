@@ -355,8 +355,12 @@ async def _start_chat_integrations_background() -> None:
     """Background task: start chat integrations without blocking startup."""
     from integrations.telegram_bot.bot import telegram_bot
     from integrations.chat_bridge.vendors.discord import discord_bot
-    
+    from integrations.chat_bridge.registry import platform_registry
+
     await asyncio.sleep(0.5)
+
+    # Register Discord in the platform registry
+    platform_registry.register(discord_bot)
     
     if settings.telegram_token:
         try:
@@ -392,8 +396,9 @@ async def lifespan(app: FastAPI):
         agent_id="timmy",
     )
 
-    # Log swarm recovery summary
+    # Run swarm recovery and log summary
     from swarm.coordinator import coordinator as swarm_coordinator
+    swarm_coordinator.initialize()
     rec = swarm_coordinator._recovery_summary
     if rec["tasks_failed"] or rec["agents_offlined"]:
         logger.info(
@@ -442,18 +447,14 @@ async def lifespan(app: FastAPI):
     # Start chat integrations in background
     chat_task = asyncio.create_task(_start_chat_integrations_background())
 
-    # Register Discord bot
-    from integrations.chat_bridge.registry import platform_registry
-    from integrations.chat_bridge.vendors.discord import discord_bot
-    platform_registry.register(discord_bot)
-
     logger.info("✓ Timmy Time dashboard ready for requests")
 
     yield
 
     # Cleanup on shutdown
     from integrations.telegram_bot.bot import telegram_bot
-    
+    from integrations.chat_bridge.vendors.discord import discord_bot
+
     await discord_bot.stop()
     await telegram_bot.stop()
     

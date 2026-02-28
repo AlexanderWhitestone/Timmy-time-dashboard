@@ -53,6 +53,10 @@ class SwarmCoordinator:
         self.auctions = AuctionManager()
         self.comms = SwarmComms()
         self._in_process_nodes: list = []
+        self._recovery_summary = {"tasks_failed": 0, "agents_offlined": 0}
+
+    def initialize(self) -> None:
+        """Run startup recovery. Call during app lifespan, not at import time."""
         self._recovery_summary = reconcile_on_startup()
 
     # ── Agent lifecycle ─────────────────────────────────────────────────────

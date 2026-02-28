@@ -28,11 +28,12 @@ def git_repo(tmp_path):
     result = git_init(tmp_path)
     assert result["success"]
 
-    # Configure git identity for commits
+    # Configure git identity and disable signing for commits
     from git import Repo
     repo = Repo(str(tmp_path))
     repo.config_writer().set_value("user", "name", "Test").release()
     repo.config_writer().set_value("user", "email", "test@test.com").release()
+    repo.config_writer().set_value("commit", "gpgsign", "false").release()
 
     # Create initial commit
     readme = tmp_path / "README.md"
