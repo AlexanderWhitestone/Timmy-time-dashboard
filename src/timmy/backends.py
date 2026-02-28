@@ -1,4 +1,4 @@
-"""LLM backends — AirLLM (local big models) and Grok (xAI premium cloud).
+"""LLM backends — AirLLM (local big models), Grok (xAI), and Claude (Anthropic).
 
 Provides drop-in replacements for the Agno Agent that expose the same
 run(message, stream) → RunResult interface used by the dashboard and the
@@ -7,6 +7,7 @@ print_response(message, stream) interface used by the CLI.
 Backends:
   - TimmyAirLLMAgent: Local 8B/70B/405B via AirLLM (Apple Silicon or PyTorch)
   - GrokBackend: xAI Grok API via OpenAI-compatible SDK (opt-in premium)
+  - ClaudeBackend: Anthropic Claude API — lightweight cloud fallback
 
 No cloud by default.  No telemetry.  Sats are sovereignty, boss.
 """
@@ -415,5 +416,159 @@ def grok_available() -> bool:
     try:
         from config import settings
         return settings.grok_enabled and bool(settings.xai_api_key)
+    except Exception:
+        return False
+
+
+# ── Claude (Anthropic) Backend ─────────────────────────────────────────────
+# Lightweight cloud fallback — used when Ollama is offline and the user
+# has set ANTHROPIC_API_KEY.  Follows the same sovereign-first philosophy:
+# never the default, only activated explicitly or as a last-resort fallback.
+
+CLAUDE_MODELS: dict[str, str] = {
+    "haiku": "claude-haiku-4-5-20251001",
+    "sonnet": "claude-sonnet-4-20250514",
+    "opus": "claude-opus-4-20250514",
+}
+
+
+class ClaudeBackend:
+    """Anthropic Claude backend — cloud fallback when local models are offline.
+
+    Uses the official Anthropic SDK.  Same interface as GrokBackend and
+    TimmyAirLLMAgent:
+      run(message, stream)           → RunResult  [dashboard]
+      print_response(message, stream) → None       [CLI]
+      health_check()                 → dict        [monitoring]
+    """
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: Optional[str] = None,
+    ) -> None:
+        from config import settings
+
+        self._api_key = api_key or settings.anthropic_api_key
+        raw_model = model or settings.claude_model
+        # Allow short names like "haiku" / "sonnet" / "opus"
+        self._model = CLAUDE_MODELS.get(raw_model, raw_model)
+        self._history: list[dict[str, str]] = []
+
+        if not self._api_key:
+            logger.warning(
+                "ClaudeBackend created without ANTHROPIC_API_KEY — "
+                "calls will fail until key is configured"
+            )
+
+    def _get_client(self):
+        """Create Anthropic client."""
+        import anthropic
+
+        return anthropic.Anthropic(api_key=self._api_key)
+
+    # ── Public interface (mirrors Agno Agent) ─────────────────────────────
+
+    def run(self, message: str, *, stream: bool = False, **kwargs) -> RunResult:
+        """Synchronous inference via Claude API."""
+        if not self._api_key:
+            return RunResult(
+                content="Claude is not configured. Set ANTHROPIC_API_KEY to enable."
+            )
+
+        start = time.time()
+        messages = self._build_messages(message)
+
+        try:
+            client = self._get_client()
+            response = client.messages.create(
+                model=self._model,
+                max_tokens=1024,
+                system=TIMMY_SYSTEM_PROMPT,
+                messages=messages,
+            )
+
+            content = response.content[0].text if response.content else ""
+            latency_ms = (time.time() - start) * 1000
+
+            # Update conversation history
+            self._history.append({"role": "user", "content": message})
+            self._history.append({"role": "assistant", "content": content})
+            if len(self._history) > 20:
+                self._history = self._history[-20:]
+
+            logger.info(
+                "Claude response: %d chars in %.0fms (model=%s)",
+                len(content),
+                latency_ms,
+                self._model,
+            )
+
+            return RunResult(content=content)
+
+        except Exception as exc:
+            logger.error("Claude API error: %s", exc)
+            return RunResult(
+                content=f"Claude temporarily unavailable: {exc}"
+            )
+
+    def print_response(self, message: str, *, stream: bool = True) -> None:
+        """Run inference and render the response to stdout (CLI interface)."""
+        result = self.run(message, stream=stream)
+        try:
+            from rich.console import Console
+            from rich.markdown import Markdown
+            Console().print(Markdown(result.content))
+        except ImportError:
+            print(result.content)
+
+    def health_check(self) -> dict:
+        """Check Claude API connectivity."""
+        if not self._api_key:
+            return {
+                "ok": False,
+                "error": "ANTHROPIC_API_KEY not configured",
+                "backend": "claude",
+                "model": self._model,
+            }
+        try:
+            client = self._get_client()
+            # Lightweight ping — tiny completion
+            client.messages.create(
+                model=self._model,
+                max_tokens=4,
+                messages=[{"role": "user", "content": "ping"}],
+            )
+            return {"ok": True, "error": None, "backend": "claude", "model": self._model}
+        except Exception as exc:
+            return {"ok": False, "error": str(exc), "backend": "claude", "model": self._model}
+
+    # ── Private helpers ───────────────────────────────────────────────────
+
+    def _build_messages(self, message: str) -> list[dict[str, str]]:
+        """Build the messages array for the API call."""
+        messages = list(self._history[-10:])
+        messages.append({"role": "user", "content": message})
+        return messages
+
+
+# ── Module-level Claude singleton ──────────────────────────────────────────
+
+_claude_backend: Optional[ClaudeBackend] = None
+
+
+def get_claude_backend() -> ClaudeBackend:
+    """Get or create the Claude backend singleton."""
+    global _claude_backend
+    if _claude_backend is None:
+        _claude_backend = ClaudeBackend()
+    return _claude_backend
+
+
+def claude_available() -> bool:
+    """Return True when Anthropic API key is configured."""
+    try:
+        from config import settings
+        return bool(settings.anthropic_api_key)
     except Exception:
         return False

@@ -141,3 +141,109 @@ def test_print_response_stream_flag_accepted():
     """stream=False should not raise — it's accepted for API compatibility."""
     agent = _make_agent()
     agent.print_response("hello", stream=False)  # no error
+
+
+# ── ClaudeBackend ─────────────────────────────────────────────────────────
+
+
+def test_claude_available_false_when_no_key():
+    """claude_available() returns False when ANTHROPIC_API_KEY is empty."""
+    with patch("config.settings") as mock_settings:
+        mock_settings.anthropic_api_key = ""
+        from timmy.backends import claude_available
+        assert claude_available() is False
+
+
+def test_claude_available_true_when_key_set():
+    """claude_available() returns True when ANTHROPIC_API_KEY is set."""
+    with patch("config.settings") as mock_settings:
+        mock_settings.anthropic_api_key = "sk-ant-test-key"
+        from timmy.backends import claude_available
+        assert claude_available() is True
+
+
+def test_claude_backend_init_with_explicit_params():
+    """ClaudeBackend can be created with explicit api_key and model."""
+    from timmy.backends import ClaudeBackend
+    backend = ClaudeBackend(api_key="sk-ant-test", model="haiku")
+    assert backend._api_key == "sk-ant-test"
+    assert "haiku" in backend._model
+
+
+def test_claude_backend_init_resolves_short_names():
+    """ClaudeBackend resolves short model names to full IDs."""
+    from timmy.backends import ClaudeBackend, CLAUDE_MODELS
+    backend = ClaudeBackend(api_key="sk-test", model="sonnet")
+    assert backend._model == CLAUDE_MODELS["sonnet"]
+
+
+def test_claude_backend_init_passes_through_full_model_id():
+    """ClaudeBackend passes through full model IDs unchanged."""
+    from timmy.backends import ClaudeBackend
+    backend = ClaudeBackend(api_key="sk-test", model="claude-haiku-4-5-20251001")
+    assert backend._model == "claude-haiku-4-5-20251001"
+
+
+def test_claude_backend_run_no_key_returns_error():
+    """run() gracefully returns error message when no API key."""
+    from timmy.backends import ClaudeBackend
+    backend = ClaudeBackend(api_key="", model="haiku")
+    result = backend.run("hello")
+    assert "not configured" in result.content
+
+
+def test_claude_backend_run_success():
+    """run() returns content from the Anthropic API on success."""
+    from timmy.backends import ClaudeBackend
+
+    backend = ClaudeBackend(api_key="sk-ant-test", model="haiku")
+
+    mock_content = MagicMock()
+    mock_content.text = "Sir, affirmative. I am Timmy."
+
+    mock_response = MagicMock()
+    mock_response.content = [mock_content]
+
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = mock_response
+
+    with patch.object(backend, "_get_client", return_value=mock_client):
+        result = backend.run("Who are you?")
+
+    assert "Timmy" in result.content
+    assert len(backend._history) == 2  # user + assistant
+
+
+def test_claude_backend_run_handles_api_error():
+    """run() returns a graceful error when the API raises."""
+    from timmy.backends import ClaudeBackend
+
+    backend = ClaudeBackend(api_key="sk-ant-test", model="haiku")
+
+    mock_client = MagicMock()
+    mock_client.messages.create.side_effect = ConnectionError("network down")
+
+    with patch.object(backend, "_get_client", return_value=mock_client):
+        result = backend.run("hello")
+
+    assert "unavailable" in result.content
+
+
+def test_claude_backend_history_rolling_window():
+    """History should be capped at 20 entries (10 exchanges)."""
+    from timmy.backends import ClaudeBackend
+
+    backend = ClaudeBackend(api_key="sk-ant-test", model="haiku")
+
+    mock_content = MagicMock()
+    mock_content.text = "OK."
+    mock_response = MagicMock()
+    mock_response.content = [mock_content]
+    mock_client = MagicMock()
+    mock_client.messages.create.return_value = mock_response
+
+    with patch.object(backend, "_get_client", return_value=mock_client):
+        for i in range(15):
+            backend.run(f"message {i}")
+
+    assert len(backend._history) <= 20
