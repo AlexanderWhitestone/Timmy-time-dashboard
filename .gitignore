@@ -40,6 +40,9 @@ reports/
 
 # Self-modify reports (auto-generated)
 data/self_modify_reports/
+
+# Error logs (auto-generated)
+logs/
 src/data/
 
 # Handoff context (session-scoped)

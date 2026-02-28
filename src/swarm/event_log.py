@@ -47,6 +47,10 @@ class EventType(str, Enum):
     SYSTEM_WARNING = "system.warning"
     SYSTEM_INFO = "system.info"
 
+    # Error feedback loop
+    ERROR_CAPTURED = "error.captured"
+    BUG_REPORT_CREATED = "bug_report.created"
+
 
 @dataclass
 class EventLogEntry:

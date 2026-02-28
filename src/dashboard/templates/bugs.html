@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Bug Reports — Timmy Time{% endblock %}
+
+{% block content %}
+<div class="mc-panel">
+  <div class="mc-panel-header">
+    <h1 class="page-title" style="color:#ff6b6b;">BUG REPORTS</h1>
+    <p class="mc-text-secondary">Automatic error feedback loop — errors are captured, deduped, and filed here.</p>
+  </div>
+
+  <!-- Stats -->
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;">
+    <div class="mc-stat-card" style="min-width:80px;text-align:center;padding:8px 12px;">
+      <div style="font-size:1.4rem;font-weight:700;">{{ total }}</div>
+      <div style="font-size:0.65rem;opacity:0.7;">TOTAL</div>
+    </div>
+    {% for status_name, count in stats.items() %}
+    <div class="mc-stat-card" style="min-width:80px;text-align:center;padding:8px 12px;">
+      <div style="font-size:1.4rem;font-weight:700;">{{ count }}</div>
+      <div style="font-size:0.65rem;opacity:0.7;">{{ status_name | replace("_", " ") | upper }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Filter -->
+  <div style="margin-bottom:16px;">
+    <form method="get" action="/bugs" style="display:inline-flex;gap:8px;align-items:center;">
+      <label style="font-size:0.75rem;opacity:0.7;">Filter:</label>
+      <select name="status" class="mc-select" style="font-size:0.75rem;padding:4px 8px;background:var(--bg-secondary);color:var(--text-primary);border:1px solid var(--border-color);border-radius:4px;" onchange="this.form.submit()">
+        <option value="">All Statuses</option>
+        <option value="approved" {% if filter_status == 'approved' %}selected{% endif %}>Open</option>
+        <option value="completed" {% if filter_status == 'completed' %}selected{% endif %}>Resolved</option>
+        <option value="failed" {% if filter_status == 'failed' %}selected{% endif %}>Failed</option>
+        <option value="pending_approval" {% if filter_status == 'pending_approval' %}selected{% endif %}>Pending</option>
+      </select>
+    </form>
+  </div>
+
+  <!-- Bug list -->
+  {% if bugs %}
+  {% for bug in bugs %}
+  <div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:6px;padding:12px;margin-bottom:8px;border-left:3px solid #ff6b6b;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+      <div style="font-size:0.85rem;font-weight:500;flex:1;">{{ bug.title | e }}</div>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        <span style="font-size:0.6rem;padding:2px 6px;border-radius:3px;background:{% if bug.status.value == 'completed' %}#22c55e{% elif bug.status.value == 'failed' %}#ef4444{% elif bug.status.value == 'approved' %}#3b82f6{% else %}#6b7280{% endif %};color:#fff;">{{ bug.status.value | replace("_"," ") | upper }}</span>
+        <span style="font-size:0.6rem;padding:2px 6px;border-radius:3px;background:{% if bug.priority.value == 'urgent' %}#ef4444{% elif bug.priority.value == 'high' %}#f59e0b{% else %}#374151{% endif %};color:#fff;">{{ bug.priority.value | upper }}</span>
+      </div>
+    </div>
+    {% if bug.description %}
+    <details style="margin-top:6px;">
+      <summary style="cursor:pointer;font-size:0.7rem;color:var(--text-secondary);">Stack trace &amp; details</summary>
+      <pre style="font-size:0.65rem;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow:auto;margin-top:4px;padding:8px;background:var(--bg-tertiary,#111);border-radius:4px;border:1px solid var(--border-color);">{{ bug.description | e }}</pre>
+    </details>
+    {% endif %}
+    <div style="font-size:0.6rem;opacity:0.5;margin-top:4px;">{{ bug.created_at[:19].replace("T", " ") }} UTC</div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div style="text-align:center;padding:40px 20px;opacity:0.6;">
+    <p style="font-size:1.2rem;">No bug reports found.</p>
+    <p style="font-size:0.8rem;">The system is running clean.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

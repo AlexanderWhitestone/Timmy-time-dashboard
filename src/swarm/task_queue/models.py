@@ -74,8 +74,11 @@ class QueueTask:
 
 AUTO_APPROVE_RULES = [
     {"assigned_to": "timmy", "type": "chat_response"},
+    {"assigned_to": "timmy", "type": "thought"},
+    {"assigned_to": "timmy", "type": "internal"},
     {"assigned_to": "forge", "type": "run_tests"},
     {"priority": "urgent", "created_by": "timmy"},
+    {"type": "bug_report", "created_by": "system"},
 ]
 
 
@@ -87,7 +90,10 @@ def should_auto_approve(task: QueueTask) -> bool:
         match = True
         for key, val in rule.items():
             if key == "type":
-                continue  # type matching is informational for now
+                if task.task_type != val:
+                    match = False
+                    break
+                continue
             task_val = getattr(task, key, None)
             if isinstance(task_val, Enum):
                 task_val = task_val.value
