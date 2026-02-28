@@ -10,7 +10,8 @@ def test_resolve_path_expands_tilde():
 
     result = _resolve_path("~/test")
 
-    assert result.as_posix().startswith("/Users/")
+    # Should expand to current user's home directory
+    assert result.as_posix() == (Path.home() / "test").as_posix()
 
 
 def test_resolve_path_relative_to_repo():

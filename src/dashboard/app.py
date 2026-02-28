@@ -427,6 +427,10 @@ static_dir = PROJECT_ROOT / "static"
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
+# Global templates instance
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+
 # Include routers
 app.include_router(health_router)
 app.include_router(agents_router)
@@ -464,5 +468,12 @@ app.include_router(cascade_router)
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     """Serve the main dashboard page."""
-    templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/shortcuts/setup")
+async def shortcuts_setup():
+    """Siri Shortcuts setup guide."""
+    from integrations.shortcuts.siri import get_setup_guide
+
+    return get_setup_guide()

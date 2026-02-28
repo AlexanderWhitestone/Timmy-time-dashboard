@@ -113,7 +113,7 @@ def test_docker_image_build():
 
 
 @pytest.mark.skipif(
-    subprocess.run(["which", "docker"], capture_output=True).returncode != 0,
+    subprocess.run(["which", "docker"], capture_output=True, shell=True).returncode != 0,
     reason="Docker not installed"
 )
 def test_docker_compose_services_defined():
