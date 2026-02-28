@@ -29,17 +29,19 @@ def test_create_timmy_agent_name():
         assert kwargs["name"] == "Timmy"
 
 
-def test_create_timmy_uses_llama32():
+def test_create_timmy_uses_default_model():
     with patch("timmy.agent.Agent"), \
          patch("timmy.agent.Ollama") as MockOllama, \
          patch("timmy.agent.SqliteDb"):
-
+        
+        from config import settings
         from timmy.agent import create_timmy
         create_timmy()
 
         MockOllama.assert_called_once()
         kwargs = MockOllama.call_args.kwargs
-        assert kwargs["id"] == "llama3.2"
+        # Default model should match configured setting
+        assert kwargs["id"] == settings.ollama_model
 
 
 def test_create_timmy_history_config():
