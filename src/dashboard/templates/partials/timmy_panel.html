@@ -142,7 +142,7 @@
 
   function connectWs() {
     try {
-      ws = new WebSocket(protocol + '//' + window.location.host + '/ws');
+      ws = new WebSocket(protocol + '//' + window.location.host + '/swarm/live');
       ws.onmessage = function(event) {
         try {
           var msg = JSON.parse(event.data);

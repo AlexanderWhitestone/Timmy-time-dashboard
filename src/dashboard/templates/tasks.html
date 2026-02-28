@@ -328,7 +328,7 @@ document.addEventListener('click', function(e) {
   var ws;
   function connectTaskWs() {
     try {
-      ws = new WebSocket(protocol + '//' + window.location.host + '/ws');
+      ws = new WebSocket(protocol + '//' + window.location.host + '/swarm/live');
       ws.onmessage = function(event) {
         try {
           var msg = JSON.parse(event.data);
