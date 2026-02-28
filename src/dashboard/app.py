@@ -231,11 +231,53 @@ async def _task_processor_loop() -> None:
         """Handler for bug_report tasks - acknowledge and mark completed."""
         return f"Bug report acknowledged: {task.title}"
 
+    def handle_task_request(task):
+        """Handler for task_request tasks — user-queued work items from chat."""
+        try:
+            now = datetime.now()
+            context = (
+                f"[System: Current date/time is {now.strftime('%A, %B %d, %Y at %I:%M %p')}]\n"
+                f"[System: You have been assigned a task from the queue. "
+                f"Complete it and provide your response.]\n\n"
+                f"Task: {task.title}\n"
+            )
+            if task.description and task.description != task.title:
+                context += f"Details: {task.description}\n"
+
+            response = timmy_chat(context)
+
+            # Push response to user via WebSocket
+            try:
+                from infrastructure.ws_manager.handler import ws_manager
+
+                asyncio.create_task(
+                    ws_manager.broadcast(
+                        "timmy_response",
+                        {
+                            "task_id": task.id,
+                            "response": response,
+                        },
+                    )
+                )
+            except Exception as e:
+                logger.debug("Failed to push response via WS: %s", e)
+
+            return response
+        except Exception as e:
+            logger.error("Task request failed: %s", e)
+            try:
+                from infrastructure.error_capture import capture_error
+                capture_error(e, source="task_request_handler")
+            except Exception:
+                pass
+            return f"Error: {str(e)}"
+
     # Register handlers
     task_processor.register_handler("chat_response", handle_chat_response)
     task_processor.register_handler("thought", handle_thought)
     task_processor.register_handler("internal", handle_thought)
     task_processor.register_handler("bug_report", handle_bug_report)
+    task_processor.register_handler("task_request", handle_task_request)
 
     # ── Reconcile zombie tasks from previous crash ──
     zombie_count = task_processor.reconcile_zombie_tasks()

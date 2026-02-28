@@ -46,6 +46,11 @@ RUN mkdir -p /app/data
 # ── Non-root user for production ─────────────────────────────────────────────
 RUN groupadd -r timmy && useradd -r -g timmy -d /app -s /sbin/nologin timmy \
     && chown -R timmy:timmy /app
+# Ensure static/ and data/ are world-readable so bind-mounted files
+# from the macOS host remain accessible when running as the timmy user.
+# Docker Desktop for Mac bind mounts inherit host permissions, which may
+# not include the container's timmy UID — chmod o+rX fixes 403 errors.
+RUN chmod -R o+rX /app/static /app/data
 USER timmy
 
 # ── Environment ──────────────────────────────────────────────────────────────

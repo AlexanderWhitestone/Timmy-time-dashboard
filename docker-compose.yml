@@ -22,6 +22,12 @@ services:
     build: .
     image: timmy-time:latest
     container_name: timmy-dashboard
+    # Run as root in the dev compose because bind-mounted host files
+    # (./src, ./static) may not be readable by the image's non-root
+    # "timmy" user — this is the #1 cause of 403 errors on macOS.
+    # Production (docker-compose.prod.yml) uses no bind mounts and
+    # correctly runs as the Dockerfile's non-root USER.
+    user: "0:0"
     ports:
       - "8000:8000"
     volumes:
