@@ -175,3 +175,126 @@ def db_connection():
     
     # Cleanup
     conn.close()
+
+
+
+# ── Additional Clean Test Fixtures ──────────────────────────────────────────
+
+@pytest.fixture
+def mock_ollama_client():
+    """Provide a mock Ollama client for unit tests."""
+    client = MagicMock()
+    client.generate = MagicMock(return_value={"response": "Test response"})
+    client.chat = MagicMock(return_value={"message": {"content": "Test chat response"}})
+    client.list = MagicMock(return_value={"models": [{"name": "llama3.2"}]})
+    return client
+
+
+@pytest.fixture
+def mock_timmy_agent():
+    """Provide a mock Timmy agent for testing."""
+    agent = MagicMock()
+    agent.name = "Timmy"
+    agent.run = MagicMock(return_value="Test response from Timmy")
+    agent.chat = MagicMock(return_value="Test chat response")
+    return agent
+
+
+@pytest.fixture
+def mock_swarm_coordinator():
+    """Provide a mock swarm coordinator."""
+    coordinator = MagicMock()
+    coordinator.spawn_persona = MagicMock()
+    coordinator.register_agent = MagicMock()
+    coordinator.get_agent = MagicMock(return_value=MagicMock(name="test-agent"))
+    coordinator._recovery_summary = {
+        "tasks_failed": 0,
+        "agents_offlined": 0,
+    }
+    return coordinator
+
+
+@pytest.fixture
+def mock_memory_system():
+    """Provide a mock memory system."""
+    memory = MagicMock()
+    memory.get_system_context = MagicMock(return_value="Test memory context")
+    memory.add_memory = MagicMock()
+    memory.search = MagicMock(return_value=[])
+    return memory
+
+
+@pytest.fixture
+def mock_event_log():
+    """Provide a mock event logger."""
+    logger = MagicMock()
+    logger.log_event = MagicMock()
+    logger.get_events = MagicMock(return_value=[])
+    return logger
+
+
+@pytest.fixture
+def mock_ws_manager():
+    """Provide a mock WebSocket manager."""
+    manager = MagicMock()
+    manager.broadcast = MagicMock()
+    manager.broadcast_json = MagicMock()
+    manager.send = MagicMock()
+    return manager
+
+
+@pytest.fixture
+def mock_settings():
+    """Provide mock settings."""
+    settings = MagicMock()
+    settings.ollama_url = "http://localhost:11434"
+    settings.ollama_model = "llama3.2"
+    settings.thinking_enabled = True
+    settings.thinking_interval_seconds = 300
+    settings.error_log_enabled = False
+    settings.repo_root = str(Path(__file__).parent.parent)
+    return settings
+
+
+@pytest.fixture
+def sample_interview_data():
+    """Provide sample interview data for testing."""
+    return {
+        "questions": [
+            {
+                "category": "Identity",
+                "question": "Who are you?",
+                "expected_keywords": ["Timmy", "agent"],
+            },
+            {
+                "category": "Capabilities",
+                "question": "What can you do?",
+                "expected_keywords": ["agent", "swarm"],
+            },
+        ],
+        "expected_response_format": "string",
+    }
+
+
+@pytest.fixture
+def sample_task_data():
+    """Provide sample task data for testing."""
+    return {
+        "id": "task-1",
+        "title": "Test Task",
+        "description": "This is a test task",
+        "assigned_to": "timmy",
+        "status": "pending",
+        "priority": "normal",
+    }
+
+
+@pytest.fixture
+def sample_agent_data():
+    """Provide sample agent data for testing."""
+    return {
+        "id": "agent-1",
+        "name": "Test Agent",
+        "capabilities": ["chat", "reasoning"],
+        "status": "active",
+    }

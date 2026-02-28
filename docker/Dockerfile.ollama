@@ -1,0 +1,22 @@
+# ── Ollama LLM Service — Optimized Build ──────────────────────────────────────
+#
+# Lightweight wrapper around official Ollama image with auto-model-pull on startup.
+#
+# Build: docker build -f docker/Dockerfile.ollama -t timmy-ollama:latest .
+# Run:   docker run -p 11434:11434 -v ollama-data:/root/.ollama timmy-ollama:latest
+
+FROM ollama/ollama:latest
+
+# Set environment
+ENV OLLAMA_HOST=0.0.0.0:11434
+
+# Create startup script for auto-pulling models
+COPY docker/scripts/init-ollama.sh /app/init-ollama.sh
+RUN chmod +x /app/init-ollama.sh
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:11434/api/tags || exit 1
+
+# Use custom entrypoint
+ENTRYPOINT ["/app/init-ollama.sh"]

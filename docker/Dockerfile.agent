@@ -1,0 +1,65 @@
+# ── Timmy Agent — Multi-stage Optimized Build ────────────────────────────────
+#
+# Lightweight agent container for running Timmy or swarm workers.
+#
+# Build: docker build -f docker/Dockerfile.agent -t timmy-agent:latest .
+# Run:   docker run -e COORDINATOR_URL=http://dashboard:8000 timmy-agent:latest
+
+# ── Stage 1: Builder ──────────────────────────────────────────────────────────
+FROM python:3.12-slim as builder
+
+WORKDIR /build
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy only pyproject.toml
+COPY pyproject.toml .
+
+# Create minimal package structure
+RUN mkdir -p src/timmy src/swarm src/infrastructure && \
+    touch src/__init__.py src/timmy/__init__.py src/swarm/__init__.py \
+          src/infrastructure/__init__.py config.py
+
+# Install dependencies
+RUN pip install --no-cache-dir --user -e ".[swarm]"
+
+
+# ── Stage 2: Runtime ─────────────────────────────────────────────────────────
+FROM python:3.12-slim as runtime
+
+WORKDIR /app
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python packages from builder
+COPY --from=builder /root/.local /root/.local
+
+# Copy application source
+COPY src/ ./src/
+COPY config.py .
+
+# Create data directory
+RUN mkdir -p /app/data
+
+# Create non-root user
+RUN groupadd -r timmy && useradd -r -g timmy -d /app -s /sbin/nologin timmy && \
+    chown -R timmy:timmy /app
+
+# Set environment
+ENV PATH=/root/.local/bin:$PATH
+ENV PYTHONPATH=/app/src
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Switch to non-root user
+USER timmy
+
+# Default: run Timmy agent (can be overridden)
+CMD ["python", "-m", "timmy.docker_agent"]
