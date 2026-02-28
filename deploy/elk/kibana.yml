@@ -1,0 +1,14 @@
+# ── Kibana — Dashboard config for Timmy Time ────────────────────────────────
+
+server.name: timmy-kibana
+server.host: "0.0.0.0"
+server.port: 5601
+
+# Connect to Elasticsearch on the Docker network
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+
+# Disable telemetry (sovereign deployment)
+telemetry.enabled: false
+
+# Default index pattern
+# Kibana will auto-create this on first boot when logs arrive.

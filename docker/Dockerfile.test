@@ -1,0 +1,59 @@
+# ── Timmy Time — Test Runner Image ───────────────────────────────────────────
+#
+# Lean image with test dependencies baked in.  Designed to be used with
+# docker-compose.test.yml which bind-mounts src/, tests/, and static/
+# so you never rebuild for code changes — only when deps change.
+#
+# Build:  docker compose -f docker-compose.test.yml build
+# Run:    docker compose -f docker-compose.test.yml run --rm test
+#
+# The builder stage is shared with the production Dockerfile so
+# dependency layers stay cached across dev ↔ test ↔ prod builds.
+
+# ── Stage 1: Builder — export deps via Poetry, install via pip ──────────────
+FROM python:3.12-slim AS builder
+
+WORKDIR /build
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir poetry poetry-plugin-export
+
+# Copy only dependency files (layer caching — rebuilds only when deps change)
+COPY pyproject.toml poetry.lock ./
+
+# Export ALL deps including dev/test extras
+RUN poetry export --extras swarm --extras telegram --extras dev \
+        --with dev --without-hashes \
+        -f requirements.txt -o requirements.txt
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r requirements.txt
+
+
+# ── Stage 2: Test runtime ───────────────────────────────────────────────────
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.12/site-packages \
+                    /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Create directories for bind mounts
+RUN mkdir -p /app/src /app/tests /app/static /app/data
+
+ENV PYTHONPATH=/app/src:/app/tests
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV TIMMY_TEST_MODE=1
+
+# Default: run pytest (overridable via docker-compose command)
+CMD ["pytest", "tests/", "-q", "--tb=short"]

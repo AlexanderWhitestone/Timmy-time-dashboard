@@ -1,54 +1,73 @@
-# ── Timmy Time — test stack ──────────────────────────────────────────────────
+# ── Timmy Time — Test Stack ──────────────────────────────────────────────────
 #
-# Lightweight compose for functional tests.  Runs the dashboard on port 18000
-# and optional agent workers on the swarm-test-net network.
+# Clean containers for test runs.  Designed for fast iteration:
+#   • Cached builder layers  — only rebuilds when pyproject.toml changes
+#   • Bind-mounted source    — code changes are instant, no rebuild needed
+#   • Ephemeral test-data    — every run starts with clean state
 #
-# Profiles:
-#   (default)   dashboard only (Ollama on host via host.docker.internal)
-#   ollama      adds a containerised Ollama instance + auto model pull
-#   agents      adds scalable agent workers
+# ── Profiles ────────────────────────────────────────────────────────────────
+#   (default)   test runner only (unit + integration tests)
+#   functional  adds a live dashboard on port 18000 for HTTP-level tests
+#   ollama      adds containerised Ollama (CPU, qwen2.5:0.5b) for LLM tests
+#   agents      adds swarm agent workers for multi-agent tests
 #
-# Usage:
-#   # Swarm tests (no LLM needed):
-#   FUNCTIONAL_DOCKER=1 pytest tests/functional/test_docker_swarm.py -v
+# ── Quick-start ─────────────────────────────────────────────────────────────
+#   make test-docker                         # unit + integration in container
+#   make test-docker ARGS="-k swarm"         # filter tests
+#   make test-docker-functional              # full-stack functional tests
+#   make test-docker-cov                     # with coverage report
 #
-#   # Full-stack with Ollama (pulls qwen2.5:0.5b automatically):
-#   FUNCTIONAL_DOCKER=1 pytest tests/functional/test_ollama_chat.py -v
-#
-# Or manually:
-#   docker compose -f docker-compose.test.yml -p timmy-test up -d --build --wait
-#   curl http://localhost:18000/health
-#   docker compose -f docker-compose.test.yml -p timmy-test down -v
+# ── Manual usage ────────────────────────────────────────────────────────────
+#   docker compose -f docker-compose.test.yml run --rm test
+#   docker compose -f docker-compose.test.yml run --rm test pytest tests/swarm -v
+#   docker compose -f docker-compose.test.yml --profile functional up -d --wait
+#   docker compose -f docker-compose.test.yml down -v
 
 services:
 
-  # ── Ollama — local LLM for functional tests ───────────────────────────────
-  # Activated with: --profile ollama
-  # Uses a tiny model (qwen2.5:0.5b, ~400 MB) so it runs on CPU-only CI.
-  ollama:
-    image: ollama/ollama:latest
-    container_name: timmy-test-ollama
-    profiles:
-      - ollama
+  # ── Test Runner ───────────────────────────────────────────────────────────
+  # Runs pytest in a clean container.  Exits when tests complete.
+  # Source and tests are bind-mounted so code changes don't require a rebuild.
+  test:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.test
+      cache_from:
+        - timmy-test:latest
+    image: timmy-test:latest
+    volumes:
+      - ./src:/app/src:ro
+      - ./tests:/app/tests:ro
+      - ./static:/app/static:ro
+      - ./pyproject.toml:/app/pyproject.toml:ro
+      - test-data:/app/data
+    environment:
+      TIMMY_TEST_MODE: "1"
+      LIGHTNING_BACKEND: "mock"
+      PYTHONDONTWRITEBYTECODE: "1"
     networks:
-      - swarm-test-net
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 10s
+      - test-net
+    # Default command — override with: docker compose run --rm test pytest <args>
+    command: ["pytest", "tests/", "-q", "--tb=short"]
 
+  # ── Dashboard — live server for functional tests ──────────────────────────
+  # Activated with: --profile functional
   dashboard:
-    build: .
-    image: timmy-time:test
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.test
+      cache_from:
+        - timmy-test:latest
+    image: timmy-test:latest
+    profiles:
+      - functional
     container_name: timmy-test-dashboard
     ports:
       - "18000:8000"
     volumes:
+      - ./src:/app/src:ro
+      - ./static:/app/static:ro
       - test-data:/app/data
-      - ./src:/app/src
-      - ./static:/app/static
     environment:
       DEBUG: "true"
       TIMMY_TEST_MODE: "1"
@@ -58,7 +77,8 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - swarm-test-net
+      - test-net
+    command: ["uvicorn", "dashboard.app:app", "--host", "0.0.0.0", "--port", "8000"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 5s
@@ -66,14 +86,38 @@ services:
       retries: 10
       start_period: 10s
 
+  # ── Ollama — local LLM for functional tests ──────────────────────────────
+  # Activated with: --profile ollama
+  # Uses a tiny model (qwen2.5:0.5b, ~400 MB) so it runs on CPU-only CI.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: timmy-test-ollama
+    profiles:
+      - ollama
+    networks:
+      - test-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # ── Agent — swarm worker for multi-agent tests ───────────────────────────
+  # Activated with: --profile agents
+  # Scale: docker compose -f docker-compose.test.yml --profile agents up --scale agent=4
   agent:
-    build: .
-    image: timmy-time:test
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.test
+      cache_from:
+        - timmy-test:latest
+    image: timmy-test:latest
     profiles:
       - agents
     volumes:
+      - ./src:/app/src:ro
       - test-data:/app/data
-      - ./src:/app/src
     environment:
       COORDINATOR_URL: "http://dashboard:8000"
       OLLAMA_URL: "${OLLAMA_URL:-http://host.docker.internal:11434}"
@@ -83,16 +127,21 @@ services:
       TIMMY_TEST_MODE: "1"
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    command: ["sh", "-c", "python -m swarm.agent_runner --agent-id agent-$(hostname) --name $${AGENT_NAME:-TestWorker}"]
+    command: >-
+      sh -c "python -m swarm.agent_runner
+        --agent-id agent-$$(hostname)
+        --name $${AGENT_NAME:-TestWorker}"
     networks:
-      - swarm-test-net
+      - test-net
     depends_on:
       dashboard:
         condition: service_healthy
 
+# ── Ephemeral volume — destroyed with `docker compose down -v` ─────────────
 volumes:
   test-data:
 
+# ── Isolated test network ─────────────────────────────────────────────────
 networks:
-  swarm-test-net:
+  test-net:
     driver: bridge

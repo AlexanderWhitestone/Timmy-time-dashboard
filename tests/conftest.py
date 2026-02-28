@@ -186,6 +186,32 @@ def db_connection():
 
 # ── Additional Clean Test Fixtures ──────────────────────────────────────────
 
+@pytest.fixture(autouse=True)
+def tmp_swarm_db(tmp_path, monkeypatch):
+    """Point all swarm SQLite paths to a temp directory for test isolation.
+
+    This is the single source of truth — individual test files should NOT
+    redefine this fixture.  All eight swarm modules that carry a module-level
+    DB_PATH are patched here so every test gets a clean, ephemeral database.
+    """
+    db_path = tmp_path / "swarm.db"
+    for module in [
+        "swarm.tasks",
+        "swarm.registry",
+        "swarm.stats",
+        "swarm.learner",
+        "swarm.routing",
+        "swarm.event_log",
+        "swarm.task_queue.models",
+        "swarm.work_orders.models",
+    ]:
+        try:
+            monkeypatch.setattr(f"{module}.DB_PATH", db_path)
+        except AttributeError:
+            pass  # Module may not be importable in minimal test envs
+    yield db_path
+
+
 @pytest.fixture
 def mock_ollama_client():
     """Provide a mock Ollama client for unit tests."""

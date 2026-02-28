@@ -11,14 +11,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 
-@pytest.fixture(autouse=True)
-def tmp_swarm_db(tmp_path, monkeypatch):
-    db_path = tmp_path / "swarm.db"
-    monkeypatch.setattr("swarm.tasks.DB_PATH", db_path)
-    monkeypatch.setattr("swarm.registry.DB_PATH", db_path)
-    yield db_path
-
-
 def test_agent_runner_module_is_importable():
     """The agent_runner module should import without errors."""
     import swarm.agent_runner
