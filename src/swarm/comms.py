@@ -56,7 +56,11 @@ class SwarmComms:
     def _try_connect(self) -> None:
         try:
             import redis
-            self._redis = redis.from_url(self._redis_url)
+            self._redis = redis.from_url(
+                self._redis_url,
+                socket_connect_timeout=3,
+                socket_timeout=3,
+            )
             self._redis.ping()
             self._pubsub = self._redis.pubsub()
             self._connected = True

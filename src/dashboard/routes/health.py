@@ -4,6 +4,7 @@ Provides system health checks and sovereignty audit information
 for the Mission Control dashboard.
 """
 
+import asyncio
 import logging
 import os
 from datetime import datetime, timezone
@@ -23,8 +24,8 @@ router = APIRouter(tags=["health"])
 
 
 # Legacy health check for backward compatibility
-async def check_ollama() -> bool:
-    """Legacy helper to check Ollama status."""
+def _check_ollama_sync() -> bool:
+    """Synchronous Ollama check — run via asyncio.to_thread()."""
     try:
         import urllib.request
         url = settings.ollama_url.replace("localhost", "127.0.0.1")
@@ -35,6 +36,14 @@ async def check_ollama() -> bool:
         )
         with urllib.request.urlopen(req, timeout=2) as response:
             return response.status == 200
+    except Exception:
+        return False
+
+
+async def check_ollama() -> bool:
+    """Check Ollama status without blocking the event loop."""
+    try:
+        return await asyncio.to_thread(_check_ollama_sync)
     except Exception:
         return False
 
@@ -67,8 +76,8 @@ class HealthStatus(BaseModel):
 _START_TIME = datetime.now(timezone.utc)
 
 
-def _check_ollama() -> DependencyStatus:
-    """Check Ollama AI backend status."""
+def _check_ollama_status_sync() -> DependencyStatus:
+    """Synchronous Ollama status check — run via asyncio.to_thread()."""
     try:
         import urllib.request
         url = settings.ollama_url.replace("localhost", "127.0.0.1")
@@ -90,7 +99,7 @@ def _check_ollama() -> DependencyStatus:
             pass
     except Exception:
         pass
-    
+
     return DependencyStatus(
         name="Ollama AI",
         status="unavailable",
@@ -99,11 +108,24 @@ def _check_ollama() -> DependencyStatus:
     )
 
 
+async def _check_ollama() -> DependencyStatus:
+    """Check Ollama AI backend status without blocking the event loop."""
+    try:
+        return await asyncio.to_thread(_check_ollama_status_sync)
+    except Exception:
+        return DependencyStatus(
+            name="Ollama AI",
+            status="unavailable",
+            sovereignty_score=10,
+            details={"url": settings.ollama_url, "error": "Cannot connect to Ollama"},
+        )
+
+
 def _check_redis() -> DependencyStatus:
     """Check Redis cache status."""
     try:
-        from swarm.comms import SwarmComms
-        comms = SwarmComms()
+        from swarm.coordinator import coordinator
+        comms = coordinator.comms
         # Check if we're using fallback
         if hasattr(comms, '_redis') and comms._redis is not None:
             return DependencyStatus(
@@ -280,7 +302,7 @@ async def sovereignty_check():
     Use this to verify the system is operating in a sovereign manner.
     """
     dependencies = [
-        _check_ollama(),
+        await _check_ollama(),
         _check_redis(),
         _check_lightning(),
         _check_sqlite(),

@@ -156,9 +156,10 @@ def test_reconcile_counts_multiple_stale_agents():
 # ── Coordinator integration ───────────────────────────────────────────────────
 
 def test_coordinator_runs_recovery_on_init():
-    """Coordinator.__init__ calls reconcile; _recovery_summary must be present."""
+    """Coordinator.initialize() populates _recovery_summary."""
     from swarm.coordinator import SwarmCoordinator
     coord = SwarmCoordinator()
+    coord.initialize()
     assert hasattr(coord, "_recovery_summary")
     assert "tasks_failed" in coord._recovery_summary
     assert "agents_offlined" in coord._recovery_summary
@@ -166,7 +167,7 @@ def test_coordinator_runs_recovery_on_init():
 
 
 def test_coordinator_recovery_cleans_stale_task():
-    """End-to-end: task left in BIDDING is cleaned up by a fresh coordinator."""
+    """End-to-end: task left in BIDDING is cleaned up after initialize()."""
     from swarm.tasks import create_task, get_task, update_task, TaskStatus
     from swarm.coordinator import SwarmCoordinator
 
@@ -174,6 +175,7 @@ def test_coordinator_recovery_cleans_stale_task():
     update_task(task.id, status=TaskStatus.BIDDING)
 
     coord = SwarmCoordinator()
+    coord.initialize()
     assert get_task(task.id).status == TaskStatus.FAILED
     assert coord._recovery_summary["tasks_failed"] >= 1
     coord.manager.stop_all()
