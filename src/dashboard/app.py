@@ -40,13 +40,51 @@ from dashboard.routes.models import router as models_router
 from dashboard.routes.models import api_router as models_api_router
 from dashboard.routes.chat_api import router as chat_api_router
 from dashboard.routes.thinking import router as thinking_router
+from dashboard.routes.bugs import router as bugs_router
 from infrastructure.router.api import router as cascade_router
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)-8s %(name)s — %(message)s",
-    datefmt="%H:%M:%S",
-)
+def _configure_logging() -> None:
+    """Configure logging with console and optional rotating file handler."""
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+
+    # Console handler (existing behavior)
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    console.setFormatter(
+        logging.Formatter(
+            "%(asctime)s %(levelname)-8s %(name)s — %(message)s",
+            datefmt="%H:%M:%S",
+        )
+    )
+    root_logger.addHandler(console)
+
+    # Rotating file handler for errors
+    if settings.error_log_enabled:
+        from logging.handlers import RotatingFileHandler
+
+        log_dir = Path(settings.repo_root) / settings.error_log_dir
+        log_dir.mkdir(parents=True, exist_ok=True)
+        error_file = log_dir / "errors.log"
+
+        file_handler = RotatingFileHandler(
+            error_file,
+            maxBytes=settings.error_log_max_bytes,
+            backupCount=settings.error_log_backup_count,
+        )
+        file_handler.setLevel(logging.ERROR)
+        file_handler.setFormatter(
+            logging.Formatter(
+                "%(asctime)s %(levelname)-8s %(name)s — %(message)s\n"
+                "  File: %(pathname)s:%(lineno)d\n"
+                "  Function: %(funcName)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+            )
+        )
+        root_logger.addHandler(file_handler)
+
+
+_configure_logging()
 logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).parent
@@ -77,6 +115,11 @@ async def _briefing_scheduler() -> None:
                 logger.info("Briefing is fresh; skipping generation.")
         except Exception as exc:
             logger.error("Briefing scheduler error: %s", exc)
+            try:
+                from infrastructure.error_capture import capture_error
+                capture_error(exc, source="briefing_scheduler")
+            except Exception:
+                pass
 
         await asyncio.sleep(_BRIEFING_INTERVAL_HOURS * 3600)
 
@@ -110,6 +153,11 @@ async def _thinking_loop() -> None:
             logger.debug("Created thought task in queue")
         except Exception as exc:
             logger.error("Thinking loop error: %s", exc)
+            try:
+                from infrastructure.error_capture import capture_error
+                capture_error(exc, source="thinking_loop")
+            except Exception:
+                pass
 
         await asyncio.sleep(settings.thinking_interval_seconds)
 
@@ -156,6 +204,11 @@ async def _task_processor_loop() -> None:
             return response
         except Exception as e:
             logger.error("Chat response failed: %s", e)
+            try:
+                from infrastructure.error_capture import capture_error
+                capture_error(e, source="chat_response_handler")
+            except Exception:
+                pass
             return f"Error: {str(e)}"
 
     def handle_thought(task):
@@ -167,12 +220,22 @@ async def _task_processor_loop() -> None:
             return str(result) if result else "Thought completed"
         except Exception as e:
             logger.error("Thought processing failed: %s", e)
+            try:
+                from infrastructure.error_capture import capture_error
+                capture_error(e, source="thought_handler")
+            except Exception:
+                pass
             return f"Error: {str(e)}"
+
+    def handle_bug_report(task):
+        """Handler for bug_report tasks - acknowledge and mark completed."""
+        return f"Bug report acknowledged: {task.title}"
 
     # Register handlers
     task_processor.register_handler("chat_response", handle_chat_response)
     task_processor.register_handler("thought", handle_thought)
     task_processor.register_handler("internal", handle_thought)
+    task_processor.register_handler("bug_report", handle_bug_report)
 
     # ── Startup drain: iterate through all pending tasks immediately ──
     logger.info("Draining task queue on startup…")
@@ -204,6 +267,11 @@ async def _task_processor_loop() -> None:
                 pass
     except Exception as exc:
         logger.error("Startup drain failed: %s", exc)
+        try:
+            from infrastructure.error_capture import capture_error
+            capture_error(exc, source="task_processor_startup")
+        except Exception:
+            pass
 
     # ── Steady-state: poll for new tasks ──
     logger.info("Task processor entering steady-state loop")
@@ -388,6 +456,55 @@ app.include_router(models_api_router)
 app.include_router(chat_api_router)
 app.include_router(thinking_router)
 app.include_router(cascade_router)
+app.include_router(bugs_router)
+
+
+# ── Error capture middleware ──────────────────────────────────────────────
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+from fastapi.responses import JSONResponse
+
+
+class ErrorCaptureMiddleware(BaseHTTPMiddleware):
+    """Catch unhandled exceptions and feed them into the error feedback loop."""
+
+    async def dispatch(self, request: StarletteRequest, call_next):
+        try:
+            return await call_next(request)
+        except Exception as exc:
+            logger.error(
+                "Unhandled exception on %s %s: %s",
+                request.method, request.url.path, exc,
+            )
+            try:
+                from infrastructure.error_capture import capture_error
+                capture_error(
+                    exc,
+                    source="http_middleware",
+                    context={
+                        "method": request.method,
+                        "path": request.url.path,
+                        "query": str(request.query_params),
+                    },
+                )
+            except Exception:
+                pass  # Never crash the middleware itself
+            raise  # Re-raise so FastAPI's default handler returns 500
+
+
+app.add_middleware(ErrorCaptureMiddleware)
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Safety net for uncaught exceptions."""
+    logger.error("Unhandled exception: %s", exc, exc_info=True)
+    try:
+        from infrastructure.error_capture import capture_error
+        capture_error(exc, source="exception_handler", context={"path": str(request.url)})
+    except Exception:
+        pass
+    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
 
 @app.get("/", response_class=HTMLResponse)

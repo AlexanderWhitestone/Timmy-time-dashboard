@@ -109,6 +109,8 @@ EVENT_ICONS = {
     "system.error": "⚠️",
     "system.warning": "🔶",
     "system.info": "ℹ️",
+    "error.captured": "🐛",
+    "bug_report.created": "📋",
 }
 
 EVENT_LABELS = {
@@ -129,6 +131,8 @@ EVENT_LABELS = {
     "system.error": "Error",
     "system.warning": "Warning",
     "system.info": "Info",
+    "error.captured": "Error captured",
+    "bug_report.created": "Bug report filed",
 }
 
 

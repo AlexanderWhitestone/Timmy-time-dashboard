@@ -141,6 +141,14 @@ class Settings(BaseSettings):
     thinking_enabled: bool = True
     thinking_interval_seconds: int = 300  # 5 minutes between thoughts
 
+    # ── Error Logging ─────────────────────────────────────────────────
+    error_log_enabled: bool = True
+    error_log_dir: str = "logs"
+    error_log_max_bytes: int = 5_242_880  # 5 MB
+    error_log_backup_count: int = 5
+    error_feedback_enabled: bool = True  # Auto-create bug report tasks
+    error_dedup_window_seconds: int = 300  # 5-min dedup window
+
     # ── Scripture / Biblical Integration ──────────────────────────────
     # Enable the sovereign biblical text module.  When enabled, Timmy
     # loads the local ESV text corpus and runs meditation workflows.
