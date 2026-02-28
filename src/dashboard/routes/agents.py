@@ -145,18 +145,16 @@ def _build_queue_context() -> str:
         from swarm.task_queue.models import get_counts_by_status, list_tasks, TaskStatus
 
         counts = get_counts_by_status()
-        pending = counts.get("pending_approval", 0)
+        queued = counts.get("approved", 0)
+        escalated = counts.get("pending_approval", 0)
         running = counts.get("running", 0)
         completed = counts.get("completed", 0)
 
         parts = [
-            f"[System: Task queue — {pending} pending approval, {running} running, {completed} completed."
+            f"[System: Task queue — {queued} queued, {running} running, {completed} completed."
         ]
-        if pending > 0:
-            tasks = list_tasks(status=TaskStatus.PENDING_APPROVAL, limit=5)
-            if tasks:
-                items = ", ".join(f'"{t.title}" ({t.assigned_to})' for t in tasks)
-                parts.append(f"Pending: {items}.")
+        if escalated > 0:
+            parts.append(f"{escalated} escalation(s) awaiting human review.")
         if running > 0:
             tasks = list_tasks(status=TaskStatus.RUNNING, limit=5)
             if tasks:
@@ -256,7 +254,6 @@ async def chat_timmy(request: Request, message: str = Form(...)):
                 created_by="user",
                 assigned_to=task_info.get("agent", "timmy"),
                 priority=task_info.get("priority", "normal"),
-                requires_approval=True,
                 task_type="task_request",
             )
             task_id = task.id
@@ -266,7 +263,7 @@ async def chat_timmy(request: Request, message: str = Form(...)):
                 else ""
             )
             response_text = (
-                f"Task queued for approval: **{task.title}**\n\n"
+                f"Task queued: **{task.title}**\n\n"
                 f"Assigned to: `{task.assigned_to}`{priority_label} | "
                 f"Status: `{task.status.value}` | "
                 f"[View Task Queue](/tasks)"
@@ -293,8 +290,6 @@ async def chat_timmy(request: Request, message: str = Form(...)):
                 created_by="user",
                 assigned_to="timmy",
                 priority="high",  # Higher than thought tasks, lower than urgent
-                requires_approval=True,
-                auto_approve=True,  # Auto-approve chat responses
                 task_type="chat_response",
             )
             task_id = task.id
