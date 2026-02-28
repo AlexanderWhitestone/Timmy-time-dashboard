@@ -1,6 +1,7 @@
 .PHONY: install install-bigbrain dev nuke fresh test test-cov test-cov-html watch lint clean help \
         up down logs \
         docker-build docker-up docker-down docker-agent docker-logs docker-shell \
+        test-docker test-docker-cov test-docker-functional test-docker-build test-docker-down \
         cloud-deploy cloud-up cloud-down cloud-logs cloud-status cloud-update
 
 PYTEST      := poetry run pytest
@@ -113,6 +114,38 @@ test-cov-html:
 # Override model: make test-ollama OLLAMA_TEST_MODEL=tinyllama
 test-ollama:
 	FUNCTIONAL_DOCKER=1 $(PYTEST) tests/functional/test_ollama_chat.py -v --tb=long -x
+
+# ── Docker test containers ───────────────────────────────────────────────────
+# Clean containers from cached images; source bind-mounted for fast iteration.
+# Rebuild only needed when pyproject.toml / poetry.lock change.
+
+# Build the test image (cached — fast unless deps change)
+test-docker-build:
+	DOCKER_BUILDKIT=1 docker compose -f docker-compose.test.yml build
+
+# Run all unit + integration tests in a clean container (default)
+# Override: make test-docker ARGS="-k swarm -v"
+test-docker: test-docker-build
+	docker compose -f docker-compose.test.yml run --rm test \
+	    pytest tests/ -q --tb=short $(ARGS)
+	docker compose -f docker-compose.test.yml down -v
+
+# Run tests with coverage inside a container
+test-docker-cov: test-docker-build
+	docker compose -f docker-compose.test.yml run --rm test \
+	    pytest tests/ --cov=src --cov-report=term-missing -q $(ARGS)
+	docker compose -f docker-compose.test.yml down -v
+
+# Spin up the full stack (dashboard + optional Ollama) and run functional tests
+test-docker-functional: test-docker-build
+	docker compose -f docker-compose.test.yml --profile functional up -d --wait
+	docker compose -f docker-compose.test.yml run --rm test \
+	    pytest tests/functional/ -v --tb=short $(ARGS) || true
+	docker compose -f docker-compose.test.yml --profile functional down -v
+
+# Tear down any leftover test containers and volumes
+test-docker-down:
+	docker compose -f docker-compose.test.yml --profile functional --profile ollama --profile agents down -v
 
 # ── Code quality ──────────────────────────────────────────────────────────────
 
@@ -267,6 +300,15 @@ help:
 	@echo "  make test-ci          run CI tests (exclude skip_ci)"
 	@echo "  make pre-commit-install install pre-commit hooks"
 	@echo "  make clean            remove build artefacts and caches"
+	@echo ""
+	@echo "  Docker Testing (Clean Containers)"
+	@echo "  ─────────────────────────────────────────────────"
+	@echo "  make test-docker              run tests in clean container"
+	@echo "  make test-docker ARGS=\"-k swarm\" filter tests in container"
+	@echo "  make test-docker-cov          tests + coverage in container"
+	@echo "  make test-docker-functional   full-stack functional tests"
+	@echo "  make test-docker-build        build test image (cached)"
+	@echo "  make test-docker-down         tear down test containers"
 	@echo ""
 	@echo "  Docker (Advanced)"
 	@echo "  ─────────────────────────────────────────────────"

@@ -3,13 +3,6 @@
 import pytest
 
 
-@pytest.fixture(autouse=True)
-def tmp_swarm_db(tmp_path, monkeypatch):
-    db_path = tmp_path / "swarm.db"
-    monkeypatch.setattr("swarm.stats.DB_PATH", db_path)
-    yield db_path
-
-
 # ── record_bid ────────────────────────────────────────────────────────────────
 
 def test_record_bid_returns_id():

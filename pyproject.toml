@@ -85,9 +85,15 @@ addopts = "-v --tb=short --timeout=30"
 markers = [
     "unit: Unit tests (fast, no I/O)",
     "integration: Integration tests (may use SQLite)",
+    "functional: Functional tests (real HTTP requests, no mocking)",
+    "e2e: End-to-end tests (full system, may be slow)",
     "dashboard: Dashboard route tests",
     "swarm: Swarm coordinator tests",
     "slow: Tests that take >1 second",
+    "selenium: Requires Selenium and Chrome (browser automation)",
+    "docker: Requires Docker and docker-compose",
+    "ollama: Requires Ollama service running",
+    "skip_ci: Skip in CI environment (local development only)",
 ]
 
 [tool.coverage.run]
