@@ -36,8 +36,8 @@ from config import settings
 
 logger = logging.getLogger(__name__)
 
-# Project root — two levels up from src/self_modify/
-PROJECT_ROOT = Path(__file__).parent.parent.parent
+# Project root — use settings.repo_root (works in Docker and local dev)
+PROJECT_ROOT = Path(settings.repo_root)
 
 # Reports directory
 REPORTS_DIR = PROJECT_ROOT / "data" / "self_modify_reports"

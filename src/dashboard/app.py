@@ -275,7 +275,11 @@ async def _task_processor_loop() -> None:
     def handle_thought(task):
         from timmy.thinking import thinking_engine
         try:
-            result = thinking_engine.think_once()
+            loop = asyncio.get_event_loop()
+            future = asyncio.run_coroutine_threadsafe(
+                thinking_engine.think_once(), loop
+            )
+            result = future.result(timeout=120)
             return str(result) if result else "Thought completed"
         except Exception as e:
             logger.error("Thought processing failed: %s", e)
@@ -457,15 +461,7 @@ async def lifespan(app: FastAPI):
     # Create all background tasks without waiting for them
     briefing_task = asyncio.create_task(_briefing_scheduler())
     
-    # Register Timmy in swarm registry
-    from swarm import registry as swarm_registry
-    swarm_registry.register(
-        name="Timmy",
-        capabilities="chat,reasoning,research,planning",
-        agent_id="timmy",
-    )
-
-    # Run swarm recovery and log summary
+    # Run swarm recovery first (offlines all stale agents)
     from swarm.coordinator import coordinator as swarm_coordinator
     swarm_coordinator.initialize()
     rec = swarm_coordinator._recovery_summary
@@ -475,6 +471,14 @@ async def lifespan(app: FastAPI):
             rec["tasks_failed"],
             rec["agents_offlined"],
         )
+
+    # Register Timmy AFTER recovery sweep so status sticks as "idle"
+    from swarm import registry as swarm_registry
+    swarm_registry.register(
+        name="Timmy",
+        capabilities="chat,reasoning,research,planning",
+        agent_id="timmy",
+    )
 
     # Spawn persona agents in background
     persona_task = asyncio.create_task(_spawn_persona_agents_background())

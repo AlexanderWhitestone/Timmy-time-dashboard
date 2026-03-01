@@ -11,7 +11,7 @@
       <!-- Agents (HTMX-polled from registry) -->
       <div class="card mc-panel"
            hx-get="/swarm/agents/sidebar"
-           hx-trigger="load, every 10s"
+           hx-trigger="every 10s"
            hx-target="this"
            hx-swap="innerHTML">
         <div class="card-header mc-panel-header">// AGENTS</div>
@@ -23,7 +23,7 @@
       <!-- System Health (HTMX polled) -->
       <div class="card mc-panel"
            hx-get="/health/status"
-           hx-trigger="load, every 30s"
+           hx-trigger="every 30s"
            hx-target="this"
            hx-swap="innerHTML">
         <div class="card-header mc-panel-header">// SYSTEM HEALTH</div>

@@ -194,7 +194,7 @@ class GrokBackend:
     ) -> None:
         from config import settings
 
-        self._api_key = api_key or settings.xai_api_key
+        self._api_key = api_key if api_key is not None else settings.xai_api_key
         self._model = model or settings.grok_default_model
         self._history: list[dict[str, str]] = []
         self.stats = GrokUsageStats()
