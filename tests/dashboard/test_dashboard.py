@@ -143,18 +143,17 @@ def test_history_records_user_and_agent_messages(client):
 
     response = client.get("/agents/timmy/history")
     assert "status check" in response.text
-    # In async mode, it records the "Message queued" response
-    assert "Message queued" in response.text
+    # Queue acknowledgment is NOT logged as an agent message; the real
+    # agent response is logged later by the task processor.
 
 
 def test_history_records_error_when_offline(client):
-    # In async mode, errors during queuing are rare; 
-    # if queuing succeeds, it records "Message queued".
+    # In async mode, if queuing succeeds the user message is recorded
+    # and the actual response is logged later by the task processor.
     client.post("/agents/timmy/chat", data={"message": "ping"})
 
     response = client.get("/agents/timmy/history")
     assert "ping" in response.text
-    assert "Message queued" in response.text
 
 
 def test_history_clear_resets_to_init_message(client):

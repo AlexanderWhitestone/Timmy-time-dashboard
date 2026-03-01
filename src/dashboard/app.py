@@ -176,6 +176,15 @@ async def _task_processor_loop() -> None:
             context = f"[System: Current date/time is {now.strftime('%A, %B %d, %Y at %I:%M %p')}]\n\n"
             response = timmy_chat(context + task.description)
 
+            # Log the real agent response to chat history
+            try:
+                from dashboard.store import message_log
+                timestamp = now.strftime("%H:%M:%S")
+                message_log.append(role="agent", content=response, timestamp=timestamp)
+            except Exception as e:
+                logger.debug("Failed to log response to message_log: %s", e)
+
+            # Push response to chat UI via WebSocket
             try:
                 from infrastructure.ws_manager.handler import ws_manager
                 asyncio.create_task(

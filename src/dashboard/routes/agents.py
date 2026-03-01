@@ -316,13 +316,16 @@ async def chat_timmy(request: Request, message: str = Form(...)):
             logger.error("Failed to queue chat message: %s", exc)
             error_text = f"Failed to queue message: {exc}"
 
-    # Log to message history (for context, even though async)
+    # Log user message to history.  For chat_response tasks the real agent
+    # reply is logged by the task processor when it completes, so we only
+    # log the queue acknowledgment for explicit task_request commands.
     message_log.append(role="user", content=message, timestamp=timestamp)
-    if response_text is not None:
+    if task_info and response_text is not None:
+        # Explicit task queue command — the acknowledgment IS the response
         message_log.append(role="agent", content=response_text, timestamp=timestamp)
-    else:
+    elif error_text:
         message_log.append(
-            role="error", content=error_text or "Unknown error", timestamp=timestamp
+            role="error", content=error_text, timestamp=timestamp
         )
 
     return templates.TemplateResponse(
