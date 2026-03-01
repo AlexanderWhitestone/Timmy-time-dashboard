@@ -160,6 +160,69 @@ async def _thinking_loop() -> None:
         await asyncio.sleep(settings.thinking_interval_seconds)
 
 
+def handle_bug_report(task):
+    """Process a bug report: log the decision and dispatch a fix task to Forge.
+
+    Timmy receives the bug report, decides it needs fixing, and creates
+    a code_fix task assigned to Forge.  Every decision is logged to the
+    event log so there is a full audit trail of what Timmy decided and why.
+    """
+    from swarm.event_log import EventType, log_event
+    from swarm.task_queue.models import create_task
+
+    decision = {
+        "action": "dispatch_to_forge",
+        "reason": f"Bug report received, dispatching fix to Forge: {task.title}",
+        "priority": task.priority.value,
+        "source_task_id": task.id,
+    }
+
+    # Dispatch a fix task to Forge
+    try:
+        fix_task = create_task(
+            title=f"[Fix] {task.title}",
+            description=(
+                f"## Bug Report\n\n{task.description or task.title}\n\n"
+                f"## Task\n\nImplement a fix for this bug and write a test proving the fix."
+            ),
+            assigned_to="forge",
+            created_by="timmy",
+            priority=task.priority.value,
+            task_type="code_fix",
+            requires_approval=False,
+            auto_approve=True,
+            parent_task_id=task.id,
+        )
+        decision["outcome"] = "fix_dispatched"
+        decision["fix_task_id"] = fix_task.id
+    except Exception as e:
+        decision["outcome"] = "dispatch_failed"
+        decision["error"] = str(e)
+
+    # Log the decision trail to the event log
+    try:
+        log_event(
+            EventType.BUG_REPORT_CREATED,
+            source="bug_report_handler",
+            task_id=task.id,
+            agent_id="timmy",
+            data=decision,
+        )
+    except Exception:
+        pass
+
+    # Return structured result (stored in task.result)
+    if decision.get("fix_task_id"):
+        return (
+            f"Fix dispatched to Forge (task {decision['fix_task_id']}) | "
+            f"Decision: {decision['reason']}"
+        )
+    return (
+        f"Bug tracked internally (dispatch failed) | "
+        f"Decision: {decision['reason']} | Error: {decision.get('error', 'unknown')}"
+    )
+
+
 async def _task_processor_loop() -> None:
     """Background task: Timmy's task queue processor."""
     from swarm.task_processor import task_processor
@@ -222,9 +285,6 @@ async def _task_processor_loop() -> None:
             except Exception:
                 pass
             return f"Error: {str(e)}"
-
-    def handle_bug_report(task):
-        return f"Bug report acknowledged: {task.title}"
 
     def handle_task_request(task):
         try:

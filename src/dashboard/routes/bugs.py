@@ -1,8 +1,9 @@
 """Bug Report routes -- error feedback loop dashboard.
 
-GET  /bugs           -- Bug reports dashboard page
-GET  /api/bugs       -- List bug reports (JSON)
-GET  /api/bugs/stats -- Bug report statistics
+GET  /bugs              -- Bug reports dashboard page
+GET  /api/bugs          -- List bug reports (JSON)
+GET  /api/bugs/stats    -- Bug report statistics
+POST /api/bugs/submit   -- Submit structured bug reports (from AI test runs)
 """
 
 import logging
@@ -13,7 +14,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
-from swarm.task_queue.models import list_tasks
+from swarm.task_queue.models import create_task, list_tasks
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["bugs"])
@@ -84,3 +85,77 @@ async def api_bug_stats():
         s = bug.status.value
         stats[s] = stats.get(s, 0) + 1
     return {"stats": stats, "total": len(all_bugs)}
+
+
+# ── Bug Report Submission ────────────────────────────────────────────────────
+
+# Severity → task priority mapping
+_SEVERITY_MAP = {"P0": "urgent", "P1": "high", "P2": "normal"}
+
+
+def _format_bug_description(bug: dict, reporter: str) -> str:
+    """Format a bug dict into a markdown task description."""
+    parts = [
+        f"**Reporter:** {reporter}",
+        f"**Severity:** {bug['severity']}",
+        "",
+        "## Problem",
+        bug["description"],
+    ]
+    if bug.get("evidence"):
+        parts += ["", "## Evidence", bug["evidence"]]
+    if bug.get("root_cause"):
+        parts += ["", "## Suspected Root Cause", bug["root_cause"]]
+    if bug.get("fix_options"):
+        parts += ["", "## Suggested Fixes"]
+        for i, fix in enumerate(bug["fix_options"], 1):
+            parts.append(f"{i}. {fix}")
+    return "\n".join(parts)
+
+
+@router.post("/api/bugs/submit", response_class=JSONResponse)
+async def submit_bugs(request: Request):
+    """Submit structured bug reports from an AI test run.
+
+    Body: { "reporter": "comet", "bugs": [ { "title", "severity", "description", ... } ] }
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "Invalid JSON"})
+
+    reporter = body.get("reporter", "unknown")
+    bugs = body.get("bugs", [])
+
+    if not bugs:
+        return JSONResponse(status_code=400, content={"error": "No bugs provided"})
+
+    task_ids = []
+    for bug in bugs:
+        title = bug.get("title", "")
+        severity = bug.get("severity", "")
+        description = bug.get("description", "")
+
+        if not title or not severity or not description:
+            return JSONResponse(
+                status_code=400,
+                content={"error": f"Bug missing required fields (title, severity, description)"},
+            )
+
+        priority = _SEVERITY_MAP.get(severity, "normal")
+
+        task = create_task(
+            title=f"[{severity}] {title}",
+            description=_format_bug_description(bug, reporter),
+            task_type="bug_report",
+            assigned_to="timmy",
+            created_by=reporter,
+            priority=priority,
+            requires_approval=False,
+            auto_approve=True,
+        )
+        task_ids.append(task.id)
+
+    logger.info("Bug report submitted: %d bug(s) from %s", len(task_ids), reporter)
+
+    return {"created": len(task_ids), "task_ids": task_ids}
