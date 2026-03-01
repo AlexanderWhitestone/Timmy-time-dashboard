@@ -118,15 +118,48 @@
       .catch(() => {});
   }
 
-  function appendMessage(role, content, timestamp) {
+  function appendMessage(role, content, timestamp, taskId) {
+    // If this is a response for a queued task, replace the placeholder
+    if (taskId) {
+      var placeholder = chatLog.querySelector('.chat-message.agent[data-task-id="' + taskId + '"]');
+      if (placeholder) {
+        placeholder.removeAttribute('data-task-id');
+        var body = placeholder.querySelector('.msg-body');
+        if (body) {
+          body.textContent = content;
+          body.className = 'msg-body timmy-md';
+          if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+            body.innerHTML = DOMPurify.sanitize(marked.parse(body.textContent));
+            if (typeof hljs !== 'undefined') {
+              body.querySelectorAll('pre code').forEach(function(block) { hljs.highlightElement(block); });
+            }
+          }
+        }
+        placeholder.querySelector('.msg-meta').textContent = 'TIMMY // ' + timestamp;
+        // Remove queue-status indicator if present
+        var qs = placeholder.nextElementSibling;
+        if (qs && qs.classList.contains('queue-status')) qs.remove();
+        chatLog.scrollTop = chatLog.scrollHeight;
+        return;
+      }
+    }
     var div = document.createElement('div');
     div.className = 'chat-message ' + role;
-    div.innerHTML = '<div class="msg-meta">' + (role === 'user' ? 'YOU' : 'TIMMY') + ' // ' + timestamp + '</div><div class="msg-body timmy-md">' + content.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+    var meta = document.createElement('div');
+    meta.className = 'msg-meta';
+    meta.textContent = (role === 'user' ? 'YOU' : 'TIMMY') + ' // ' + timestamp;
+    var body = document.createElement('div');
+    body.className = 'msg-body timmy-md';
+    body.textContent = content;
+    div.appendChild(meta);
+    div.appendChild(body);
     chatLog.appendChild(div);
     // Render markdown if available
     if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
-      var md = div.querySelector('.timmy-md');
-      md.innerHTML = DOMPurify.sanitize(marked.parse(md.textContent));
+      body.innerHTML = DOMPurify.sanitize(marked.parse(body.textContent));
+      if (typeof hljs !== 'undefined') {
+        body.querySelectorAll('pre code').forEach(function(block) { hljs.highlightElement(block); });
+      }
     }
     // Scroll to bottom
     chatLog.scrollTop = chatLog.scrollHeight;
@@ -146,11 +179,12 @@
           } else if (msg.event === 'task_created' || msg.event === 'task_completed' || 
                      msg.event === 'task_approved') {
             fetchStatus();
-          } else if (msg.type === 'timmy_response') {
-            // Timmy pushed a response!
+          } else if (msg.event === 'timmy_response' && msg.data) {
+            // Timmy pushed a response via task processor
             var now = new Date();
-            var ts = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-            appendMessage('agent', msg.response, ts);
+            var ts = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
+            appendMessage('agent', msg.data.response, ts, msg.data.task_id);
+            fetchStatus();
           }
         } catch(e) {}
       };
