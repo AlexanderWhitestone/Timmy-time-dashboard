@@ -1,0 +1,71 @@
+# ── OpenFang — vendored binary sidecar ──────────────────────────────────────
+#
+# Downloads the OpenFang Agent OS binary from GitHub releases and runs it
+# as a sidecar service.  Timmy's coordinator delegates tool execution here.
+#
+# OpenFang exposes an OpenAI-compatible REST API that Timmy hits via the
+# infrastructure/openfang client bridge.
+#
+# Build:  docker build -f docker/Dockerfile.openfang -t timmy-openfang:latest .
+# Run:    docker run -p 8080:8080 timmy-openfang:latest
+
+FROM debian:bookworm-slim AS downloader
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG OPENFANG_VERSION=latest
+ARG TARGETARCH=amd64
+
+# Download the binary from GitHub releases.
+# The release asset is expected to be a single Linux binary.
+RUN mkdir -p /opt/openfang && \
+    if [ "$OPENFANG_VERSION" = "latest" ]; then \
+        DOWNLOAD_URL=$(curl -sL \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/RightNow-AI/openfang/releases/latest" \
+            | grep "browser_download_url.*linux.*${TARGETARCH}" \
+            | head -1 \
+            | cut -d '"' -f 4); \
+    else \
+        DOWNLOAD_URL="https://github.com/RightNow-AI/openfang/releases/download/${OPENFANG_VERSION}/openfang-linux-${TARGETARCH}"; \
+    fi && \
+    echo "Downloading OpenFang from: ${DOWNLOAD_URL}" && \
+    curl -fSL "${DOWNLOAD_URL:-https://github.com/RightNow-AI/openfang/releases/latest/download/openfang-linux-${TARGETARCH}}" \
+        -o /opt/openfang/openfang && \
+    chmod +x /opt/openfang/openfang
+
+# ── Runtime ─────────────────────────────────────────────────────────────────
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Non-root user
+RUN groupadd -r openfang && useradd -r -g openfang -d /app -s /sbin/nologin openfang
+
+WORKDIR /app
+
+COPY --from=downloader /opt/openfang/openfang /usr/local/bin/openfang
+
+# Data directory for OpenFang's SQLite state
+RUN mkdir -p /app/data && chown -R openfang:openfang /app
+
+USER openfang
+
+# OpenFang listens on 8080 by default
+EXPOSE 8080
+
+# ── Healthcheck ─────────────────────────────────────────────────────────────
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+# ── Entrypoint ──────────────────────────────────────────────────────────────
+# OpenFang is configured entirely via env vars.  Key ones:
+#   OPENFANG_HOST        listen address (default 0.0.0.0)
+#   OPENFANG_PORT        listen port (default 8080)
+#   OPENFANG_DATA_DIR    state directory (default /app/data)
+#   OLLAMA_URL           point to the shared Ollama instance
+CMD ["openfang", "serve", "--host", "0.0.0.0", "--port", "8080"]

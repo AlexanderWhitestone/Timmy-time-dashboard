@@ -84,29 +84,76 @@ def reset_coordinator_state():
 
 
 @pytest.fixture(autouse=True)
-def clean_database():
+def clean_database(tmp_path):
     """Clean up database tables between tests for isolation.
-    
-    Uses transaction rollback pattern: each test's changes are rolled back
-    to ensure perfect isolation between tests.
+
+    When running under pytest-xdist (parallel workers), each worker gets
+    its own tmp_path so DB files never collide.  We redirect every
+    module-level DB_PATH to the per-test temp directory.
     """
-    # Pre-test: Clean database files for fresh start
-    db_paths = [
-        Path("data/swarm.db"),
-        Path("data/swarm.db-shm"),
-        Path("data/swarm.db-wal"),
+    tmp_swarm_db = tmp_path / "swarm.db"
+    tmp_spark_db = tmp_path / "spark.db"
+    tmp_self_coding_db = tmp_path / "self_coding.db"
+
+    # All modules that use DB_PATH = Path("data/swarm.db")
+    _swarm_db_modules = [
+        "swarm.tasks",
+        "swarm.registry",
+        "swarm.routing",
+        "swarm.learner",
+        "swarm.event_log",
+        "swarm.stats",
+        "swarm.work_orders.models",
+        "swarm.task_queue.models",
+        "self_coding.upgrades.models",
+        "lightning.ledger",
+        "timmy.memory.vector_store",
+        "infrastructure.models.registry",
     ]
-    for db_path in db_paths:
-        if db_path.exists():
-            try:
-                db_path.unlink()
-            except Exception:
-                pass
-    
+    _spark_db_modules = [
+        "spark.memory",
+        "spark.eidos",
+    ]
+    _self_coding_db_modules = [
+        "self_coding.modification_journal",
+        "self_coding.codebase_indexer",
+    ]
+
+    originals = {}
+    for mod_name in _swarm_db_modules:
+        try:
+            mod = __import__(mod_name, fromlist=["DB_PATH"])
+            attr = "DB_PATH"
+            originals[(mod_name, attr)] = getattr(mod, attr)
+            setattr(mod, attr, tmp_swarm_db)
+        except Exception:
+            pass
+
+    for mod_name in _spark_db_modules:
+        try:
+            mod = __import__(mod_name, fromlist=["DB_PATH"])
+            originals[(mod_name, "DB_PATH")] = getattr(mod, "DB_PATH")
+            setattr(mod, "DB_PATH", tmp_spark_db)
+        except Exception:
+            pass
+
+    for mod_name in _self_coding_db_modules:
+        try:
+            mod = __import__(mod_name, fromlist=["DEFAULT_DB_PATH"])
+            originals[(mod_name, "DEFAULT_DB_PATH")] = getattr(mod, "DEFAULT_DB_PATH")
+            setattr(mod, "DEFAULT_DB_PATH", tmp_self_coding_db)
+        except Exception:
+            pass
+
     yield
-    
-    # Post-test cleanup is handled by the reset_coordinator_state fixture
-    # and file deletion above ensures each test starts fresh
+
+    # Restore originals so module-level state isn't permanently mutated
+    for (mod_name, attr), original in originals.items():
+        try:
+            mod = __import__(mod_name, fromlist=[attr])
+            setattr(mod, attr, original)
+        except Exception:
+            pass
 
 
 @pytest.fixture(autouse=True)

@@ -8,10 +8,12 @@ Usage:
     result = executor.execute_task("Write a function to calculate fibonacci")
 """
 
+import asyncio
 import logging
 from typing import Any, Optional
 from pathlib import Path
 
+from config import settings
 from timmy.tools import get_tools_for_persona, create_full_toolkit
 from timmy.agent import create_timmy
 
@@ -272,6 +274,70 @@ Response:"""
             getattr(f, 'name', f.__name__) 
             for f in self._toolkit.functions
         ]
+
+
+# ── OpenFang delegation ──────────────────────────────────────────────────────
+# These module-level functions allow the ToolExecutor (and other callers)
+# to delegate task execution to the OpenFang sidecar when available.
+
+# Keywords that map task descriptions to OpenFang hands.
+_OPENFANG_HAND_KEYWORDS: dict[str, list[str]] = {
+    "browser": ["browse", "navigate", "webpage", "website", "url", "scrape", "crawl"],
+    "collector": ["osint", "collect", "intelligence", "monitor", "surveillance", "recon"],
+    "predictor": ["predict", "forecast", "probability", "calibrat"],
+    "lead": ["lead", "prospect", "icp", "qualify", "outbound"],
+    "twitter": ["tweet", "twitter", "social media post"],
+    "researcher": ["research", "investigate", "deep dive", "literature", "survey"],
+    "clip": ["video clip", "video process", "caption video", "publish video"],
+}
+
+
+def _match_openfang_hand(task_description: str) -> Optional[str]:
+    """Match a task description to an OpenFang hand name.
+
+    Returns the hand name (e.g. "browser") or None if no match.
+    """
+    desc_lower = task_description.lower()
+    for hand, keywords in _OPENFANG_HAND_KEYWORDS.items():
+        if any(kw in desc_lower for kw in keywords):
+            return hand
+    return None
+
+
+async def try_openfang_execution(task_description: str) -> Optional[dict[str, Any]]:
+    """Try to execute a task via OpenFang.
+
+    Returns a result dict if OpenFang handled it, or None if the caller
+    should fall back to native execution.  Never raises.
+    """
+    if not settings.openfang_enabled:
+        return None
+
+    try:
+        from infrastructure.openfang.client import openfang_client
+    except ImportError:
+        logger.debug("OpenFang client not available")
+        return None
+
+    if not openfang_client.healthy:
+        logger.debug("OpenFang is not healthy, falling back to native execution")
+        return None
+
+    hand = _match_openfang_hand(task_description)
+    if hand is None:
+        return None
+
+    result = await openfang_client.execute_hand(hand, {"task": task_description})
+    if result.success:
+        return {
+            "success": True,
+            "result": result.output,
+            "tools_used": [f"openfang_{hand}"],
+            "runtime": "openfang",
+        }
+
+    logger.warning("OpenFang hand %s failed: %s — falling back", hand, result.error)
+    return None
 
 
 class DirectToolExecutor(ToolExecutor):

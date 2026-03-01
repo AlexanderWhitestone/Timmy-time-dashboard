@@ -91,6 +91,35 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # ── OpenFang — vendored agent runtime sidecar ────────────────────────────────
+  # Rust binary providing real tool execution (browser, OSINT, forecasting).
+  # Timmy's coordinator delegates hand execution here via REST API.
+  openfang:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.openfang
+    image: timmy-openfang:latest
+    container_name: timmy-openfang
+    profiles:
+      - openfang
+    environment:
+      OLLAMA_URL: "http://ollama:11434"
+      OPENFANG_DATA_DIR: "/app/data"
+    volumes:
+      - openfang-data:/app/data
+    networks:
+      - timmy-net
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
   # ── Swarm Worker Pool (Template) ──────────────────────────────────────────
   # Scale: docker compose -f docker-compose.microservices.yml up --scale worker=4
   worker:
@@ -127,6 +156,8 @@ volumes:
       o: bind
       device: "${PWD}/data"
   ollama-data:
+    driver: local
+  openfang-data:
     driver: local
 
 # ── Network ───────────────────────────────────────────────────────────────────
