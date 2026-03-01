@@ -253,13 +253,22 @@ async def health_check():
     # Legacy format for test compatibility
     ollama_ok = await check_ollama()
     
+    # Determine Timmy's status from swarm registry (heartbeat-backed),
+    # falling back to Ollama connectivity only if not registered.
+    try:
+        from swarm import registry as swarm_registry
+        timmy_rec = swarm_registry.get_agent("timmy")
+        timmy_status = timmy_rec.status if timmy_rec else ("idle" if ollama_ok else "offline")
+    except Exception:
+        timmy_status = "idle" if ollama_ok else "offline"
+
     return {
         "status": "ok" if ollama_ok else "degraded",
         "services": {
             "ollama": "up" if ollama_ok else "down",
         },
         "agents": {
-            "timmy": {"status": "idle" if ollama_ok else "offline"},
+            "timmy": {"status": timmy_status},
         },
         # Extended fields for Mission Control
         "timestamp": datetime.now(timezone.utc).isoformat(),

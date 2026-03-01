@@ -6,6 +6,7 @@ class Message:
     role: str       # "user" | "agent" | "error"
     content: str
     timestamp: str
+    source: str = "browser"  # "browser" | "api" | "telegram" | "discord" | "system"
 
 
 class MessageLog:
@@ -14,8 +15,8 @@ class MessageLog:
     def __init__(self) -> None:
         self._entries: list[Message] = []
 
-    def append(self, role: str, content: str, timestamp: str) -> None:
-        self._entries.append(Message(role=role, content=content, timestamp=timestamp))
+    def append(self, role: str, content: str, timestamp: str, source: str = "browser") -> None:
+        self._entries.append(Message(role=role, content=content, timestamp=timestamp, source=source))
 
     def all(self) -> list[Message]:
         return list(self._entries)

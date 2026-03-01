@@ -236,6 +236,8 @@ Use `memory_search` when the user refers to past conversations.
 
 6. **Your source code lives at the repository root shown above.** When using git tools, you don't need to specify a path — they automatically run from {REPO_ROOT}.
 
+7. **When asked about your status, queue, agents, memory, or system health, use the `system_status` tool.** Do not guess your own state — call the tool for live data.
+
 ## Principles
 
 1. **Sovereignty** — Everything local, no cloud
@@ -262,7 +264,7 @@ class TimmyOrchestrator(BaseAgent):
             name="Timmy",
             role="orchestrator",
             system_prompt=formatted_prompt,
-            tools=["web_search", "read_file", "write_file", "python", "memory_search", "memory_write"],
+            tools=["web_search", "read_file", "write_file", "python", "memory_search", "memory_write", "system_status"],
         )
         
         # Sub-agent registry

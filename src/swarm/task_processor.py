@@ -126,6 +126,13 @@ class TaskProcessor:
         self._current_task = task
         update_task_status(task.id, TaskStatus.RUNNING)
 
+        # Heartbeat on task start
+        try:
+            from swarm.registry import heartbeat
+            heartbeat(self.agent_id)
+        except Exception:
+            pass
+
         try:
             logger.info("Processing task: %s (type: %s)", task.title, task.task_type)
 
@@ -263,6 +270,13 @@ class TaskProcessor:
         logger.info("Task processor started for %s", self.agent_id)
 
         while self._running:
+            # Heartbeat — update last_seen so health endpoint knows we're alive
+            try:
+                from swarm.registry import heartbeat
+                heartbeat(self.agent_id)
+            except Exception:
+                pass  # Graceful degradation
+
             try:
                 await self.process_next_task()
             except Exception as e:
