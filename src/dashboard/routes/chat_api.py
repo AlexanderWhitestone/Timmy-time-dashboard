@@ -84,16 +84,16 @@ async def api_chat(request: Request):
             session_id="mobile",
         )
 
-        message_log.append(role="user", content=last_user_msg, timestamp=timestamp)
-        message_log.append(role="agent", content=response_text, timestamp=timestamp)
+        message_log.append(role="user", content=last_user_msg, timestamp=timestamp, source="api")
+        message_log.append(role="agent", content=response_text, timestamp=timestamp, source="api")
 
         return {"reply": response_text, "timestamp": timestamp}
 
     except Exception as exc:
         error_msg = f"Timmy is offline: {exc}"
         logger.error("api_chat error: %s", exc)
-        message_log.append(role="user", content=last_user_msg, timestamp=timestamp)
-        message_log.append(role="error", content=error_msg, timestamp=timestamp)
+        message_log.append(role="user", content=last_user_msg, timestamp=timestamp, source="api")
+        message_log.append(role="error", content=error_msg, timestamp=timestamp, source="api")
         return JSONResponse(
             status_code=503,
             content={"error": error_msg, "timestamp": timestamp},
@@ -141,6 +141,7 @@ async def api_chat_history():
                 "role": msg.role,
                 "content": msg.content,
                 "timestamp": msg.timestamp,
+                "source": msg.source,
             }
             for msg in message_log.all()
         ]

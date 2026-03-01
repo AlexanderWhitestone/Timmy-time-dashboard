@@ -27,7 +27,7 @@ RUN pip install --no-cache-dir poetry poetry-plugin-export
 COPY pyproject.toml poetry.lock ./
 
 # Export pinned requirements and install with pip cache mount
-RUN poetry export --extras swarm --extras telegram --without-hashes \
+RUN poetry export --extras swarm --extras telegram --extras discord --without-hashes \
         -f requirements.txt -o requirements.txt
 
 RUN --mount=type=cache,target=/root/.cache/pip \

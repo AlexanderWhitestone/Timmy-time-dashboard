@@ -25,7 +25,7 @@ RUN pip install --no-cache-dir poetry poetry-plugin-export
 COPY pyproject.toml poetry.lock ./
 
 # Export ALL deps including dev/test extras
-RUN poetry export --extras swarm --extras telegram --extras dev \
+RUN poetry export --extras swarm --extras telegram --extras discord --extras dev \
         --with dev --without-hashes \
         -f requirements.txt -o requirements.txt
 

@@ -108,8 +108,8 @@ async def grok_chat(request: Request, message: str = Form(...)):
 
     if not grok_available():
         error = "Grok is not available. Set GROK_ENABLED=true and XAI_API_KEY."
-        message_log.append(role="user", content=f"[Grok] {message}", timestamp=timestamp)
-        message_log.append(role="error", content=error, timestamp=timestamp)
+        message_log.append(role="user", content=f"[Grok] {message}", timestamp=timestamp, source="browser")
+        message_log.append(role="error", content=error, timestamp=timestamp, source="browser")
         return templates.TemplateResponse(
             request,
             "partials/chat_message.html",
@@ -144,10 +144,10 @@ async def grok_chat(request: Request, message: str = Form(...)):
         error = f"Grok error: {exc}"
 
     message_log.append(
-        role="user", content=f"[Ask Grok] {message}", timestamp=timestamp
+        role="user", content=f"[Ask Grok] {message}", timestamp=timestamp, source="browser"
     )
     if response_text:
-        message_log.append(role="agent", content=response_text, timestamp=timestamp)
+        message_log.append(role="agent", content=response_text, timestamp=timestamp, source="browser")
         return templates.TemplateResponse(
             request,
             "partials/chat_message.html",
@@ -159,7 +159,7 @@ async def grok_chat(request: Request, message: str = Form(...)):
             },
         )
     else:
-        message_log.append(role="error", content=error, timestamp=timestamp)
+        message_log.append(role="error", content=error, timestamp=timestamp, source="browser")
         return templates.TemplateResponse(
             request,
             "partials/chat_message.html",

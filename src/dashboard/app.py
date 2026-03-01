@@ -243,7 +243,7 @@ async def _task_processor_loop() -> None:
             try:
                 from dashboard.store import message_log
                 timestamp = now.strftime("%H:%M:%S")
-                message_log.append(role="agent", content=response, timestamp=timestamp)
+                message_log.append(role="agent", content=response, timestamp=timestamp, source="system")
             except Exception as e:
                 logger.debug("Failed to log response to message_log: %s", e)
 
@@ -452,6 +452,50 @@ async def _start_chat_integrations_background() -> None:
             logger.warning("Failed to start Discord bot: %s", exc)
     else:
         logger.debug("Discord: no token configured, skipping")
+
+    # If Discord isn't connected yet, start a watcher that polls for the
+    # token to appear in the environment or .env file.
+    if discord_bot.state.name != "CONNECTED":
+        asyncio.create_task(_discord_token_watcher())
+
+
+async def _discord_token_watcher() -> None:
+    """Poll for DISCORD_TOKEN appearing in env or .env and auto-start Discord bot."""
+    from integrations.chat_bridge.vendors.discord import discord_bot
+
+    while True:
+        await asyncio.sleep(30)
+
+        if discord_bot.state.name == "CONNECTED":
+            return  # Already running — stop watching
+
+        # 1. Check live environment variable
+        token = os.environ.get("DISCORD_TOKEN", "")
+
+        # 2. Re-read .env file for hot-reload
+        if not token:
+            try:
+                from dotenv import dotenv_values
+
+                env_path = Path(settings.repo_root) / ".env"
+                if env_path.exists():
+                    vals = dotenv_values(env_path)
+                    token = vals.get("DISCORD_TOKEN", "")
+            except ImportError:
+                pass  # python-dotenv not installed
+
+        # 3. Check state file (written by /discord/setup)
+        if not token:
+            token = discord_bot.load_token() or ""
+
+        if token:
+            try:
+                success = await discord_bot.start(token=token)
+                if success:
+                    logger.info("Discord bot auto-started (token detected)")
+                    return  # Done — stop watching
+            except Exception as exc:
+                logger.warning("Discord auto-start failed: %s", exc)
 
 
 @asynccontextmanager

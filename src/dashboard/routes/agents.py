@@ -319,13 +319,13 @@ async def chat_timmy(request: Request, message: str = Form(...)):
     # Log user message to history.  For chat_response tasks the real agent
     # reply is logged by the task processor when it completes, so we only
     # log the queue acknowledgment for explicit task_request commands.
-    message_log.append(role="user", content=message, timestamp=timestamp)
+    message_log.append(role="user", content=message, timestamp=timestamp, source="browser")
     if task_info and response_text is not None:
         # Explicit task queue command — the acknowledgment IS the response
-        message_log.append(role="agent", content=response_text, timestamp=timestamp)
+        message_log.append(role="agent", content=response_text, timestamp=timestamp, source="browser")
     elif error_text:
         message_log.append(
-            role="error", content=error_text, timestamp=timestamp
+            role="error", content=error_text, timestamp=timestamp, source="browser"
         )
 
     return templates.TemplateResponse(
