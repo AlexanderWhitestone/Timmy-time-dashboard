@@ -39,6 +39,14 @@ services:
       - ./src:/app/src:ro
       - ./tests:/app/tests:ro
       - ./static:/app/static:ro
+      - ./hands:/app/hands:ro
+      - ./docker:/app/docker:ro
+      - ./Dockerfile:/app/Dockerfile:ro
+      - ./docker-compose.yml:/app/docker-compose.yml:ro
+      - ./docker-compose.dev.yml:/app/docker-compose.dev.yml:ro
+      - ./docker-compose.prod.yml:/app/docker-compose.prod.yml:ro
+      - ./docker-compose.test.yml:/app/docker-compose.test.yml:ro
+      - ./docker-compose.microservices.yml:/app/docker-compose.microservices.yml:ro
       - ./pyproject.toml:/app/pyproject.toml:ro
       - test-data:/app/data
     environment:
@@ -67,6 +75,7 @@ services:
     volumes:
       - ./src:/app/src:ro
       - ./static:/app/static:ro
+      - ./hands:/app/hands:ro
       - test-data:/app/data
     environment:
       DEBUG: "true"
@@ -117,6 +126,7 @@ services:
       - agents
     volumes:
       - ./src:/app/src:ro
+      - ./hands:/app/hands:ro
       - test-data:/app/data
     environment:
       COORDINATOR_URL: "http://dashboard:8000"

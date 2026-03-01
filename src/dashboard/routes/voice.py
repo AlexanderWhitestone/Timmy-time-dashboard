@@ -1,12 +1,16 @@
 """Voice routes — /voice/* and /voice/enhanced/* endpoints.
 
-Provides NLU intent detection, TTS control, and the full voice-to-action
-pipeline (detect intent → execute → optionally speak).
+Provides NLU intent detection, TTS control, the full voice-to-action
+pipeline (detect intent → execute → optionally speak), and the voice
+button UI page.
 """
 
 import logging
 
-from fastapi import APIRouter, Form
+from fastapi import APIRouter, Form, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from pathlib import Path
 
 from integrations.voice.nlu import detect_intent, extract_command
 from timmy.agent import create_timmy
@@ -14,6 +18,7 @@ from timmy.agent import create_timmy
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/voice", tags=["voice"])
+templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 
 @router.post("/nlu")
@@ -54,6 +59,31 @@ async def tts_speak(text: str = Form(...)):
         return {"spoken": True, "text": text}
     except Exception as exc:
         return {"spoken": False, "reason": str(exc)}
+
+
+# ── Voice button page ────────────────────────────────────────────────────
+
+
+@router.get("/button", response_class=HTMLResponse)
+async def voice_button_page(request: Request):
+    """Render the voice button UI."""
+    return templates.TemplateResponse(request, "voice_button.html")
+
+
+@router.post("/command")
+async def voice_command(text: str = Form(...)):
+    """Process a voice command (used by voice_button.html).
+
+    Wraps the enhanced pipeline and returns the result in the format
+    the voice button template expects.
+    """
+    result = await process_voice_input(text=text, speak_response=False)
+    return {
+        "command": {
+            "intent": result["intent"],
+            "response": result["response"] or result.get("error", "No response"),
+        }
+    }
 
 
 # ── Enhanced voice pipeline ──────────────────────────────────────────────

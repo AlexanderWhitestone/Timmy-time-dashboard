@@ -20,8 +20,9 @@ def test_resolve_path_relative_to_repo():
 
     result = _resolve_path("src/config.py")
 
-    assert "Timmy-time-dashboard" in str(result)
+    # In Docker the repo root is /app; locally it contains Timmy-time-dashboard
     assert result.name == "config.py"
+    assert "src" in str(result)
 
 
 def test_resolve_path_absolute():

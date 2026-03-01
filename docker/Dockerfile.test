@@ -39,7 +39,7 @@ FROM python:3.12-slim
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl git \
+        curl git fontconfig fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed packages from builder
@@ -48,7 +48,14 @@ COPY --from=builder /usr/local/lib/python3.12/site-packages \
 COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Create directories for bind mounts
-RUN mkdir -p /app/src /app/tests /app/static /app/data
+RUN mkdir -p /app/src /app/tests /app/static /app/hands /app/data /app/docker
+
+# Initialize a minimal git repo so git-dependent code (GitSafety, repo_root
+# detection) works correctly inside the container.
+RUN git config --global user.email "timmy@test" \
+    && git config --global user.name "Timmy Test" \
+    && git init /app \
+    && git -C /app commit --allow-empty -m "init"
 
 ENV PYTHONPATH=/app/src:/app/tests
 ENV PYTHONUNBUFFERED=1

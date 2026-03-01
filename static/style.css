@@ -145,6 +145,61 @@ a:hover { color: var(--orange); }
 }
 .mc-test-link:hover { border-color: var(--purple); color: var(--purple); }
 
+/* ── Named link colors ───────────────────────────── */
+.mc-link-thinking { color: #c084fc; }
+.mc-link-bugs { color: #ff6b6b; }
+.mc-link-grok { color: #00ff88; }
+
+/* ── Desktop "More" dropdown ─────────────────────── */
+.mc-nav-dropdown { position: relative; }
+.mc-dropdown-toggle {
+  background: none;
+  cursor: pointer;
+}
+.mc-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: rgba(17, 8, 32, 0.96);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 0;
+  min-width: 160px;
+  z-index: 150;
+  max-height: 70vh;
+  overflow-y: auto;
+  flex-direction: column;
+}
+.mc-nav-dropdown:hover .mc-dropdown-menu,
+.mc-nav-dropdown.open .mc-dropdown-menu {
+  display: flex;
+}
+.mc-dropdown-menu .mc-test-link {
+  display: block;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 0;
+  white-space: nowrap;
+}
+.mc-dropdown-menu .mc-test-link:hover {
+  background: rgba(124, 58, 237, 0.12);
+}
+
+/* ── Mobile section labels ───────────────────────── */
+.mc-mobile-section-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-dim);
+  letter-spacing: 0.2em;
+  padding: 12px 20px 4px;
+  text-transform: uppercase;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
 /* ── Hamburger (mobile only) ───────────────────── */
 .mc-hamburger {
   display: none;

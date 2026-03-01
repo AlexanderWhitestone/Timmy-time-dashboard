@@ -37,7 +37,8 @@ def test_get_system_info_contains_repo_root():
 
     assert "repo_root" in info
     assert info["repo_root"] == settings.repo_root
-    assert "Timmy-time-dashboard" in info["repo_root"]
+    # In Docker the CWD is /app, so just verify it's a non-empty path
+    assert len(info["repo_root"]) > 0
 
 
 def test_check_ollama_health_returns_dict():
