@@ -29,22 +29,60 @@ except ImportError:
     _MOVIEPY_AVAILABLE = False
 
 def _resolve_font() -> str:
-    """Find a usable TrueType font on the current platform."""
+    """Find a usable TrueType font on the current platform.
+    
+    Searches for system fonts in order of preference, with fallbacks
+    for different operating systems. Returns a valid font path or
+    raises an error if no suitable font is found.
+    """
     candidates = [
-        # Linux (Debian/Ubuntu)
+        # Linux (Debian/Ubuntu) - DejaVu is most reliable
         "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/TTF/DejaVuSans.ttf",  # Arch
         "/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf",  # Fedora
+        # Linux - Liberation fonts (fallback)
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
         # macOS
         "/System/Library/Fonts/Supplemental/Arial.ttf",
         "/System/Library/Fonts/Helvetica.ttc",
         "/Library/Fonts/Arial.ttf",
+        # Windows
+        "C:\\Windows\\Fonts\\arial.ttf",
     ]
+    
+    # Try each candidate
     for path in candidates:
-        if Path(path).exists():
-            return path
-    logger.warning("No system TrueType font found; using Pillow default")
-    return "Helvetica"
+        try:
+            if Path(path).exists():
+                logger.debug(f"Using system font: {path}")
+                return path
+        except (OSError, ValueError):
+            # Path might be invalid on some systems
+            continue
+    
+    # If no candidates found, search for any available TrueType font
+    logger.warning("Preferred fonts not found; searching for any available TrueType font")
+    try:
+        import subprocess
+        result = subprocess.run(
+            ["find", "/usr/share/fonts", "-name", "*.ttf", "-type", "f"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.stdout:
+            first_font = result.stdout.strip().split("\n")[0]
+            logger.warning(f"Using fallback font: {first_font}")
+            return first_font
+    except Exception as e:
+        logger.debug(f"Font search failed: {e}")
+    
+    # Last resort: raise an error instead of returning an invalid font name
+    raise RuntimeError(
+        "No suitable TrueType font found on system. "
+        "Please install a font package (e.g., fonts-dejavu, fonts-liberation) "
+        "or set MOVIEPY_FONT environment variable to a valid font path."
+    )
 
 
 _DEFAULT_FONT = _resolve_font()
