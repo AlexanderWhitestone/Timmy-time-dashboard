@@ -545,9 +545,17 @@ async def ws_redirect(websocket: WebSocket):
     an endpoint.  Stale browser tabs retry forever, spamming 403 errors.
     Accept the connection and immediately close with a policy-violation
     code so the client stops retrying.
+
+    websockets 16.0 dropped the legacy ``transfer_data_task`` attribute,
+    so calling ``websocket.close()`` after accept triggers an
+    AttributeError.  Use the raw ASGI send instead.
     """
     await websocket.accept()
-    await websocket.close(code=1008, reason="Use /swarm/live instead")
+    try:
+        await websocket.close(code=1008, reason="Use /swarm/live instead")
+    except AttributeError:
+        # websockets >= 16.0 — close via raw ASGI message
+        await websocket.send({"type": "websocket.close", "code": 1008})
 
 
 @app.get("/", response_class=HTMLResponse)

@@ -409,7 +409,11 @@ def submit_bid(bid: BidRequest):
 @router.websocket("/live")
 async def swarm_live(websocket: WebSocket):
     """WebSocket endpoint for live swarm event streaming."""
-    await ws_manager.connect(websocket)
+    try:
+        await ws_manager.connect(websocket)
+    except Exception as exc:
+        logger.warning("WebSocket accept failed: %s", exc)
+        return
     try:
         while True:
             data = await websocket.receive_text()
