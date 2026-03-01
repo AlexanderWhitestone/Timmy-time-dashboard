@@ -54,9 +54,12 @@ class TestDiscordVendor:
     def test_load_token_missing_file(self, tmp_path, monkeypatch):
         from integrations.chat_bridge.vendors import discord as discord_mod
         from integrations.chat_bridge.vendors.discord import DiscordVendor
+        from config import settings
 
         state_file = tmp_path / "nonexistent.json"
         monkeypatch.setattr(discord_mod, "_STATE_FILE", state_file)
+        # Ensure settings.discord_token is empty for test isolation
+        monkeypatch.setattr(settings, "discord_token", "")
 
         vendor = DiscordVendor()
         # Falls back to config.settings.discord_token
