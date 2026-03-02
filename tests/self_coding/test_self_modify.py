@@ -428,23 +428,3 @@ class TestSelfModifyRoutes:
         resp = client.post("/self-modify/run", data={"instruction": "test"})
         assert resp.status_code == 403
 
-
-# ── DirectToolExecutor integration ────────────────────────────────────────────
-
-
-class TestDirectToolExecutor:
-    def test_code_task_falls_back_when_disabled(self):
-        from swarm.tool_executor import DirectToolExecutor
-
-        executor = DirectToolExecutor("forge", "forge-test-001")
-        result = executor.execute_with_tools("modify the code to fix bug")
-        # Should fall back to simulated since self_modify_enabled=False
-        assert isinstance(result, dict)
-        assert "result" in result or "success" in result
-
-    def test_non_code_task_delegates_to_parent(self):
-        from swarm.tool_executor import DirectToolExecutor
-
-        executor = DirectToolExecutor("echo", "echo-test-001")
-        result = executor.execute_with_tools("search for information")
-        assert isinstance(result, dict)

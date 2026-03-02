@@ -231,22 +231,12 @@ Respond naturally and helpfully."""
         return [m for _, m in scored[:limit]]
     
     def communicate(self, message: Communication) -> bool:
-        """Send message to another agent via swarm comms."""
-        try:
-            from swarm.comms import SwarmComms
-            comms = SwarmComms()
-            comms.publish(
-                "agent:messages",
-                "agent_message",
-                {
-                    "from": self._identity.name,
-                    "to": message.recipient,
-                    "content": message.content,
-                },
-            )
-            return True
-        except Exception:
-            return False
+        """Send message to another agent.
+        
+        Swarm comms removed — inter-agent communication will be handled
+        by the unified brain memory layer.
+        """
+        return False
     
     def _extract_tags(self, perception: Perception) -> list[str]:
         """Extract searchable tags from perception."""

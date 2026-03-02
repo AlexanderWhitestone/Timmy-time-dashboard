@@ -406,20 +406,10 @@ class TestOllamaAgent:
         results = agent.recall("memory", limit=3)
         assert len(results) == 3
 
-    def test_communicate_success(self, agent):
-        with patch("swarm.comms.SwarmComms") as MockComms:
-            mock_comms = MagicMock()
-            MockComms.return_value = mock_comms
-            msg = Communication(sender="Timmy", recipient="Echo", content="hi")
-            result = agent.communicate(msg)
-            # communicate returns True on success, False on exception
-            assert isinstance(result, bool)
-
-    def test_communicate_failure(self, agent):
-        # Force an import error inside communicate() to trigger except branch
-        with patch.dict("sys.modules", {"swarm.comms": None}):
-            msg = Communication(sender="Timmy", recipient="Echo", content="hi")
-            assert agent.communicate(msg) is False
+    def test_communicate_returns_false_comms_removed(self, agent):
+        """Swarm comms removed — communicate() always returns False until brain wired."""
+        msg = Communication(sender="Timmy", recipient="Echo", content="hi")
+        assert agent.communicate(msg) is False
 
     def test_effect_logging_full_workflow(self, agent):
         p = Perception.text("test input")

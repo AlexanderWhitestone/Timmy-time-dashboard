@@ -25,7 +25,6 @@ from config import settings
 from dashboard.routes.agents import router as agents_router
 from dashboard.routes.health import router as health_router
 from dashboard.routes.swarm import router as swarm_router
-from dashboard.routes.swarm import internal_router as swarm_internal_router
 from dashboard.routes.marketplace import router as marketplace_router
 from dashboard.routes.voice import router as voice_router
 from dashboard.routes.mobile import router as mobile_router
@@ -40,7 +39,6 @@ from dashboard.routes.ledger import router as ledger_router
 from dashboard.routes.memory import router as memory_router
 from dashboard.routes.router import router as router_status_router
 from dashboard.routes.upgrades import router as upgrades_router
-from dashboard.routes.work_orders import router as work_orders_router
 from dashboard.routes.tasks import router as tasks_router
 from dashboard.routes.scripture import router as scripture_router
 from dashboard.routes.self_coding import router as self_coding_router
@@ -395,20 +393,24 @@ async def _task_processor_loop() -> None:
 
 
 async def _spawn_persona_agents_background() -> None:
-    """Background task: spawn persona agents without blocking startup."""
-    from swarm.coordinator import coordinator as swarm_coordinator
+    """Background task: register persona agents in the registry.
+    
+    Coordinator/persona spawning has been deprecated. Agents are now
+    registered directly in the registry. Orchestration will be handled
+    by established tools (OpenClaw, Agno, etc.).
+    """
+    from swarm import registry
     
     await asyncio.sleep(1)  # Let server fully start
     
     if os.environ.get("TIMMY_TEST_MODE") != "1":
-        logger.info("Auto-spawning persona agents: Echo, Forge, Seer...")
+        logger.info("Registering persona agents: Echo, Forge, Seer...")
         try:
-            swarm_coordinator.spawn_persona("echo", agent_id="persona-echo")
-            swarm_coordinator.spawn_persona("forge", agent_id="persona-forge")
-            swarm_coordinator.spawn_persona("seer", agent_id="persona-seer")
-            logger.info("Persona agents spawned successfully")
+            for name, aid in [("Echo", "persona-echo"), ("Forge", "persona-forge"), ("Seer", "persona-seer")]:
+                registry.register(name=name, agent_id=aid, capabilities="persona")
+            logger.info("Persona agents registered successfully")
         except Exception as exc:
-            logger.error("Failed to spawn persona agents: %s", exc)
+            logger.error("Failed to register persona agents: %s", exc)
 
 
 async def _bootstrap_mcp_background() -> None:
@@ -506,18 +508,7 @@ async def lifespan(app: FastAPI):
     # Create all background tasks without waiting for them
     briefing_task = asyncio.create_task(_briefing_scheduler())
     
-    # Run swarm recovery first (offlines all stale agents)
-    from swarm.coordinator import coordinator as swarm_coordinator
-    swarm_coordinator.initialize()
-    rec = swarm_coordinator._recovery_summary
-    if rec["tasks_failed"] or rec["agents_offlined"]:
-        logger.info(
-            "Swarm recovery on startup: %d task(s) → FAILED, %d agent(s) → offline",
-            rec["tasks_failed"],
-            rec["agents_offlined"],
-        )
-
-    # Register Timmy AFTER recovery sweep so status sticks as "idle"
+    # Register Timmy as the primary agent
     from swarm import registry as swarm_registry
     swarm_registry.register(
         name="Timmy",
@@ -533,7 +524,7 @@ async def lifespan(app: FastAPI):
         from swarm.event_log import log_event, EventType
         log_event(
             EventType.SYSTEM_INFO,
-            source="coordinator",
+            source="system",
             data={"message": "Timmy Time system started"},
         )
     except Exception:
@@ -666,7 +657,6 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.include_router(health_router)
 app.include_router(agents_router)
 app.include_router(swarm_router)
-app.include_router(swarm_internal_router)
 app.include_router(marketplace_router)
 app.include_router(voice_router)
 app.include_router(mobile_router)
@@ -681,7 +671,6 @@ app.include_router(ledger_router)
 app.include_router(memory_router)
 app.include_router(router_status_router)
 app.include_router(upgrades_router)
-app.include_router(work_orders_router)
 app.include_router(tasks_router)
 app.include_router(scripture_router)
 app.include_router(self_coding_router)

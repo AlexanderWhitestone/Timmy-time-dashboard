@@ -29,18 +29,12 @@ _timmy_context: dict[str, Any] = {
 
 
 async def _load_hands_async() -> list[dict]:
-    """Async helper to load hands."""
-    try:
-        from hands.registry import HandRegistry
-        reg = HandRegistry()
-        hands_dict = await reg.load_all()
-        return [
-            {"name": h.name, "schedule": h.schedule.cron if h.schedule else "manual", "enabled": h.enabled}
-            for h in hands_dict.values()
-        ]
-    except Exception as exc:
-        logger.warning("Could not load hands for context: %s", exc)
-        return []
+    """Async helper to load hands.
+    
+    Hands registry removed — hand definitions live in TOML files under hands/.
+    This will be rewired to read from brain memory.
+    """
+    return []
 
 
 def build_timmy_context_sync() -> dict[str, Any]:

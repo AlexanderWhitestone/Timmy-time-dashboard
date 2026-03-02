@@ -1,6 +1,6 @@
 """Tests for agent roster via canonical identity.
 
-The old persona system (swarm.personas, swarm.persona_node) is deprecated.
+The old persona system has been removed.
 Agent identity now lives in TIMMY_IDENTITY.md and is loaded via brain.identity.
 
 These tests validate:
@@ -113,29 +113,3 @@ def test_identity_fallback():
     assert "Timmy" in _FALLBACK_IDENTITY
     assert "Sovereign" in _FALLBACK_IDENTITY
 
-
-# ── Deprecated Module Tests ──────────────────────────────────────────────────
-
-
-def test_personas_module_returns_empty():
-    """swarm.personas.PERSONAS should be empty (deprecated)."""
-    from swarm.personas import PERSONAS
-
-    assert PERSONAS == {}, "PERSONAS should be empty — personas are deprecated"
-
-
-def test_list_personas_returns_empty():
-    """swarm.personas.list_personas() should return empty list."""
-    from swarm.personas import list_personas
-
-    result = list_personas()
-    assert result == [], "list_personas() should return [] — deprecated"
-
-
-def test_persona_node_raises_not_implemented():
-    """PersonaNode should raise NotImplementedError."""
-    from swarm.persona_node import PersonaNode
-    from unittest.mock import MagicMock
-
-    with pytest.raises(NotImplementedError, match="deprecated"):
-        PersonaNode(persona_id="echo", agent_id="test", comms=MagicMock())

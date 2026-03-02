@@ -14,7 +14,6 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr("swarm.tasks.DB_PATH", tmp_path / "swarm.db")
     monkeypatch.setattr("swarm.registry.DB_PATH", tmp_path / "swarm.db")
     monkeypatch.setattr("swarm.stats.DB_PATH", tmp_path / "swarm.db")
-    monkeypatch.setattr("swarm.learner.DB_PATH", tmp_path / "swarm.db")
 
     from dashboard.app import app
     return TestClient(app)
