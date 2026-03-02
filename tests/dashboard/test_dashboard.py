@@ -102,8 +102,7 @@ def test_chat_timmy_success(client):
 
     assert response.status_code == 200
     assert "status?" in response.text
-    # In async mode, the response acknowledges queuing
-    assert "Message queued" in response.text
+    assert "I am Timmy" in response.text
 
 
 def test_chat_timmy_shows_user_message(client):
@@ -114,12 +113,10 @@ def test_chat_timmy_shows_user_message(client):
 
 
 def test_chat_timmy_ollama_offline(client):
-    # In async mode, chat_timmy queues the message regardless of Ollama status
-    # because processing happens in a background task.
+    # Without Ollama, chat returns an error but still shows the user message.
     response = client.post("/agents/timmy/chat", data={"message": "ping"})
 
     assert response.status_code == 200
-    assert "Message queued" in response.text
     assert "ping" in response.text
 
 

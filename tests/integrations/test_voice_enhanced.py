@@ -37,7 +37,7 @@ class TestVoiceEnhancedProcess:
         assert resp.status_code == 200
         data = resp.json()
         assert data["intent"] == "swarm"
-        assert "agents" in data["response"].lower()
+        assert "not currently active" in data["response"].lower()
 
     def test_voice_intent(self, client):
         resp = client.post(
