@@ -1,6 +1,6 @@
 # ── Timmy Time — Dev-mode overlay ────────────────────────────────────────────
 #
-# Enables hot-reload: Python, template, and CSS changes auto-apply.
+# Uses the lightweight dev Dockerfile with hot-reload and bind mounts.
 #
 # Usage:
 #   make up DEV=1
@@ -9,6 +9,14 @@
 
 services:
   dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      # Bind mount source for hot-reload (changes reflect instantly)
+      - ./src:/app/src
+      - ./static:/app/static
+      - ./tests:/app/tests
     command:
       - uvicorn
       - dashboard.app:app

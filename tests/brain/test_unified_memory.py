@@ -72,7 +72,7 @@ class TestUnifiedMemoryInit:
             cursor = conn.execute("SELECT version FROM brain_schema_version")
             row = cursor.fetchone()
             assert row is not None
-            assert row["version"] == 1
+            assert row["version"] >= 1
         finally:
             conn.close()
 
@@ -402,3 +402,114 @@ class TestAsyncInterface:
         context = await memory.get_context("test")
         assert isinstance(context, str)
         assert len(context) > 0
+
+
+# ── Hot Memory (unified) ────────────────────────────────────────────────────
+
+
+class TestHotMemory:
+    """Test hot memory stored in SQLite instead of MEMORY.md."""
+
+    def test_get_hot_memory_returns_dict(self, memory):
+        """get_hot_memory should return a dict with sections."""
+        hot = memory.get_hot_memory()
+        assert isinstance(hot, dict)
+
+    def test_update_hot_section(self, memory):
+        """update_hot_section should store and retrieve a section."""
+        memory.update_hot_section("Current Status", "Agent is operational")
+        hot = memory.get_hot_memory()
+        assert "Current Status" in hot
+        assert hot["Current Status"] == "Agent is operational"
+
+    def test_update_hot_section_overwrites(self, memory):
+        """Updating same section should overwrite."""
+        memory.update_hot_section("Status", "Active")
+        memory.update_hot_section("Status", "Idle")
+        hot = memory.get_hot_memory()
+        assert hot["Status"] == "Idle"
+
+    def test_multiple_hot_sections(self, memory):
+        """Multiple sections should coexist."""
+        memory.update_hot_section("Status", "Active")
+        memory.update_hot_section("User", "Alexander")
+        hot = memory.get_hot_memory()
+        assert hot["Status"] == "Active"
+        assert hot["User"] == "Alexander"
+
+    def test_get_hot_memory_formatted(self, memory):
+        """get_hot_memory_formatted should return markdown string."""
+        memory.update_hot_section("Status", "Active")
+        formatted = memory.get_hot_memory_formatted()
+        assert isinstance(formatted, str)
+        assert "Status" in formatted
+        assert "Active" in formatted
+
+
+# ── Handoff Protocol (unified) ──────────────────────────────────────────────
+
+
+class TestHandoffProtocol:
+    """Test session handoff stored in SQLite."""
+
+    def test_write_handoff(self, memory):
+        """write_handoff should store handoff data."""
+        memory.write_handoff(
+            session_summary="Worked on memory consolidation",
+            key_decisions=["Use SQLite for all memory"],
+            open_items=["Add migration script"],
+        )
+        handoff = memory.read_handoff()
+        assert handoff is not None
+        assert "memory consolidation" in handoff["summary"]
+
+    def test_read_handoff_empty(self, memory):
+        """read_handoff should return None when no handoff exists."""
+        handoff = memory.read_handoff()
+        assert handoff is None
+
+    def test_clear_handoff(self, memory):
+        """clear_handoff should remove the handoff."""
+        memory.write_handoff(
+            session_summary="Test session",
+            key_decisions=[],
+            open_items=[],
+        )
+        assert memory.read_handoff() is not None
+        memory.clear_handoff()
+        assert memory.read_handoff() is None
+
+    def test_handoff_overwrites_previous(self, memory):
+        """Writing a new handoff should replace the old one."""
+        memory.write_handoff("First session", [], [])
+        memory.write_handoff("Second session", [], [])
+        handoff = memory.read_handoff()
+        assert "Second session" in handoff["summary"]
+
+
+# ── Vault Notes (unified) ──────────────────────────────────────────────────
+
+
+class TestVaultNotes:
+    """Test vault note storage in SQLite."""
+
+    def test_write_note(self, memory):
+        """write_note should store a note."""
+        note_id = memory.write_note("session_handoff", "Session ended normally", namespace="notes")
+        assert note_id is not None
+
+    def test_list_notes(self, memory):
+        """list_notes should return stored notes."""
+        memory.write_note("note1", "First note", namespace="notes")
+        memory.write_note("note2", "Second note", namespace="notes")
+        notes = memory.list_notes(namespace="notes")
+        assert len(notes) == 2
+
+    def test_list_notes_by_namespace(self, memory):
+        """list_notes should filter by namespace."""
+        memory.write_note("note1", "Note", namespace="notes")
+        memory.write_note("aar1", "After action", namespace="aar")
+        notes = memory.list_notes(namespace="notes")
+        assert len(notes) == 1
+        aars = memory.list_notes(namespace="aar")
+        assert len(aars) == 1

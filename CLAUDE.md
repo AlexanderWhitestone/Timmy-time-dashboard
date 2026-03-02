@@ -9,6 +9,19 @@ For agent roster and conventions, see [`AGENTS.md`](AGENTS.md).
 
 ## Architecture Patterns
 
+### Unified Memory (SQLite)
+
+All memory goes through `brain.memory.UnifiedMemory`:
+```python
+from brain.memory import get_memory
+mem = get_memory()
+mem.remember_sync("User prefers dark mode")
+mem.update_hot_section("Status", "Active")
+mem.write_handoff("Session ended", decisions=[], open_items=[])
+```
+
+Do **not** read/write MEMORY.md or memory/ directly for runtime data.
+
 ### Config access
 
 ```python
@@ -23,6 +36,17 @@ from dashboard.store import message_log
 from infrastructure.notifications.push import notifier
 from infrastructure.ws_manager.handler import ws_manager
 ```
+
+### Agent Toolsets
+
+Timmy handles requests directly using toolset classification:
+```python
+from timmy.agents.toolsets import classify_request, get_toolsets
+category = classify_request("write a Python function")  # → "code"
+```
+
+Sub-agents (Seer, Forge, Quill, Echo) are kept for backwards compat
+but Helm routing is no longer used.
 
 ### HTMX response pattern
 
@@ -57,6 +81,7 @@ make test-cov           # With coverage (term-missing + XML)
 - **FastAPI testing:** Use the `client` fixture
 - **Async:** `asyncio_mode = "auto"` — async tests detected automatically
 - **Coverage threshold:** 60% (`fail_under` in `pyproject.toml`)
+- **Config:** `pytest.ini` is canonical (pyproject.toml mirrors it)
 
 ---
 
@@ -71,6 +96,7 @@ make test-cov           # With coverage (term-missing + XML)
 7. **Keep routes thin** — business logic lives in the module, not the route.
 8. **Prefer editing existing files** over creating new ones.
 9. **Use `from config import settings`** for all env-var access.
+10. **Use `brain.memory.UnifiedMemory`** for all memory operations.
 
 ---
 
@@ -86,7 +112,7 @@ make test-cov           # With coverage (term-missing + XML)
 | Command | Module | Purpose |
 |---------|--------|---------|
 | `timmy` | `src/timmy/cli.py` | Chat, think, status |
-| `timmy-serve` | `src/timmy_serve/cli.py` | API server (port 8402) |
+| `timmy-serve` | `src/timmy_serve/cli.py` | Starts dashboard with serve endpoints |
 
 ---
 
@@ -94,11 +120,21 @@ make test-cov           # With coverage (term-missing + XML)
 
 | Package | Purpose |
 |---------|---------|
-| `timmy/` | Core agent, personas, agent interface, semantic memory |
-| `dashboard/` | FastAPI web UI, routes, templates |
+| `timmy/` | Core agent, toolsets, agent interface, semantic memory |
+| `dashboard/` | FastAPI web UI, routes (including /serve/*), templates |
 | `infrastructure/` | WebSocket, notifications, events, LLM router |
 | `integrations/` | Discord, Telegram, Siri Shortcuts, voice NLU |
 | `spark/` | Event capture and advisory engine |
-| `brain/` | Identity system, memory interface |
-| `timmy_serve/` | API server |
+| `brain/` | Unified memory (SQLite), identity system |
+| `timmy_serve/` | CLI entry point (routes merged into dashboard) |
 | `config.py` | Pydantic settings (foundation for all modules) |
+
+---
+
+## Docker
+
+| File | Purpose |
+|------|---------|
+| `Dockerfile` | Production — multi-stage, non-root, healthcheck |
+| `Dockerfile.dev` | Development — single-stage, hot-reload, dev deps |
+| `docker-compose.dev.yml` | Dev overlay with bind mounts |

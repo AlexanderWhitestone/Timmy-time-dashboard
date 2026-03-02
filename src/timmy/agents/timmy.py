@@ -89,13 +89,12 @@ def build_timmy_context_sync() -> dict[str, Any]:
         logger.warning("Could not load agents for context: %s", exc)
         ctx["agents"] = []
     
-    # 3. Read hot memory
+    # 3. Read hot memory from unified SQLite store
     try:
-        memory_path = Path(settings.repo_root) / "MEMORY.md"
-        if memory_path.exists():
-            ctx["memory"] = memory_path.read_text()[:2000]  # First 2000 chars
-        else:
-            ctx["memory"] = "(MEMORY.md not found)"
+        from brain.memory import get_memory
+        mem = get_memory()
+        hot = mem.get_hot_memory_formatted()
+        ctx["memory"] = hot[:2000] if hot else "(No hot memory stored)"
     except Exception as exc:
         logger.warning("Could not load memory for context: %s", exc)
         ctx["memory"] = "(Memory unavailable)"
@@ -369,51 +368,20 @@ When asked "what's new?" or similar, refer to these commits for actual changes.
     
     async def orchestrate(self, user_request: str) -> str:
         """Main entry point for user requests.
-        
-        Analyzes the request and either handles directly or delegates.
+
+        Uses lightweight keyword classification instead of Helm routing.
+        Timmy handles all requests directly with the appropriate toolset context.
         """
         # Run session init on first message (loads git log, etc.)
         await self._session_init()
-        
-        # Quick classification
-        request_lower = user_request.lower()
-        
-        # Direct response patterns (no delegation needed)
-        direct_patterns = [
-            "your name", "who are you", "what are you",
-            "hello", "hi", "how are you",
-            "help", "what can you do",
-        ]
-        
-        for pattern in direct_patterns:
-            if pattern in request_lower:
-                return await self.run(user_request)
-        
-        # Check for memory references
-        memory_patterns = [
-            "we talked about", "we discussed", "remember",
-            "what did i say", "what did we decide",
-            "remind me", "have we",
-        ]
-        
-        for pattern in memory_patterns:
-            if pattern in request_lower:
-                # Use Echo agent for memory retrieval
-                echo = self.sub_agents.get("echo")
-                if echo:
-                    return await echo.recall(user_request)
-        
-        # Complex requests - use Helm for routing
-        helm = self.sub_agents.get("helm")
-        if helm:
-            routing = await helm.route_request(user_request)
-            agent_id = routing.get("primary_agent", "timmy")
-            
-            if agent_id in self.sub_agents and agent_id != "timmy":
-                agent = self.sub_agents[agent_id]
-                return await agent.run(user_request)
-        
-        # Default: handle directly
+
+        # Classify request using toolsets (replaces Helm routing)
+        from timmy.agents.toolsets import classify_request
+        category = classify_request(user_request)
+
+        logger.debug("Request classified as '%s': %s", category, user_request[:50])
+
+        # All requests handled directly by Timmy — no delegation needed
         return await self.run(user_request)
     
     async def execute_task(self, task_id: str, description: str, context: dict) -> Any:
@@ -434,24 +402,13 @@ When asked "what's new?" or similar, refer to these commits for actual changes.
 
 # Factory function for creating fully configured Timmy
 def create_timmy_swarm() -> TimmyOrchestrator:
-    """Create Timmy orchestrator with all sub-agents registered."""
-    from timmy.agents.seer import SeerAgent
-    from timmy.agents.forge import ForgeAgent
-    from timmy.agents.quill import QuillAgent
-    from timmy.agents.echo import EchoAgent
-    from timmy.agents.helm import HelmAgent
-    
-    # Create orchestrator (builds context automatically)
-    timmy = TimmyOrchestrator()
-    
-    # Register sub-agents
-    timmy.register_sub_agent(SeerAgent())
-    timmy.register_sub_agent(ForgeAgent())
-    timmy.register_sub_agent(QuillAgent())
-    timmy.register_sub_agent(EchoAgent())
-    timmy.register_sub_agent(HelmAgent())
-    
-    return timmy
+    """Create Timmy orchestrator.
+
+    Sub-agents are no longer registered by default — Timmy handles
+    all requests directly using toolset-based classification.
+    Sub-agents can still be registered for backwards compatibility.
+    """
+    return TimmyOrchestrator()
 
 
 # Convenience functions for refreshing context (called by /api/timmy/refresh-context)

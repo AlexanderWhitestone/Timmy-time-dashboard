@@ -584,6 +584,201 @@ class UnifiedMemory:
         return "\n\n---\n\n".join(parts)
 
     # ──────────────────────────────────────────────────────────────────────
+    # Hot Memory (replaces MEMORY.md)
+    # ──────────────────────────────────────────────────────────────────────
+
+    def get_hot_memory(self) -> Dict[str, str]:
+        """Get all hot memory sections as a dict.
+
+        Returns:
+            Dict mapping section name to content.
+        """
+        conn = self._get_conn()
+        try:
+            rows = conn.execute(
+                "SELECT section, content FROM hot_memory ORDER BY section"
+            ).fetchall()
+            return {row["section"]: row["content"] for row in rows}
+        finally:
+            conn.close()
+
+    def update_hot_section(self, section: str, content: str) -> None:
+        """Update a hot memory section (upsert).
+
+        Args:
+            section: Section name (e.g. "Current Status", "User Profile").
+            content: Section content text.
+        """
+        now = datetime.now(timezone.utc).isoformat()
+        conn = self._get_conn()
+        try:
+            conn.execute(
+                """INSERT INTO hot_memory (section, content, updated_at)
+                   VALUES (?, ?, ?)
+                   ON CONFLICT(section) DO UPDATE SET content = excluded.content, updated_at = excluded.updated_at""",
+                (section, content, now),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def get_hot_memory_formatted(self) -> str:
+        """Get hot memory as a formatted markdown string.
+
+        Returns:
+            Markdown string with all sections.
+        """
+        sections = self.get_hot_memory()
+        if not sections:
+            return ""
+        parts = []
+        for section, content in sections.items():
+            parts.append(f"## {section}\n\n{content}")
+        return "\n\n---\n\n".join(parts)
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Handoff Protocol (replaces file-based handoff)
+    # ──────────────────────────────────────────────────────────────────────
+
+    def write_handoff(
+        self,
+        session_summary: str,
+        key_decisions: Optional[List[str]] = None,
+        open_items: Optional[List[str]] = None,
+    ) -> None:
+        """Write session handoff data.
+
+        Args:
+            session_summary: Summary of the session.
+            key_decisions: List of key decisions made.
+            open_items: List of open items for follow-up.
+        """
+        now = datetime.now(timezone.utc).isoformat()
+        conn = self._get_conn()
+        try:
+            conn.execute(
+                """INSERT INTO handoff (id, summary, key_decisions, open_items, created_at)
+                   VALUES (1, ?, ?, ?, ?)
+                   ON CONFLICT(id) DO UPDATE SET
+                       summary = excluded.summary,
+                       key_decisions = excluded.key_decisions,
+                       open_items = excluded.open_items,
+                       created_at = excluded.created_at""",
+                (
+                    session_summary,
+                    json.dumps(key_decisions or []),
+                    json.dumps(open_items or []),
+                    now,
+                ),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+    def read_handoff(self) -> Optional[Dict[str, Any]]:
+        """Read the current session handoff.
+
+        Returns:
+            Dict with summary, key_decisions, open_items, created_at or None.
+        """
+        conn = self._get_conn()
+        try:
+            row = conn.execute(
+                "SELECT summary, key_decisions, open_items, created_at FROM handoff WHERE id = 1"
+            ).fetchone()
+            if row is None:
+                return None
+            return {
+                "summary": row["summary"],
+                "key_decisions": json.loads(row["key_decisions"]),
+                "open_items": json.loads(row["open_items"]),
+                "created_at": row["created_at"],
+            }
+        finally:
+            conn.close()
+
+    def clear_handoff(self) -> None:
+        """Clear the session handoff."""
+        conn = self._get_conn()
+        try:
+            conn.execute("DELETE FROM handoff WHERE id = 1")
+            conn.commit()
+        finally:
+            conn.close()
+
+    # ──────────────────────────────────────────────────────────────────────
+    # Vault Notes (replaces memory/ directory)
+    # ──────────────────────────────────────────────────────────────────────
+
+    def write_note(
+        self,
+        name: str,
+        content: str,
+        namespace: str = "notes",
+    ) -> int:
+        """Write a note to the vault.
+
+        Args:
+            name: Note name/title.
+            content: Note content.
+            namespace: Namespace (notes, aar, self).
+
+        Returns:
+            Note ID.
+        """
+        now = datetime.now(timezone.utc).isoformat()
+        conn = self._get_conn()
+        try:
+            cursor = conn.execute(
+                """INSERT INTO vault_notes (name, namespace, content, created_at)
+                   VALUES (?, ?, ?, ?)""",
+                (name, namespace, content, now),
+            )
+            conn.commit()
+            return cursor.lastrowid
+        finally:
+            conn.close()
+
+    def list_notes(
+        self,
+        namespace: Optional[str] = None,
+        limit: int = 50,
+    ) -> List[Dict[str, Any]]:
+        """List vault notes.
+
+        Args:
+            namespace: Filter by namespace (None = all).
+            limit: Max results.
+
+        Returns:
+            List of note dicts.
+        """
+        conn = self._get_conn()
+        try:
+            if namespace:
+                rows = conn.execute(
+                    "SELECT id, name, namespace, content, created_at FROM vault_notes WHERE namespace = ? ORDER BY created_at DESC LIMIT ?",
+                    (namespace, limit),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT id, name, namespace, content, created_at FROM vault_notes ORDER BY created_at DESC LIMIT ?",
+                    (limit,),
+                ).fetchall()
+            return [
+                {
+                    "id": row["id"],
+                    "name": row["name"],
+                    "namespace": row["namespace"],
+                    "content": row["content"],
+                    "created_at": row["created_at"],
+                }
+                for row in rows
+            ]
+        finally:
+            conn.close()
+
+    # ──────────────────────────────────────────────────────────────────────
     # Stats
     # ──────────────────────────────────────────────────────────────────────
 
@@ -665,11 +860,37 @@ CREATE TABLE IF NOT EXISTS facts (
     access_count INTEGER DEFAULT 0
 );
 
+-- Hot memory sections (replaces MEMORY.md)
+CREATE TABLE IF NOT EXISTS hot_memory (
+    section TEXT PRIMARY KEY,
+    content TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- Session handoff (replaces memory/notes/last-session-handoff.md)
+CREATE TABLE IF NOT EXISTS handoff (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    summary TEXT NOT NULL,
+    key_decisions TEXT DEFAULT '[]',
+    open_items TEXT DEFAULT '[]',
+    created_at TEXT NOT NULL
+);
+
+-- Vault notes (replaces memory/ directory files)
+CREATE TABLE IF NOT EXISTS vault_notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    namespace TEXT NOT NULL DEFAULT 'notes',
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_memories_source ON memories(source);
 CREATE INDEX IF NOT EXISTS idx_memories_created ON memories(created_at);
 CREATE INDEX IF NOT EXISTS idx_facts_category ON facts(category);
 CREATE INDEX IF NOT EXISTS idx_facts_confidence ON facts(confidence);
+CREATE INDEX IF NOT EXISTS idx_vault_notes_namespace ON vault_notes(namespace);
 
 -- Schema version
 CREATE TABLE IF NOT EXISTS brain_schema_version (
@@ -678,5 +899,5 @@ CREATE TABLE IF NOT EXISTS brain_schema_version (
 );
 
 INSERT OR REPLACE INTO brain_schema_version (version, applied_at)
-VALUES (1, datetime('now'));
+VALUES (2, datetime('now'));
 """

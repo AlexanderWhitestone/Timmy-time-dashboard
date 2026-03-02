@@ -38,6 +38,7 @@ from dashboard.routes.models import api_router as models_api_router
 from dashboard.routes.chat_api import router as chat_api_router
 from dashboard.routes.thinking import router as thinking_router
 from dashboard.routes.calm import router as calm_router
+from dashboard.routes.serve import router as serve_router
 from infrastructure.router.api import router as cascade_router
 
 
@@ -306,6 +307,7 @@ app.include_router(chat_api_router)
 app.include_router(thinking_router)
 app.include_router(calm_router)
 app.include_router(cascade_router)
+app.include_router(serve_router)
 
 
 @app.websocket("/ws")
