@@ -113,48 +113,13 @@ async def process_voice_input(
             )
 
         elif intent.name == "swarm":
-            from swarm import registry
-            agents = registry.list_agents()
-            response_text = (
-                f"Swarm status: {len(agents)} agents registered. "
-                f"Use the dashboard for detailed task information."
-            )
+            response_text = "Swarm module is not currently active."
 
         elif intent.name == "voice":
             response_text = "Voice settings acknowledged. TTS is available for spoken responses."
 
         elif intent.name == "code":
-            from config import settings as app_settings
-            if not app_settings.self_modify_enabled:
-                response_text = (
-                    "Self-modification is disabled. "
-                    "Set SELF_MODIFY_ENABLED=true to enable."
-                )
-            else:
-                import asyncio
-                from self_coding.self_modify.loop import SelfModifyLoop, ModifyRequest
-
-                target_files = []
-                if "target_file" in intent.entities:
-                    target_files = [intent.entities["target_file"]]
-
-                loop = SelfModifyLoop()
-                request = ModifyRequest(
-                    instruction=text,
-                    target_files=target_files,
-                )
-                result = await asyncio.to_thread(loop.run, request)
-
-                if result.success:
-                    sha_short = result.commit_sha[:8] if result.commit_sha else "none"
-                    response_text = (
-                        f"Code modification complete. "
-                        f"Changed {len(result.files_changed)} file(s). "
-                        f"Tests passed. Committed as {sha_short} "
-                        f"on branch {result.branch_name}."
-                    )
-                else:
-                    response_text = f"Code modification failed: {result.error}"
+            response_text = "Self-modification module is not currently active."
 
         else:
             # Default: chat with Timmy

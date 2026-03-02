@@ -266,13 +266,6 @@ class ThinkingEngine:
 
     def _seed_from_scripture(self) -> str:
         """Gather current scripture meditation focus as thought seed."""
-        try:
-            from scripture.meditation import meditation_scheduler
-            verse = meditation_scheduler.current_focus()
-            if verse:
-                return f"Scripture in focus: {verse.text} ({verse.reference if hasattr(verse, 'reference') else ''})"
-        except Exception as exc:
-            logger.debug("Scripture seed unavailable: %s", exc)
         return "Scripture is on my mind, though no specific verse is in focus."
 
     def _seed_from_memory(self) -> str:

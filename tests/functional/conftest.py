@@ -109,14 +109,6 @@ def serve_runner():
 
 
 @pytest.fixture
-def self_tdd_runner():
-    """Typer CLI runner for self-tdd CLI tests."""
-    from typer.testing import CliRunner
-    from self_coding.self_tdd.cli import app
-    yield CliRunner(), app
-
-
-@pytest.fixture
 def docker_stack():
     """Docker stack URL for container-level tests.
     
@@ -139,15 +131,6 @@ def serve_client():
         yield c
 
 
-@pytest.fixture
-def tdd_runner():
-    """Alias for self_tdd_runner fixture."""
-    pytest.importorskip("self_coding.self_tdd.cli", reason="self_tdd CLI not available")
-    from typer.testing import CliRunner
-    from self_coding.self_tdd.cli import app
-    yield CliRunner(), app
-
-
 # Add custom pytest option for headed mode
 def pytest_addoption(parser):
     parser.addoption(
@@ -164,16 +147,3 @@ def headed_mode(request):
     return request.config.getoption("--headed")
 
 
-@pytest.fixture
-def isolated_task_db(tmp_path):
-    """Provide a fresh, isolated SQLite DB for task queue tests.
-
-    Points the task queue module at a temporary database that is unique
-    per test.  pytest's tmp_path is auto-cleaned — no teardown needed.
-    """
-    from swarm.task_queue import models as tq_models
-
-    original = tq_models.DB_PATH
-    tq_models.DB_PATH = tmp_path / "tasks.db"
-    yield tq_models.DB_PATH
-    tq_models.DB_PATH = original

@@ -11,17 +11,10 @@ license = "MIT"
 packages = [
     { include = "config.py", from = "src" },
     { include = "brain", from = "src" },
-    { include = "creative", from = "src" },
     { include = "dashboard", from = "src" },
-    { include = "hands", from = "src" },
     { include = "infrastructure", from = "src" },
     { include = "integrations", from = "src" },
-    { include = "lightning", from = "src" },
-    { include = "mcp", from = "src" },
-    { include = "scripture", from = "src" },
-    { include = "self_coding", from = "src" },
     { include = "spark", from = "src" },
-    { include = "swarm", from = "src" },
     { include = "timmy", from = "src" },
     { include = "timmy_serve", from = "src" },
 ]
@@ -61,7 +54,6 @@ pytest-randomly = { version = ">=3.16.0", optional = true }
 pytest-xdist = { version = ">=3.5.0", optional = true }
 
 [tool.poetry.extras]
-swarm = ["redis"]
 telegram = ["python-telegram-bot"]
 discord = ["discord.py"]
 bigbrain = ["airllm"]
@@ -80,8 +72,6 @@ pytest-xdist = "^3.8.0"
 [tool.poetry.scripts]
 timmy = "timmy.cli:main"
 timmy-serve = "timmy_serve.cli:main"
-self-tdd = "self_coding.self_tdd.watchdog:main"
-self-modify = "self_coding.self_modify.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -95,7 +85,6 @@ markers = [
     "functional: Functional tests (real HTTP requests, no mocking)",
     "e2e: End-to-end tests (full system, may be slow)",
     "dashboard: Dashboard route tests",
-    "swarm: Swarm coordinator tests",
     "slow: Tests that take >1 second",
     "selenium: Requires Selenium and Chrome (browser automation)",
     "docker: Requires Docker and docker-compose",

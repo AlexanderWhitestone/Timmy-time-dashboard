@@ -22,7 +22,6 @@ url = settings.ollama_url   # never use os.environ.get() directly in app code
 from dashboard.store import message_log
 from infrastructure.notifications.push import notifier
 from infrastructure.ws_manager.handler import ws_manager
-from swarm.coordinator import coordinator
 ```
 
 ### HTMX response pattern
@@ -77,9 +76,7 @@ make test-cov           # With coverage (term-missing + XML)
 
 ## Security-Sensitive Areas
 
-- `src/swarm/coordinator.py` — requires review before changes
-- `src/timmy_serve/l402_proxy.py` — Lightning payment gating
-- `src/lightning/` — payment backend abstraction
+- `src/timmy_serve/l402_proxy.py` — Payment gating
 - Any file handling secrets or authentication tokens
 
 ---
@@ -89,27 +86,19 @@ make test-cov           # With coverage (term-missing + XML)
 | Command | Module | Purpose |
 |---------|--------|---------|
 | `timmy` | `src/timmy/cli.py` | Chat, think, status |
-| `timmy-serve` | `src/timmy_serve/cli.py` | L402-gated API server (port 8402) |
-| `self-tdd` | `src/self_coding/self_tdd/watchdog.py` | Continuous test watchdog |
-| `self-modify` | `src/self_coding/self_modify/cli.py` | Self-modification CLI |
+| `timmy-serve` | `src/timmy_serve/cli.py` | API server (port 8402) |
 
 ---
 
-## Module Map (14 packages)
+## Module Map (8 packages)
 
 | Package | Purpose |
 |---------|---------|
 | `timmy/` | Core agent, personas, agent interface, semantic memory |
 | `dashboard/` | FastAPI web UI, routes, templates |
-| `swarm/` | Multi-agent coordinator, task queue, work orders |
-| `self_coding/` | Self-modification, test watchdog, upgrade queue |
-| `creative/` | Media generation, MCP tools |
 | `infrastructure/` | WebSocket, notifications, events, LLM router |
 | `integrations/` | Discord, Telegram, Siri Shortcuts, voice NLU |
-| `lightning/` | L402 payment gating (security-sensitive) |
-| `mcp/` | MCP tool registry and discovery |
 | `spark/` | Event capture and advisory engine |
-| `hands/` | 6 autonomous Hand agents |
-| `scripture/` | Biblical text integration |
-| `timmy_serve/` | L402-gated API server |
+| `brain/` | Identity system, memory interface |
+| `timmy_serve/` | API server |
 | `config.py` | Pydantic settings (foundation for all modules) |

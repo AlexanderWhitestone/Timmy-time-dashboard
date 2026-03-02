@@ -180,18 +180,6 @@ class TestToolCatalog:
         assert "forge" in catalog["python"]["available_in"]
         assert "forge" in catalog["write_file"]["available_in"]
 
-    def test_catalog_includes_git_tools(self):
-        catalog = get_all_available_tools()
-        git_tools = [k for k in catalog if "git" in k.lower()]
-        # Should have some git tools from tools.git_tools
-        assert len(git_tools) > 0
-
-    def test_catalog_includes_creative_tools(self):
-        catalog = get_all_available_tools()
-        # Should pick up image, music, video catalogs
-        all_keys = list(catalog.keys())
-        assert len(all_keys) > 6  # more than just base tools
-
     def test_catalog_forge_has_aider(self):
         """Verify Aider AI tool is available in Forge's toolkit."""
         catalog = get_all_available_tools()

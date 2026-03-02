@@ -16,7 +16,11 @@ from agno.models.ollama import Ollama
 
 from config import settings
 from infrastructure.events.bus import EventBus, Event
-from mcp.registry import tool_registry
+
+try:
+    from mcp.registry import tool_registry
+except ImportError:
+    tool_registry = None
 
 logger = logging.getLogger(__name__)
 

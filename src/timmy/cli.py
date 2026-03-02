@@ -179,45 +179,8 @@ def ingest_report(
         typer.echo("(dry run — no tasks created)")
         return
 
-    # Import and create tasks
-    from swarm.task_queue.models import create_task
-
-    severity_map = {"P0": "urgent", "P1": "high", "P2": "normal"}
-    created = 0
-    for bug in bugs:
-        title = bug.get("title", "")
-        severity = bug.get("severity", "P2")
-        description = bug.get("description", "")
-
-        if not title or not description:
-            typer.echo(f"  SKIP (missing title or description)")
-            continue
-
-        # Format description with extra fields
-        parts = [f"**Reporter:** {reporter}", f"**Severity:** {severity}", "", description]
-        if bug.get("evidence"):
-            parts += ["", "## Evidence", bug["evidence"]]
-        if bug.get("root_cause"):
-            parts += ["", "## Root Cause", bug["root_cause"]]
-        if bug.get("fix_options"):
-            parts += ["", "## Fix Options"]
-            for i, fix in enumerate(bug["fix_options"], 1):
-                parts.append(f"{i}. {fix}")
-
-        task = create_task(
-            title=f"[{severity}] {title}",
-            description="\n".join(parts),
-            task_type="bug_report",
-            assigned_to="timmy",
-            created_by=reporter,
-            priority=severity_map.get(severity, "normal"),
-            requires_approval=False,
-            auto_approve=True,
-        )
-        typer.echo(f"  OK [{severity}] {title} → {task.id}")
-        created += 1
-
-    typer.echo(f"\n{created} task(s) created.")
+    typer.echo("Task queue not available (swarm module removed).", err=True)
+    raise typer.Exit(1)
 
 
 def main():
