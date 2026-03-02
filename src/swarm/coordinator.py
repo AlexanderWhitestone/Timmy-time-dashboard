@@ -81,84 +81,21 @@ class SwarmCoordinator:
         return registry.list_agents()
 
     def spawn_persona(self, persona_id: str, agent_id: Optional[str] = None) -> dict:
-        """Spawn one of the six built-in persona agents (Echo, Mace, etc.).
-
-        The persona is registered in the SQLite registry with its full
-        capabilities string and wired into the AuctionManager via the shared
-        comms layer — identical to spawn_in_process_agent but with
-        persona-aware bidding and a pre-defined capabilities tag.
+        """DEPRECATED: Use brain task queue instead.
         
-        Also registers the persona's capability manifest with the routing engine
-        for intelligent task routing.
+        Personas have been replaced by the distributed brain worker queue.
+        Submit tasks via BrainClient.submit_task() instead.
         """
-        from swarm.personas import PERSONAS
-        from swarm.persona_node import PersonaNode
-
-        if persona_id not in PERSONAS:
-            raise ValueError(f"Unknown persona: {persona_id!r}. "
-                             f"Choose from {list(PERSONAS)}")
-
-        aid = agent_id or str(__import__("uuid").uuid4())
-        node = PersonaNode(persona_id=persona_id, agent_id=aid, comms=self.comms)
-        
-        # Log agent join event
-        log_event(
-            EventType.AGENT_JOINED,
-            source="coordinator",
-            agent_id=aid,
-            data={"persona_id": persona_id, "name": node.name},
+        logger.warning(
+            "spawn_persona() is deprecated. "
+            "Use brain.BrainClient.submit_task() instead."
         )
-
-        def _bid_and_register(msg):
-            task_id = msg.data.get("task_id")
-            if not task_id:
-                return
-            description = msg.data.get("description", "")
-            # Use PersonaNode's smart bid computation
-            bid_sats = node._compute_bid(description)
-            self.auctions.submit_bid(task_id, aid, bid_sats)
-            # Persist every bid for stats
-            swarm_stats.record_bid(task_id, aid, bid_sats, won=False)
-            logger.info(
-                "Persona %s bid %d sats on task %s",
-                node.name, bid_sats, task_id,
-            )
-            # Broadcast bid via WebSocket
-            self._broadcast(self._broadcast_bid, task_id, aid, bid_sats)
-            # Spark: capture bid event
-            spark = _get_spark()
-            if spark:
-                spark.on_bid_submitted(task_id, aid, bid_sats)
-
-        self.comms.subscribe("swarm:tasks", _bid_and_register)
-
-        meta = PERSONAS[persona_id]
-        record = registry.register(
-            name=meta["name"],
-            capabilities=meta["capabilities"],
-            agent_id=aid,
-        )
-
-        # Register capability manifest with routing engine
-        swarm_routing.routing_engine.register_persona(persona_id, aid)
-
-        self._in_process_nodes.append(node)
-        logger.info("Spawned persona %s (%s)", node.name, aid)
-
-        # Broadcast agent join via WebSocket
-        self._broadcast(self._broadcast_agent_joined, aid, node.name)
-
-        # Spark: capture agent join
-        spark = _get_spark()
-        if spark:
-            spark.on_agent_joined(aid, node.name)
-        
+        # Return stub response for compatibility
         return {
-            "agent_id": aid,
-            "name": node.name,
-            "persona_id": persona_id,
-            "pid": None,
-            "status": record.status,
+            "agent_id": agent_id or "deprecated",
+            "name": persona_id,
+            "status": "deprecated",
+            "message": "Personas replaced by brain task queue"
         }
 
     def spawn_in_process_agent(

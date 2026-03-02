@@ -20,7 +20,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from swarm.personas import PERSONAS, PersonaMeta
+# Note: swarm.personas is deprecated, use brain task queue instead
+PERSONAS = {}  # Empty for backward compatibility
 
 logger = logging.getLogger(__name__)
 
@@ -161,24 +162,35 @@ class RoutingEngine:
             self._db_initialized = False
     
     def register_persona(self, persona_id: str, agent_id: str) -> CapabilityManifest:
-        """Create a capability manifest from a persona definition."""
+        """Create a capability manifest from a persona definition.
+        
+        DEPRECATED: Personas are deprecated. Use brain task queue instead.
+        """
         meta = PERSONAS.get(persona_id)
         if not meta:
-            raise ValueError(f"Unknown persona: {persona_id}")
-        
-        manifest = CapabilityManifest(
-            agent_id=agent_id,
-            agent_name=meta["name"],
-            capabilities=meta["capabilities"].split(","),
-            keywords=meta["preferred_keywords"],
-            rate_sats=meta["rate_sats"],
-        )
+            # Return a generic manifest for unknown personas
+            # (personas are deprecated, this maintains backward compatibility)
+            manifest = CapabilityManifest(
+                agent_id=agent_id,
+                agent_name=persona_id,
+                capabilities=["general"],
+                keywords=[],
+                rate_sats=50,
+            )
+        else:
+            manifest = CapabilityManifest(
+                agent_id=agent_id,
+                agent_name=meta.get("name", persona_id),
+                capabilities=meta.get("capabilities", "").split(","),
+                keywords=meta.get("preferred_keywords", []),
+                rate_sats=meta.get("rate_sats", 50),
+            )
         
         with self._lock:
             self._manifests[agent_id] = manifest
         
         logger.debug("Registered %s (%s) with %d capabilities",
-                     meta["name"], agent_id, len(manifest.capabilities))
+                     manifest.agent_name, agent_id, len(manifest.capabilities))
         return manifest
     
     def register_custom_manifest(self, manifest: CapabilityManifest) -> None:
