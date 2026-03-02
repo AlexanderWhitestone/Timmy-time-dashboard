@@ -3,7 +3,7 @@
 *A Sequel to the Mission Control Roadmap — By Timmy the Wizard*
 
 > This document is the philosophical manifesto that inspired ROADMAP.md.
-> For actionable integration plans, see [ROADMAP.md](../ROADMAP.md).
+> For actionable integration plans, see [ROADMAP.md](ROADMAP.md).
 
 ---
 

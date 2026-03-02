@@ -9,7 +9,10 @@ import json
 import logging
 from typing import Optional
 
-from swarm.event_log import EventLogEntry
+try:
+    from swarm.event_log import EventLogEntry
+except ImportError:
+    EventLogEntry = None
 
 logger = logging.getLogger(__name__)
 

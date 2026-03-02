@@ -18,7 +18,12 @@ import logging
 from typing import Any
 
 from infrastructure.openfang.client import OPENFANG_HANDS, openfang_client
-from mcp.schemas.base import create_tool_schema
+
+try:
+    from mcp.schemas.base import create_tool_schema
+except ImportError:
+    def create_tool_schema(**kwargs):
+        return kwargs
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +195,11 @@ def register_openfang_tools() -> int:
 
     Returns the number of tools registered.
     """
-    from mcp.registry import tool_registry
+    try:
+        from mcp.registry import tool_registry
+    except ImportError:
+        logger.warning("MCP registry not available — skipping OpenFang tool registration")
+        return 0
 
     count = 0
     for hand_name in OPENFANG_HANDS:

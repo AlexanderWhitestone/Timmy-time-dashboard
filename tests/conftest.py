@@ -60,13 +60,6 @@ def clean_database(tmp_path):
     tmp_self_coding_db = tmp_path / "self_coding.db"
 
     _swarm_db_modules = [
-        "swarm.tasks",
-        "swarm.registry",
-        "swarm.event_log",
-        "swarm.stats",
-        "swarm.task_queue.models",
-        "self_coding.upgrades.models",
-        "lightning.ledger",
         "timmy.memory.vector_store",
         "infrastructure.models.registry",
     ]
@@ -74,10 +67,7 @@ def clean_database(tmp_path):
         "spark.memory",
         "spark.eidos",
     ]
-    _self_coding_db_modules = [
-        "self_coding.modification_journal",
-        "self_coding.codebase_indexer",
-    ]
+    _self_coding_db_modules = []
 
     originals = {}
     for mod_name in _swarm_db_modules:
@@ -173,22 +163,6 @@ def db_connection():
     conn.close()
 
 
-@pytest.fixture(autouse=True)
-def tmp_swarm_db(tmp_path, monkeypatch):
-    """Point swarm SQLite paths to a temp directory for test isolation."""
-    db_path = tmp_path / "swarm.db"
-    for module in [
-        "swarm.tasks",
-        "swarm.registry",
-        "swarm.stats",
-        "swarm.event_log",
-        "swarm.task_queue.models",
-    ]:
-        try:
-            monkeypatch.setattr(f"{module}.DB_PATH", db_path)
-        except AttributeError:
-            pass
-    yield db_path
 
 
 @pytest.fixture

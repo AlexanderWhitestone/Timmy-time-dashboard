@@ -15,8 +15,6 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from config import settings
-from lightning import get_backend
-from lightning.factory import get_backend_info
 
 logger = logging.getLogger(__name__)
 
@@ -137,55 +135,30 @@ def _check_redis() -> DependencyStatus:
 
 def _check_lightning() -> DependencyStatus:
     """Check Lightning payment backend status."""
-    try:
-        backend = get_backend()
-        health = backend.health_check()
-        
-        backend_name = backend.name
-        is_healthy = health.get("ok", False)
-        
-        if backend_name == "mock":
-            return DependencyStatus(
-                name="Lightning Payments",
-                status="degraded",
-                sovereignty_score=8,
-                details={
-                    "backend": "mock",
-                    "note": "Using mock backend - set LIGHTNING_BACKEND=lnd for real payments",
-                    **health,
-                },
-            )
-        else:
-            return DependencyStatus(
-                name="Lightning Payments",
-                status="healthy" if is_healthy else "degraded",
-                sovereignty_score=10,
-                details={"backend": backend_name, **health},
-            )
-    except Exception as exc:
-        return DependencyStatus(
-            name="Lightning Payments",
-            status="unavailable",
-            sovereignty_score=8,
-            details={"error": str(exc)},
-        )
+    return DependencyStatus(
+        name="Lightning Payments",
+        status="unavailable",
+        sovereignty_score=8,
+        details={"note": "Lightning module removed — will be re-added in v2"},
+    )
 
 
 def _check_sqlite() -> DependencyStatus:
     """Check SQLite database status."""
     try:
         import sqlite3
-        from swarm.registry import DB_PATH
-        
-        conn = sqlite3.connect(str(DB_PATH))
+        from pathlib import Path
+
+        db_path = Path(settings.repo_root) / "data" / "timmy.db"
+        conn = sqlite3.connect(str(db_path))
         conn.execute("SELECT 1")
         conn.close()
-        
+
         return DependencyStatus(
             name="SQLite Database",
             status="healthy",
             sovereignty_score=10,
-            details={"path": str(DB_PATH)},
+            details={"path": str(db_path)},
         )
     except Exception as exc:
         return DependencyStatus(
@@ -238,14 +211,7 @@ async def health_check():
     # Legacy format for test compatibility
     ollama_ok = await check_ollama()
     
-    # Determine Timmy's status from swarm registry (heartbeat-backed),
-    # falling back to Ollama connectivity only if not registered.
-    try:
-        from swarm import registry as swarm_registry
-        timmy_rec = swarm_registry.get_agent("timmy")
-        timmy_status = timmy_rec.status if timmy_rec else ("idle" if ollama_ok else "offline")
-    except Exception:
-        timmy_status = "idle" if ollama_ok else "offline"
+    timmy_status = "idle" if ollama_ok else "offline"
 
     return {
         "status": "ok" if ollama_ok else "degraded",
@@ -317,7 +283,6 @@ async def sovereignty_check():
 async def component_status():
     """Get status of all system components."""
     return {
-        "lightning": get_backend_info(),
         "config": {
             "debug": settings.debug,
             "model_backend": settings.timmy_model_backend,

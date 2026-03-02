@@ -1,18 +1,14 @@
 # ── Timmy Time — Development Compose ────────────────────────────────────────
 #
 # Services
-#   dashboard   FastAPI app + swarm coordinator (always on)
-#   timmy       Sovereign AI agent (separate container)
-#   agent       Swarm worker template — scale with:
-#                 docker compose up --scale agent=N --profile agents
+#   dashboard   FastAPI app (always on)
 #
 # Volumes
-#   timmy-data  Shared SQLite (data/swarm.db + data/timmy.db)
+#   timmy-data  Shared SQLite (data/timmy.db)
 #
 # Usage
 #   make docker-build    build the image
 #   make docker-up       start dashboard only
-#   make docker-agent    add one agent worker
 #   make docker-down     stop everything
 #   make docker-logs     tail logs
 #
@@ -21,25 +17,16 @@
 # bind-mounted host files (./src, ./static) are readable regardless of
 # host UID/GID — the #1 cause of 403 errors on macOS.
 #
-# Production (docker-compose.prod.yml) uses NO bind mounts and runs as
-# the Dockerfile's non-root "timmy" user.  Never expose this dev compose
-# to untrusted networks.
-#
 # ── Ollama host access ──────────────────────────────────────────────────────
 # By default OLLAMA_URL points to http://host.docker.internal:11434 which
 # reaches Ollama running on the Docker host (macOS/Windows native).
 #
 # Linux:  The extra_hosts entry maps host.docker.internal → host-gateway,
-#         which resolves to the host IP on Docker 20.10+.  If you run an
-#         older Docker version, set OLLAMA_URL=http://172.17.0.1:11434
-#         in your .env file instead.
-#
-# Containerised Ollama:  Use docker-compose.microservices.yml which runs
-#         Ollama as a sibling container on the same network.
+#         which resolves to the host IP on Docker 20.10+.
 
 services:
 
-  # ── Dashboard (coordinator + FastAPI) ──────────────────────────────────────
+  # ── Dashboard (FastAPI) ──────────────────────────────────────────────────
   dashboard:
     build: .
     image: timmy-time:latest
@@ -61,7 +48,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"  # Linux: maps to host IP
     networks:
-      - swarm-net
+      - timmy-net
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -70,31 +57,7 @@ services:
       retries: 3
       start_period: 30s
 
-  # ── Timmy — sovereign AI agent (separate container) ───────────────────────
-  timmy:
-    build: .
-    image: timmy-time:latest
-    container_name: timmy-agent
-    volumes:
-      - timmy-data:/app/data
-      - ./src:/app/src
-    environment:
-      COORDINATOR_URL: "http://dashboard:8000"
-      OLLAMA_URL: "${OLLAMA_URL:-http://host.docker.internal:11434}"
-      TIMMY_AGENT_ID: "timmy"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    command: ["python", "-m", "timmy.docker_agent"]
-    networks:
-      - swarm-net
-    depends_on:
-      dashboard:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # ── OpenFang — vendored agent runtime sidecar ────────────────────────────────
-  # Rust binary providing real tool execution (browser, OSINT, forecasting).
-  # Timmy's coordinator delegates hand execution here via REST API.
+  # ── OpenFang — vendored agent runtime sidecar ────────────────────────────
   openfang:
     build:
       context: .
@@ -111,7 +74,7 @@ services:
     volumes:
       - openfang-data:/app/data
     networks:
-      - swarm-net
+      - timmy-net
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
@@ -120,36 +83,7 @@ services:
       retries: 3
       start_period: 15s
 
-  # ── Agent worker template ───────────────────────────────────────────────────
-  # Scale horizontally:  docker compose up --scale agent=4 --profile agents
-  # Each container gets a unique AGENT_ID via the replica index.
-  agent:
-    build: .
-    image: timmy-time:latest
-    profiles:
-      - agents
-    volumes:
-      - timmy-data:/app/data
-      - ./src:/app/src
-    environment:
-      COORDINATOR_URL: "http://dashboard:8000"
-      OLLAMA_URL: "${OLLAMA_URL:-http://host.docker.internal:11434}"
-      AGENT_NAME: "${AGENT_NAME:-Worker}"
-      AGENT_CAPABILITIES: "${AGENT_CAPABILITIES:-general}"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    command: ["sh", "-c", "python -m swarm.agent_runner --agent-id agent-$(hostname) --name $${AGENT_NAME:-Worker}"]
-    networks:
-      - swarm-net
-    depends_on:
-      dashboard:
-        condition: service_healthy
-    restart: unless-stopped
-
 # ── Shared volume ─────────────────────────────────────────────────────────────
-# NOTE: the data/ directory must exist before running docker compose up.
-# `make docker-up` and `make up` handle this automatically.
-# If running docker compose directly, first run: mkdir -p data
 volumes:
   timmy-data:
     driver: local
@@ -162,5 +96,5 @@ volumes:
 
 # ── Internal network ──────────────────────────────────────────────────────────
 networks:
-  swarm-net:
+  timmy-net:
     driver: bridge

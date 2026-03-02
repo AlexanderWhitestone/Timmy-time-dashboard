@@ -339,26 +339,6 @@ async def test_think_once_chains_thoughts(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Event logging
-# ---------------------------------------------------------------------------
-
-def test_log_event_calls_event_log(tmp_path):
-    """_log_event should call swarm.event_log.log_event with TIMMY_THOUGHT."""
-    engine = _make_engine(tmp_path)
-    thought = engine._store_thought("Test thought.", "existential")
-
-    with patch("swarm.event_log.log_event") as mock_log:
-        engine._log_event(thought)
-
-    mock_log.assert_called_once()
-    args, kwargs = mock_log.call_args
-    from swarm.event_log import EventType
-    assert args[0] == EventType.TIMMY_THOUGHT
-    assert kwargs["source"] == "thinking-engine"
-    assert kwargs["agent_id"] == "timmy"
-
-
-# ---------------------------------------------------------------------------
 # Dashboard route
 # ---------------------------------------------------------------------------
 

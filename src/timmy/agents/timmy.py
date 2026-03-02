@@ -15,7 +15,6 @@ from agno.models.ollama import Ollama
 from timmy.agents.base import BaseAgent
 from config import settings
 from infrastructure.events.bus import EventBus, event_bus
-from mcp.registry import tool_registry
 
 logger = logging.getLogger(__name__)
 
