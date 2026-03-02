@@ -1,0 +1,97 @@
+# ── Timmy Development Environment — Optimized for Layer Caching ────────────────
+#
+# Multi-stage build optimized for rapid development iteration:
+#   1. base       Install Poetry early, cache Poetry layer
+#   2. deps       Export and install dependencies (cached separately)
+#   3. dev        Full development environment with all tools
+#
+# Build: docker build -f docker/Dockerfile.dev -t timmy-dev:latest .
+# Run:   docker run -it -v $(pwd)/src:/app/src -v $(pwd)/tests:/app/tests timmy-dev:latest
+#
+# Key optimizations:
+#   - Poetry installed early (layer 1) and cached
+#   - pyproject.toml + poetry.lock copied before source (layer 2)
+#   - Dependencies installed once and cached (layer 3)
+#   - Source code changes don't invalidate dependency cache
+
+# ── Stage 1: Base — Install Python and Poetry ─────────────────────────────────
+FROM python:3.12-slim AS base
+
+WORKDIR /app
+
+# Install build and runtime dependencies upfront
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    curl \
+    git \
+    make \
+    fonts-dejavu-core \
+    fontconfig \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry early with pip cache mount (this layer is cached and reused)
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir poetry poetry-plugin-export
+
+# Set Poetry to not create virtual env (we're in a container)
+ENV POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_VIRTUALENVS_IN_PROJECT=false \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app/src:/app/tests
+
+
+# ── Stage 2: Dependencies — Install all Python packages ──────────────────────
+FROM base AS deps
+
+WORKDIR /app
+
+# Copy ONLY dependency files (this invalidates cache only when deps change)
+COPY pyproject.toml poetry.lock ./
+
+# Export ALL dependencies including dev/test extras
+# Use cache mount for Poetry's cache directory
+RUN --mount=type=cache,target=/root/.cache/pypoetry \
+    poetry export \
+    --extras swarm \
+    --extras telegram \
+    --extras discord \
+    --extras bigbrain \
+    --extras voice \
+    --with dev \
+    --without-hashes \
+    -f requirements.txt -o requirements.txt
+
+# Install dependencies with pip cache mount for faster rebuilds
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -r requirements.txt
+
+
+# ── Stage 3: Development — Full environment with source code ──────────────────
+FROM deps AS dev
+
+WORKDIR /app
+
+# Create necessary directories
+RUN mkdir -p /app/src /app/tests /app/static /app/hands /app/data /app/docker
+
+# Initialize git repo for git-dependent code
+RUN git config --global user.email "timmy@dev" \
+    && git config --global user.name "Timmy Dev" \
+    && git init /app \
+    && git -C /app commit --allow-empty -m "init"
+
+# Copy source code (this layer changes frequently, so it's last)
+COPY src/ ./src/
+COPY tests/ ./tests/
+COPY static/ ./static/
+COPY docker/ ./docker/
+COPY pyproject.toml poetry.lock ./
+
+# Set environment for development
+ENV TIMMY_DEV_MODE=1 \
+    PYTHONPATH=/app/src:/app/tests
+
+# Default: interactive shell for development
+CMD ["/bin/bash"]

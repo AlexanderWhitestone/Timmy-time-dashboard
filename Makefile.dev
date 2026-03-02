@@ -1,0 +1,55 @@
+# ── Timmy Development Targets — Optimized with BuildKit Caching ────────────────
+#
+# Usage:
+#   make -f Makefile.dev build    # Build dev image with cached layers
+#   make -f Makefile.dev up       # Start dev environment
+#   make -f Makefile.dev test     # Run pytest in dev container
+#   make -f Makefile.dev shell    # Interactive shell in dev container
+
+.PHONY: build up down test shell logs clean
+
+# Enable BuildKit for better caching
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+
+# Compose file
+COMPOSE_FILE := docker-compose.dev-optimized.yml
+
+build:
+	@echo "🐳 Building Timmy dev image with BuildKit caching..."
+	docker compose -f $(COMPOSE_FILE) build --progress=plain
+
+up:
+	@echo "🚀 Starting Timmy dev environment..."
+	docker compose -f $(COMPOSE_FILE) up -d
+	@echo "✅ Dev environment started. Run 'make -f Makefile.dev shell' to enter."
+
+down:
+	@echo "🛑 Stopping Timmy dev environment..."
+	docker compose -f $(COMPOSE_FILE) down
+
+test:
+	@echo "🧪 Running pytest in dev container..."
+	docker compose -f $(COMPOSE_FILE) exec dev pytest tests/ -v --tb=short
+
+test-watch:
+	@echo "👀 Running pytest in watch mode..."
+	docker compose -f $(COMPOSE_FILE) exec dev pytest-watch tests/ -- -v --tb=short
+
+shell:
+	@echo "💻 Opening interactive shell in dev container..."
+	docker compose -f $(COMPOSE_FILE) exec dev /bin/bash
+
+logs:
+	@echo "📋 Tailing logs..."
+	docker compose -f $(COMPOSE_FILE) logs -f
+
+clean:
+	@echo "🧹 Cleaning up dev environment..."
+	docker compose -f $(COMPOSE_FILE) down -v
+	rm -rf .docker-buildkit-cache
+	@echo "✅ Clean complete."
+
+# Quick rebuild: only rebuilds if pyproject.toml or poetry.lock changed
+rebuild: down build up
+	@echo "✅ Dev environment rebuilt."

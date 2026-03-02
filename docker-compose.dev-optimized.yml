@@ -1,0 +1,66 @@
+# ── Timmy Development Environment — Optimized with BuildKit Caching ──────────
+#
+# Provides a complete development environment with:
+#   - Cached Poetry dependencies (BuildKit cache mounts)
+#   - Hot-reload for code changes
+#   - All dev tools and test runners
+#   - Persistent data volume
+#
+# Usage:
+#   DOCKER_BUILDKIT=1 docker compose -f docker-compose.dev-optimized.yml build
+#   docker compose -f docker-compose.dev-optimized.yml up -d
+#   docker compose -f docker-compose.dev-optimized.yml exec dev pytest tests/
+#
+# First build: ~2-3 minutes (installs all dependencies)
+# Subsequent builds: ~10-15 seconds (uses cached layers)
+
+version: '3.8'
+
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+      cache_from:
+        - type=local,src=.docker-buildkit-cache
+      cache_to:
+        - type=local,dest=.docker-buildkit-cache
+    image: timmy-dev:latest
+    container_name: timmy-dev
+    working_dir: /app
+    volumes:
+      # Bind mount source code for hot-reload
+      - ./src:/app/src
+      - ./tests:/app/tests
+      - ./static:/app/static
+      - ./docker:/app/docker
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./poetry.lock:/app/poetry.lock
+      # Persistent data volume
+      - timmy-dev-data:/app/data
+    environment:
+      PYTHONUNBUFFERED: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      TIMMY_DEV_MODE: "1"
+      PYTHONPATH: "/app/src:/app/tests"
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+
+  # Optional: Redis for testing event bus and task queue
+  redis:
+    image: redis:7-alpine
+    container_name: timmy-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - timmy-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  timmy-dev-data:
+  timmy-redis-data:
