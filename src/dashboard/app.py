@@ -21,35 +21,36 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from config import settings
-from dashboard.routes.agents import router as agents_router
-from dashboard.routes.health import router as health_router
-from dashboard.routes.swarm import router as swarm_router
-from dashboard.routes.marketplace import router as marketplace_router
-from dashboard.routes.voice import router as voice_router
-from dashboard.routes.mobile import router as mobile_router
-from dashboard.routes.briefing import router as briefing_router
-from dashboard.routes.telegram import router as telegram_router
-from dashboard.routes.tools import router as tools_router
-from dashboard.routes.spark import router as spark_router
-from dashboard.routes.creative import router as creative_router
-from dashboard.routes.discord import router as discord_router
-from dashboard.routes.events import router as events_router
-from dashboard.routes.ledger import router as ledger_router
-from dashboard.routes.memory import router as memory_router
-from dashboard.routes.router import router as router_status_router
-from dashboard.routes.upgrades import router as upgrades_router
-from dashboard.routes.tasks import router as tasks_router
-from dashboard.routes.scripture import router as scripture_router
-from dashboard.routes.self_coding import router as self_coding_router
-from dashboard.routes.self_coding import self_modify_router
-from dashboard.routes.hands import router as hands_router
-from dashboard.routes.grok import router as grok_router
-from dashboard.routes.models import router as models_router
-from dashboard.routes.models import api_router as models_api_router
-from dashboard.routes.chat_api import router as chat_api_router
-from dashboard.routes.thinking import router as thinking_router
-from dashboard.routes.bugs import router as bugs_router
+from src.config import settings
+from src.dashboard.routes.agents import router as agents_router
+from src.dashboard.routes.health import router as health_router
+from src.dashboard.routes.swarm import router as swarm_router
+from src.dashboard.routes.marketplace import router as marketplace_router
+from src.dashboard.routes.voice import router as voice_router
+from src.dashboard.routes.mobile import router as mobile_router
+from src.dashboard.routes.briefing import router as briefing_router
+from src.dashboard.routes.telegram import router as telegram_router
+from src.dashboard.routes.tools import router as tools_router
+from src.dashboard.routes.spark import router as spark_router
+from src.dashboard.routes.creative import router as creative_router
+from src.dashboard.routes.discord import router as discord_router
+from src.dashboard.routes.events import router as events_router
+from src.dashboard.routes.ledger import router as ledger_router
+from src.dashboard.routes.memory import router as memory_router
+from src.dashboard.routes.router import router as router_status_router
+from src.dashboard.routes.upgrades import router as upgrades_router
+from src.dashboard.routes.tasks import router as tasks_router
+from src.dashboard.routes.scripture import router as scripture_router
+from src.dashboard.routes.self_coding import router as self_coding_router
+from src.dashboard.routes.self_coding import self_modify_router
+from src.dashboard.routes.hands import router as hands_router
+from src.dashboard.routes.grok import router as grok_router
+from src.dashboard.routes.models import router as models_router
+from src.dashboard.routes.models import api_router as models_api_router
+from src.dashboard.routes.chat_api import router as chat_api_router
+from src.dashboard.routes.thinking import router as thinking_router
+from src.dashboard.routes.bugs import router as bugs_router
+from src.dashboard.routes.calm import router as calm_router
 from infrastructure.router.api import router as cascade_router
 
 
@@ -682,6 +683,7 @@ app.include_router(models_api_router)
 app.include_router(chat_api_router)
 app.include_router(thinking_router)
 app.include_router(bugs_router)
+app.include_router(calm_router)
 app.include_router(cascade_router)
 
 

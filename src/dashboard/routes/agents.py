@@ -7,7 +7,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from timmy.session import chat as timmy_chat
+from src.timmy.session import chat as timmy_chat
 from dashboard.store import message_log
 
 logger = logging.getLogger(__name__)

@@ -1,0 +1,24 @@
+
+{% extends "base.html" %}
+
+{% block title %}Evening Ritual Complete - Timmy Calm{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .ritual-container { max-width: 700px; margin: 0 auto; padding: 30px; background: var(--bg-secondary); border-radius: var(--radius-lg); box-shadow: 0 5px 20px rgba(0,0,0,0.2); text-align: center; }
+    .ritual-title { font-size: 2rem; font-weight: 700; color: var(--green); margin-bottom: 20px; }
+    .ritual-message { font-size: 1.1rem; color: var(--text); line-height: 1.6; margin-bottom: 30px; }
+    .ritual-btn { display: inline-block; padding: 12px 25px; font-size: 1rem; font-weight: 700; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s ease; border: none; background: var(--purple); color: white; text-decoration: none; }
+    .ritual-btn:hover { opacity: 0.9; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ritual-container">
+    <h1 class="ritual-title">✓ Evening Ritual Complete</h1>
+    <p class="ritual-message">
+        You've reflected on your day and archived your tasks. Rest well — tomorrow is a fresh start.
+    </p>
+    <a href="/calm" class="ritual-btn">Return to Calm</a>
+</div>
+{% endblock %}

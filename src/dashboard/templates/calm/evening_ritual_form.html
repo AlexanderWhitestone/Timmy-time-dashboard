@@ -1,0 +1,54 @@
+
+{% extends "base.html" %}
+
+{% block title %}Evening Ritual - Timmy Calm{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .ritual-container { max-width: 700px; margin: 0 auto; padding: 30px; background: var(--bg-secondary); border-radius: var(--radius-lg); box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+    .ritual-header { text-align: center; margin-bottom: 30px; }
+    .ritual-title { font-size: 2rem; font-weight: 700; color: var(--text-bright); margin-bottom: 10px; }
+    .ritual-subtitle { font-size: 1rem; color: var(--text-dim); line-height: 1.5; }
+
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 0.9rem; color: var(--text-dim); margin-bottom: 8px; font-weight: 600; }
+    .form-group input[type="text"], .form-group textarea, .form-group input[type="number"] { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-tertiary); color: var(--text); font-size: 1rem; }
+    .form-group textarea { min-height: 100px; resize: vertical; }
+    .form-group input[type="text"]:focus, .form-group textarea:focus, .form-group input[type="number"]:focus { border-color: var(--purple); outline: none; box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2); }
+
+    .form-actions { display: flex; justify-content: flex-end; margin-top: 30px; }
+    .form-actions button { padding: 12px 25px; font-size: 1rem; font-weight: 700; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s ease; border: none; }
+    .form-actions .btn-submit { background: var(--green); color: var(--bg-secondary); }
+    .form-actions .btn-submit:hover { background: var(--green-dark); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ritual-container">
+    <div class="ritual-header">
+        <h1 class="ritual-title">Good Evening, Timmy.</h1>
+        <p class="ritual-subtitle">Reflect on your day and prepare for tomorrow.</p>
+    </div>
+
+    <form hx-post="/calm/ritual/evening" hx-swap="outerHTML" hx-target="body">
+        <div class="form-group">
+            <label for="evening_reflection">Evening Reflection</label>
+            <textarea id="evening_reflection" name="evening_reflection" placeholder="What went well today? What could be improved?" rows="5">{{ journal_entry.evening_reflection if journal_entry else '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="gratitude">Gratitude</label>
+            <input type="text" id="gratitude" name="gratitude" placeholder="What are you grateful for today?" value="{{ journal_entry.gratitude if journal_entry else '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="energy_level">Energy Level (1-10)</label>
+            <input type="number" id="energy_level" name="energy_level" min="1" max="10" placeholder="e.g., 7" value="{{ journal_entry.energy_level if journal_entry else '' }}">
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-submit">Complete Evening Ritual</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

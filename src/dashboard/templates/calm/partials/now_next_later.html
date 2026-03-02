@@ -1,0 +1,50 @@
+
+<div id="now-next-later-stack">
+    {% if now_task %}
+    <div class="task-card now-card">
+        <h2 class="task-title">{{ now_task.title }}</h2>
+        {% if now_task.description %}
+        <p class="task-description">{{ now_task.description }}</p>
+        {% endif %}
+        <div class="task-actions">
+            <button class="task-btn task-btn-complete"
+                    hx-post="/calm/tasks/{{ now_task.id }}/complete"
+                    hx-target="#now-next-later-stack"
+                    hx-swap="outerHTML">
+                Complete
+            </button>
+            <button class="task-btn task-btn-defer"
+                    hx-post="/calm/tasks/{{ now_task.id }}/defer"
+                    hx-target="#now-next-later-stack"
+                    hx-swap="outerHTML">
+                Defer
+            </button>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <p>No task is NOW. Time to pick one or start your morning ritual!</p>
+    </div>
+    {% endif %}
+
+    {% if next_task %}
+    <div class="task-card next-card">
+        <h3 class="task-title">Next: {{ next_task.title }}</h3>
+        {% if next_task.description %}
+        <p class="task-description">{{ next_task.description }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="later-section">
+        <details hx-get="/calm/partials/later_tasks_list" hx-trigger="toggle" hx-target="#later-content" hx-swap="innerHTML">
+            <summary class="later-summary">
+                Later ({{ later_tasks_count }} items)
+                <span id="later-count-container"></span>
+            </summary>
+            <div id="later-content" class="later-content">
+                <!-- Later tasks will be loaded here via HTMX -->
+            </div>
+        </details>
+    </div>
+</div>

@@ -1,0 +1,127 @@
+
+{% extends "base.html" %}
+
+{% block title %}Timmy Calm{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .calm-container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .calm-header { text-align: center; margin-bottom: 30px; }
+    .calm-title { font-size: 2.5rem; font-weight: 700; color: var(--text-bright); letter-spacing: 0.05em; }
+    .calm-subtitle { font-size: 1.1rem; color: var(--text-dim); margin-top: 5px; }
+
+    .task-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s ease;
+    }
+    .task-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); }
+
+    .now-card {
+        background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(124, 58, 237, 0.1) 100%);
+        border-color: rgba(124, 58, 237, 0.4);
+    }
+    .now-card .task-title { font-size: 2.2rem; font-weight: 800; color: var(--green); margin-bottom: 15px; }
+    .now-card .task-description { font-size: 1.1rem; color: var(--text); line-height: 1.6; margin-bottom: 20px; }
+    .now-card .task-actions { display: flex; gap: 15px; justify-content: center; }
+    .now-card .task-btn { padding: 12px 25px; font-size: 1rem; font-weight: 700; border-radius: var(--radius-md); cursor: pointer; transition: all 0.2s ease; }
+    .now-card .task-btn-complete { background: var(--green); color: var(--bg-secondary); border: none; }
+    .now-card .task-btn-complete:hover { background: var(--green-dark); }
+    .now-card .task-btn-defer { background: var(--bg-tertiary); color: var(--text); border: 1px solid var(--border); }
+    .now-card .task-btn-defer:hover { background: var(--bg-tertiary-hover); }
+
+    .next-card {
+        background: var(--bg-tertiary);
+        border-color: var(--border);
+        padding: 15px 20px;
+    }
+    .next-card .task-title { font-size: 1.3rem; font-weight: 600; color: var(--info); margin-bottom: 5px; }
+    .next-card .task-description { font-size: 0.9rem; color: var(--text-dim); max-height: 40px; overflow: hidden; }
+
+    .later-section {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        margin-top: 20px;
+    }
+    .later-summary { padding: 15px 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem; font-weight: 600; color: var(--text-bright); }
+    .later-summary:hover { background: var(--bg-tertiary-hover); border-radius: var(--radius-lg); }
+    .later-content { padding: 10px 20px 20px; border-top: 1px solid var(--border); }
+    .later-task-item { padding: 8px 0; border-bottom: 1px dashed var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .later-task-item:last-child { border-bottom: none; }
+    .later-task-title { font-size: 0.95rem; color: var(--text); }
+    .later-task-actions .task-btn { font-size: 0.75rem; padding: 5px 10px; }
+
+    .empty-state { text-align: center; color: var(--text-dim); padding: 40px 20px; font-size: 1rem; }
+
+    .ritual-btn { display: block; width: fit-content; margin: 20px auto; padding: 10px 20px; background: var(--purple); color: white; border-radius: var(--radius-md); text-decoration: none; font-weight: 600; }
+    .ritual-btn:hover { opacity: 0.9; }
+
+    /* Inter font - assuming it's available or linked in base.html */
+    body { font-family: 'Inter', sans-serif; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="calm-container py-3">
+    <div class="calm-header">
+        <h1 class="calm-title">Timmy Calm</h1>
+        <p class="calm-subtitle">Your focused attention stack</p>
+    </div>
+
+    <div id="now-next-later-stack" hx-trigger="load, taskPromoted from:body" hx-get="/calm/partials/now_next_later" hx-swap="outerHTML">
+        {% include "calm/partials/now_next_later.html" %}
+    </div>
+
+    {% if not now_task and not next_task and later_tasks_count == 0 %}
+    <div class="empty-state">
+        <p>It looks like you have no tasks. Start your day with a morning ritual!</p>
+        <a href="/calm/ritual/morning" class="ritual-btn">Start Morning Ritual</a>
+    </div>
+    {% endif %}
+
+    <div class="add-task-section" style="text-align: center; margin-top: 30px;">
+        <button class="task-btn task-btn-defer" onclick="openAddTaskModal()">+ Add New Task</button>
+    </div>
+
+    <!-- Add Task Modal (simple example, can be expanded) -->
+    <div id="add-task-modal" class="task-modal-overlay">
+        <div class="task-modal">
+            <h3>Add New Task</h3>
+            <form hx-post="/calm/tasks" hx-target="#later-count-container" hx-swap="outerHTML" hx-on::after-request="closeAddTaskModal()">
+                <label>Title</label>
+                <input type="text" name="title" required>
+                <label>Description (optional)</label>
+                <textarea name="description"></textarea>
+                <label>
+                    <input type="checkbox" name="is_mit" value="true"> Is this a Most Important Task (MIT)?
+                </label>
+                <div class="task-modal-actions">
+                    <button type="button" class="task-btn task-btn-cancel" onclick="closeAddTaskModal()">Cancel</button>
+                    <button type="submit" class="task-btn task-btn-complete">Add Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function openAddTaskModal() {
+        document.getElementById('add-task-modal').classList.add('open');
+    }
+    function closeAddTaskModal() {
+        document.getElementById('add-task-modal').classList.remove('open');
+    }
+    document.getElementById('add-task-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeAddTaskModal();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeAddTaskModal();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,19 @@
+
+{% if later_tasks %}
+<form hx-post="/calm/tasks/reorder" hx-target="#now-next-later-stack" hx-swap="outerHTML">
+    <ul class="later-task-list">
+        {% for task in later_tasks %}
+        <li class="later-task-item">
+            <span class="later-task-title">{{ task.title }}</span>
+            <div class="later-task-actions">
+                <button type="submit" name="next_task_id" value="{{ task.id }}" class="task-btn task-btn-approve">Make Next</button>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    <!-- Hidden input to send all later task IDs for reordering, if drag-and-drop were implemented -->
+    <input type="hidden" name="later_task_ids" value="{% for task in later_tasks %}{{ task.id }}{% if not loop.last %},{% endif %}{% endfor %}">
+</form>
+{% else %}
+<div class="empty-state">No tasks in Later.</div>
+{% endif %}
