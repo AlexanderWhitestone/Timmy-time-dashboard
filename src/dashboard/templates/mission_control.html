@@ -203,27 +203,51 @@ async function loadSovereignty() {
             const scoreColor = dep.sovereignty_score >= 9 ? 'var(--success)' : 
                               dep.sovereignty_score >= 7 ? 'var(--warning)' : 'var(--danger)';
             
-            card.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <strong>${dep.name}</strong>
-                    <span class="badge" style="background: ${statusColor};">${dep.status}</span>
-                </div>
-                <div style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 8px;">
-                    ${dep.details.error || dep.details.note || 'Operating normally'}
-                </div>
-                <div style="font-size: 0.75rem; color: ${scoreColor};">
-                    Sovereignty: ${dep.sovereignty_score}/10
-                </div>
-            `;
+            // Securely build card content using textContent for dynamic data
+            const header = document.createElement('div');
+            header.style = 'display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;';
+            
+            const name = document.createElement('strong');
+            name.textContent = dep.name;
+            
+            const badge = document.createElement('span');
+            badge.className = 'badge';
+            badge.style.background = statusColor;
+            badge.textContent = dep.status;
+            
+            header.appendChild(name);
+            header.appendChild(badge);
+            
+            const details = document.createElement('div');
+            details.style = 'font-size: 0.875rem; color: var(--text-muted); margin-bottom: 8px;';
+            details.textContent = dep.details.error || dep.details.note || 'Operating normally';
+            
+            const score = document.createElement('div');
+            score.style = `font-size: 0.75rem; color: ${scoreColor};`;
+            score.textContent = `Sovereignty: ${dep.sovereignty_score}/10`;
+            
+            card.appendChild(header);
+            card.appendChild(details);
+            card.appendChild(score);
             grid.appendChild(card);
         });
         
-        // Update recommendations
+        // Update recommendations securely
         const recs = document.getElementById('recommendations');
+        recs.innerHTML = '';
         if (data.recommendations && data.recommendations.length > 0) {
-            recs.innerHTML = '<ul>' + data.recommendations.map(r => `<li>${r}</li>`).join('') + '</ul>';
+            const ul = document.createElement('ul');
+            data.recommendations.forEach(r => {
+                const li = document.createElement('li');
+                li.textContent = r;
+                ul.appendChild(li);
+            });
+            recs.appendChild(ul);
         } else {
-            recs.innerHTML = '<p style="color: var(--text-muted);">No recommendations — system optimal</p>';
+            const p = document.createElement('p');
+            p.style.color = 'var(--text-muted)';
+            p.textContent = 'No recommendations — system optimal';
+            recs.appendChild(p);
         }
         
     } catch (error) {

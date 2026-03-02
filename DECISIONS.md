@@ -32,6 +32,18 @@ This file documents major architectural decisions and their rationale.
 
 ---
 
+## Decision: XSS Prevention in Mission Control Dashboard
+
+**Date:** 2026-03-02
+
+**Context:** The Mission Control dashboard was using `innerHTML` to render dependency details and recommendations from the `/health/sovereignty` endpoint. While these sources are currently internal, using `innerHTML` with dynamic data is a security risk and violates the "Non-Negotiable Rules" in `AGENTS.md`.
+
+**Decision:** Refactored the JavaScript in `mission_control.html` to use `document.createElement` and `textContent` for all dynamic data rendering.
+
+**Rationale:** This approach provides built-in XSS protection by ensuring that any data from the API is treated as plain text rather than HTML, fulfilling the security requirements of the project.
+
+---
+
 ## Add New Decisions Above This Line
 
 When making significant architectural choices, document:
