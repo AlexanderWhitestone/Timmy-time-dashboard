@@ -8,12 +8,12 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from src.dashboard.models.calm import JournalEntry, Task, TaskCertainty, TaskState
-from src.dashboard.models.database import SessionLocal, engine, get_db
+from dashboard.models.calm import JournalEntry, Task, TaskCertainty, TaskState
+from dashboard.models.database import SessionLocal, engine, get_db
 
 # Create database tables (if not already created by Alembic)
 # This is typically handled by Alembic migrations in a production environment
-# from src.dashboard.models.database import Base
+# from dashboard.models.database import Base
 # Base.metadata.create_all(bind=engine)
 
 logger = logging.getLogger(__name__)
@@ -375,6 +375,4 @@ async def reorder_tasks(
 
 
 # Include this router in the main FastAPI app
-# In src/dashboard/app.py, add:
-# from dashboard.routes.calm import router as calm_router
-# app.include_router(calm_router)
+# Already registered in src/dashboard/app.py as calm_router.
