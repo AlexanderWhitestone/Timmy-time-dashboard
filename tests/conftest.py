@@ -24,29 +24,19 @@ for _mod in [
     "agno.models.ollama",
     "agno.db",
     "agno.db.sqlite",
-    # AirLLM is optional (bigbrain extra) — stub it so backend tests can
-    # import timmy.backends and instantiate TimmyAirLLMAgent without a GPU.
     "airllm",
-    # python-telegram-bot is optional (telegram extra) — stub so tests run
-    # without the package installed.
     "telegram",
     "telegram.ext",
-    # discord.py is optional (discord extra) — stub so tests run
-    # without the package installed.
     "discord",
     "discord.ext",
     "discord.ext.commands",
-    # pyzbar is optional (for QR code invite detection)
     "pyzbar",
     "pyzbar.pyzbar",
-    # requests is optional — used by reward scoring (swarm.learner) to call
-    # Ollama directly; stub so patch("requests.post") works in tests.
     "requests",
 ]:
     sys.modules.setdefault(_mod, MagicMock())
 
 # ── Test mode setup ──────────────────────────────────────────────────────────
-# Set test mode environment variable before any app imports
 os.environ["TIMMY_TEST_MODE"] = "1"
 
 
@@ -60,50 +50,20 @@ def reset_message_log():
 
 
 @pytest.fixture(autouse=True)
-def reset_coordinator_state():
-    """Clear the coordinator's in-memory state between tests.
-
-    The coordinator singleton is created at import time and persists across
-    the test session.  Without this fixture, agents spawned in one test bleed
-    into the next through the auctions dict, comms listeners, and the
-    in-process node list.
-    """
-    yield
-    from swarm.coordinator import coordinator
-    coordinator.auctions._auctions.clear()
-    coordinator.comms._listeners.clear()
-    coordinator._in_process_nodes.clear()
-    coordinator.manager.stop_all()
-    
-    # Clear routing engine manifests
-    try:
-        from swarm import routing
-        routing.routing_engine._manifests.clear()
-    except Exception:
-        pass
-
-
-@pytest.fixture(autouse=True)
 def clean_database(tmp_path):
     """Clean up database tables between tests for isolation.
 
-    When running under pytest-xdist (parallel workers), each worker gets
-    its own tmp_path so DB files never collide.  We redirect every
-    module-level DB_PATH to the per-test temp directory.
+    Redirects every module-level DB_PATH to the per-test temp directory.
     """
     tmp_swarm_db = tmp_path / "swarm.db"
     tmp_spark_db = tmp_path / "spark.db"
     tmp_self_coding_db = tmp_path / "self_coding.db"
 
-    # All modules that use DB_PATH = Path("data/swarm.db")
     _swarm_db_modules = [
         "swarm.tasks",
         "swarm.registry",
-        "swarm.routing",
-        "swarm.learner",
         "swarm.event_log",
         "swarm.stats",
-        "swarm.work_orders.models",
         "swarm.task_queue.models",
         "self_coding.upgrades.models",
         "lightning.ledger",
@@ -147,7 +107,6 @@ def clean_database(tmp_path):
 
     yield
 
-    # Restore originals so module-level state isn't permanently mutated
     for (mod_name, attr), original in originals.items():
         try:
             mod = __import__(mod_name, fromlist=[attr])
@@ -162,25 +121,18 @@ def cleanup_event_loops():
     import asyncio
     import warnings
     yield
-    # Close any unclosed event loops
     try:
-        # Use get_running_loop first to avoid issues with running loops
         try:
             loop = asyncio.get_running_loop()
-            # If we get here, there's a running loop - don't close it
             return
         except RuntimeError:
             pass
-        
-        # No running loop, try to get and close the current loop
-        # Suppress DeprecationWarning for Python 3.12+
         with warnings.catch_warnings():
             warnings.simplefilter("ignore", DeprecationWarning)
             loop = asyncio.get_event_loop_policy().get_event_loop()
         if loop and not loop.is_closed():
             loop.close()
     except RuntimeError:
-        # No event loop in current thread, which is fine
         pass
 
 
@@ -194,14 +146,9 @@ def client():
 
 @pytest.fixture
 def db_connection():
-    """Provide a fresh in-memory SQLite connection for tests.
-    
-    Uses transaction rollback for perfect test isolation.
-    """
+    """Provide a fresh in-memory SQLite connection for tests."""
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
-    
-    # Create schema
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS agents (
             id TEXT PRIMARY KEY,
@@ -211,7 +158,6 @@ def db_connection():
             registered_at TEXT NOT NULL,
             last_seen TEXT NOT NULL
         );
-        
         CREATE TABLE IF NOT EXISTS tasks (
             id TEXT PRIMARY KEY,
             description TEXT NOT NULL,
@@ -223,39 +169,25 @@ def db_connection():
         );
     """)
     conn.commit()
-    
     yield conn
-    
-    # Cleanup
     conn.close()
 
 
-
-# ── Additional Clean Test Fixtures ──────────────────────────────────────────
-
 @pytest.fixture(autouse=True)
 def tmp_swarm_db(tmp_path, monkeypatch):
-    """Point all swarm SQLite paths to a temp directory for test isolation.
-
-    This is the single source of truth — individual test files should NOT
-    redefine this fixture.  All eight swarm modules that carry a module-level
-    DB_PATH are patched here so every test gets a clean, ephemeral database.
-    """
+    """Point swarm SQLite paths to a temp directory for test isolation."""
     db_path = tmp_path / "swarm.db"
     for module in [
         "swarm.tasks",
         "swarm.registry",
         "swarm.stats",
-        "swarm.learner",
-        "swarm.routing",
         "swarm.event_log",
         "swarm.task_queue.models",
-        "swarm.work_orders.models",
     ]:
         try:
             monkeypatch.setattr(f"{module}.DB_PATH", db_path)
         except AttributeError:
-            pass  # Module may not be importable in minimal test envs
+            pass
     yield db_path
 
 
@@ -277,20 +209,6 @@ def mock_timmy_agent():
     agent.run = MagicMock(return_value="Test response from Timmy")
     agent.chat = MagicMock(return_value="Test chat response")
     return agent
-
-
-@pytest.fixture
-def mock_swarm_coordinator():
-    """Provide a mock swarm coordinator."""
-    coordinator = MagicMock()
-    coordinator.spawn_persona = MagicMock()
-    coordinator.register_agent = MagicMock()
-    coordinator.get_agent = MagicMock(return_value=MagicMock(name="test-agent"))
-    coordinator._recovery_summary = {
-        "tasks_failed": 0,
-        "agents_offlined": 0,
-    }
-    return coordinator
 
 
 @pytest.fixture
@@ -348,7 +266,7 @@ def sample_interview_data():
             {
                 "category": "Capabilities",
                 "question": "What can you do?",
-                "expected_keywords": ["agent", "swarm"],
+                "expected_keywords": ["agent", "brain"],
             },
         ],
         "expected_response_format": "string",

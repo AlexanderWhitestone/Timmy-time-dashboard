@@ -1,6 +1,7 @@
-"""Inter-agent delegation tools for Timmy.
+"""Timmy's delegation tools — submit tasks and list agents.
 
-Allows Timmy to dispatch tasks to other swarm agents (Seer, Forge, Echo, etc.)
+Coordinator removed. Tasks go through the task_queue, agents are
+looked up in the registry.
 """
 
 import logging
@@ -9,22 +10,17 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-def delegate_task(
-    agent_name: str, task_description: str, priority: str = "normal"
-) -> dict[str, Any]:
-    """Dispatch a task to another swarm agent.
+def delegate_task(agent_name: str, task_description: str, priority: str = "normal") -> dict[str, Any]:
+    """Delegate a task to another agent via the task queue.
 
     Args:
-        agent_name: Name of the agent to delegate to (seer, forge, echo, helm, quill)
+        agent_name: Name of the agent to delegate to
         task_description: What you want the agent to do
         priority: Task priority - "low", "normal", "high"
 
     Returns:
         Dict with task_id, status, and message
     """
-    from swarm.coordinator import coordinator
-
-    # Validate agent name
     valid_agents = ["seer", "forge", "echo", "helm", "quill", "mace"]
     agent_name = agent_name.lower().strip()
 
@@ -35,22 +31,27 @@ def delegate_task(
             "task_id": None,
         }
 
-    # Validate priority
     valid_priorities = ["low", "normal", "high"]
     if priority not in valid_priorities:
         priority = "normal"
 
     try:
-        # Submit task to coordinator
-        task = coordinator.post_task(
+        from swarm.task_queue.models import create_task
+
+        task = create_task(
+            title=f"[Delegated to {agent_name}] {task_description[:80]}",
             description=task_description,
-            assigned_agent=agent_name,
+            assigned_to=agent_name,
+            created_by="timmy",
             priority=priority,
+            task_type="task_request",
+            requires_approval=False,
+            auto_approve=True,
         )
 
         return {
             "success": True,
-            "task_id": task.task_id,
+            "task_id": task.id,
             "agent": agent_name,
             "status": "submitted",
             "message": f"Task submitted to {agent_name}: {task_description[:100]}...",
@@ -71,10 +72,10 @@ def list_swarm_agents() -> dict[str, Any]:
     Returns:
         Dict with agent list and status
     """
-    from swarm.coordinator import coordinator
-
     try:
-        agents = coordinator.list_swarm_agents()
+        from swarm import registry
+
+        agents = registry.list_agents()
 
         return {
             "success": True,

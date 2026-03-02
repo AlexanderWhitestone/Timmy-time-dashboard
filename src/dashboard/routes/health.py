@@ -122,32 +122,17 @@ async def _check_ollama() -> DependencyStatus:
 
 
 def _check_redis() -> DependencyStatus:
-    """Check Redis cache status."""
-    try:
-        from swarm.coordinator import coordinator
-        comms = coordinator.comms
-        # Check if we're using fallback
-        if hasattr(comms, '_redis') and comms._redis is not None:
-            return DependencyStatus(
-                name="Redis Cache",
-                status="healthy",
-                sovereignty_score=9,
-                details={"mode": "active", "fallback": False},
-            )
-        else:
-            return DependencyStatus(
-                name="Redis Cache",
-                status="degraded",
-                sovereignty_score=10,
-                details={"mode": "fallback", "fallback": True, "note": "Using in-memory"},
-            )
-    except Exception as exc:
-        return DependencyStatus(
-            name="Redis Cache",
-            status="degraded",
-            sovereignty_score=10,
-            details={"mode": "fallback", "error": str(exc)},
-        )
+    """Check Redis cache status.
+    
+    Coordinator removed — Redis is not currently in use.
+    Returns degraded/fallback status.
+    """
+    return DependencyStatus(
+        name="Redis Cache",
+        status="degraded",
+        sovereignty_score=10,
+        details={"mode": "fallback", "fallback": True, "note": "Using in-memory (coordinator removed)"},
+    )
 
 
 def _check_lightning() -> DependencyStatus:

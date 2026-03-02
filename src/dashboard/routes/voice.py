@@ -113,13 +113,11 @@ async def process_voice_input(
             )
 
         elif intent.name == "swarm":
-            from swarm.coordinator import coordinator
-            status = coordinator.status()
+            from swarm import registry
+            agents = registry.list_agents()
             response_text = (
-                f"Swarm status: {status['agents']} agents registered, "
-                f"{status['agents_idle']} idle, {status['agents_busy']} busy. "
-                f"{status['tasks_total']} total tasks, "
-                f"{status['tasks_completed']} completed."
+                f"Swarm status: {len(agents)} agents registered. "
+                f"Use the dashboard for detailed task information."
             )
 
         elif intent.name == "voice":

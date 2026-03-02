@@ -97,9 +97,8 @@ async def task_queue_page(request: Request, assign: Optional[str] = None):
     # Get agents for the create modal
     agents = []
     try:
-        from swarm.coordinator import coordinator
-
-        agents = [{"id": a.id, "name": a.name} for a in coordinator.list_swarm_agents()]
+        from swarm import registry
+        agents = [{"id": a.id, "name": a.name} for a in registry.list_agents()]
     except Exception:
         pass
     # Always include core agents
