@@ -1,14 +1,12 @@
 import pytest
-import sys
 from datetime import date
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-sys.path.insert(0, "/home/ubuntu/Timmy-time-dashboard/src")
-from src.dashboard.app import app
-from src.dashboard.models.database import Base, get_db
-from src.dashboard.models.calm import Task, JournalEntry, TaskState, TaskCertainty
+from dashboard.app import app
+from dashboard.models.database import Base, get_db
+from dashboard.models.calm import Task, JournalEntry, TaskState, TaskCertainty
 
 
 @pytest.fixture(name="test_db_engine")
