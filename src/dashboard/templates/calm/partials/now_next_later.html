@@ -10,13 +10,15 @@
             <button class="task-btn task-btn-complete"
                     hx-post="/calm/tasks/{{ now_task.id }}/complete"
                     hx-target="#now-next-later-stack"
-                    hx-swap="outerHTML">
+                    hx-swap="outerHTML"
+                    hx-disabled-elt="this">
                 Complete
             </button>
             <button class="task-btn task-btn-defer"
                     hx-post="/calm/tasks/{{ now_task.id }}/defer"
                     hx-target="#now-next-later-stack"
-                    hx-swap="outerHTML">
+                    hx-swap="outerHTML"
+                    hx-disabled-elt="this">
                 Defer
             </button>
         </div>

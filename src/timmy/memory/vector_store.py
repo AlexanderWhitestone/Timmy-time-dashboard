@@ -20,9 +20,12 @@ try:
     from sentence_transformers import SentenceTransformer
     _model = SentenceTransformer('all-MiniLM-L6-v2')
     _has_embeddings = True
-except ImportError:
+except Exception:
     _has_embeddings = False
     _model = None
+
+# Cache for repeated embedding computations (avoids recomputing for same text)
+_embedding_cache: dict[str, list[float]] = {}
 
 
 def _get_embedding_dimension() -> int:
@@ -34,31 +37,38 @@ def _get_embedding_dimension() -> int:
 
 def _compute_embedding(text: str) -> list[float]:
     """Compute embedding vector for text.
-    
+
     Uses sentence-transformers if available, otherwise returns
     a simple hash-based vector for basic similarity.
+    Results are cached for repeated queries.
     """
+    if text in _embedding_cache:
+        return _embedding_cache[text]
+
     if _has_embeddings and _model:
-        return _model.encode(text).tolist()
-    
-    # Fallback: simple character n-gram hash embedding
-    # Not as good but allows the system to work without heavy deps
-    dim = 384
-    vec = [0.0] * dim
-    text = text.lower()
-    
-    # Generate character trigram features
-    for i in range(len(text) - 2):
-        trigram = text[i:i+3]
-        hash_val = hash(trigram) % dim
-        vec[hash_val] += 1.0
-    
-    # Normalize
-    norm = sum(x*x for x in vec) ** 0.5
-    if norm > 0:
-        vec = [x/norm for x in vec]
-    
-    return vec
+        result = _model.encode(text).tolist()
+    else:
+        # Fallback: simple character n-gram hash embedding
+        # Not as good but allows the system to work without heavy deps
+        dim = 384
+        vec = [0.0] * dim
+        lower_text = text.lower()
+
+        # Generate character trigram features
+        for i in range(len(lower_text) - 2):
+            trigram = lower_text[i:i+3]
+            hash_val = hash(trigram) % dim
+            vec[hash_val] += 1.0
+
+        # Normalize
+        norm = sum(x*x for x in vec) ** 0.5
+        if norm > 0:
+            vec = [x/norm for x in vec]
+
+        result = vec
+
+    _embedding_cache[text] = result
+    return result
 
 
 @dataclass

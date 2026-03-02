@@ -208,7 +208,7 @@
         <span class="badge badge-warning" id="pending-count">{{ pending_count }}</span>
       </div>
       <div class="card-body p-2" id="pending-list"
-           hx-get="/tasks/pending" hx-trigger="every 15s" hx-swap="innerHTML">
+           hx-get="/tasks/pending" hx-trigger="every 30s" hx-swap="innerHTML">
         {% if pending %}
           {% for task in pending %}
             {% include "partials/task_card.html" %}
@@ -226,7 +226,7 @@
         <span class="badge badge-info" id="active-count">{{ active | length }}</span>
       </div>
       <div class="card-body p-2" id="active-list"
-           hx-get="/tasks/active" hx-trigger="every 10s" hx-swap="innerHTML">
+           hx-get="/tasks/active" hx-trigger="every 30s" hx-swap="innerHTML">
         {% if active %}
           {% for task in active %}
             {% include "partials/task_card.html" %}
@@ -244,7 +244,7 @@
         <span class="badge badge-secondary" id="completed-count">{{ completed | length }}</span>
       </div>
       <div class="card-body p-2" id="completed-list" style="max-height: 70vh; overflow-y: auto;"
-           hx-get="/tasks/completed" hx-trigger="every 30s" hx-swap="innerHTML">
+           hx-get="/tasks/completed" hx-trigger="every 60s" hx-swap="innerHTML">
         {% if completed %}
           {% for task in completed %}
             {% include "partials/task_card.html" %}

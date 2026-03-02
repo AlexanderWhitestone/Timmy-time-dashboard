@@ -49,7 +49,7 @@ class EventBus:
     def __init__(self) -> None:
         self._subscribers: dict[str, list[EventHandler]] = {}
         self._history: list[Event] = []
-        self._max_history = 1000
+        self._max_history = 500
         logger.info("EventBus initialized")
     
     def subscribe(self, event_pattern: str) -> Callable[[EventHandler], EventHandler]:

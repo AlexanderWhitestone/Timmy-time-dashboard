@@ -5,22 +5,18 @@ served by the main dashboard app, eliminating the need for a separate
 FastAPI application.
 """
 
-import os
 from unittest.mock import MagicMock, patch
 
-import httpx
 import pytest
 from fastapi.testclient import TestClient
 
 
 @pytest.fixture
 def serve_client():
-    """Dashboard test client bypassing proxy for localhost."""
+    """Dashboard test client for serve endpoints."""
     from dashboard.app import app
-    transport = httpx.WSGITransport(app=app)
-    client = httpx.Client(transport=transport, base_url="http://testserver")
-    yield client
-    client.close()
+    with TestClient(app) as client:
+        yield client
 
 
 class TestServeStatusMerged:
@@ -44,7 +40,7 @@ class TestServeStatusMerged:
 class TestServeChatMerged:
     """Test /serve/chat endpoint in dashboard app."""
 
-    @patch("dashboard.routes.serve.create_timmy")
+    @patch("timmy.agent.create_timmy")
     def test_serve_chat_returns_response(self, mock_create, serve_client):
         mock_agent = MagicMock()
         mock_result = MagicMock()
