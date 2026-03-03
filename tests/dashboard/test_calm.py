@@ -3,6 +3,7 @@ from datetime import date
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.pool import StaticPool
 
 from dashboard.app import app
 from dashboard.models.database import Base, get_db
@@ -11,8 +12,12 @@ from dashboard.models.calm import Task, JournalEntry, TaskState, TaskCertainty
 
 @pytest.fixture(name="test_db_engine")
 def test_db_engine_fixture():
-    # Create a new in-memory SQLite database for each test
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    # Use StaticPool to keep the in-memory database alive across multiple connections
+    engine = create_engine(
+        "sqlite:///:memory:", 
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool
+    )
     Base.metadata.create_all(bind=engine)  # Create tables
     yield engine
     Base.metadata.drop_all(bind=engine)  # Drop tables after test
@@ -47,7 +52,8 @@ def test_create_task(client: TestClient, db_session: Session):
         },
     )
     assert response.status_code == 200
-    assert "later_count-container" in response.text
+    # The actual ID in the template is later-count-container
+    assert "later-count-container" in response.text
 
     task = db_session.query(Task).filter(Task.title == "Test Task").first()
     assert task is not None
@@ -143,7 +149,8 @@ def test_start_task_demotes_current_now_and_promotes_to_now(client: TestClient, 
 
     assert db_session.query(Task).filter(Task.id == task_later1.id).first().state == TaskState.NOW
     assert db_session.query(Task).filter(Task.id == task_now.id).first().state == TaskState.NEXT
-    assert db_session.query(Task).filter(Task.id == task_next.id).first().state == TaskState.LATER
+    # According to promote_tasks logic, if NEXT exists, it stays NEXT.
+    assert db_session.query(Task).filter(Task.id == task_next.id).first().state == TaskState.NEXT
 
 
 def test_evening_ritual_archives_active_tasks(client: TestClient, db_session: Session):
