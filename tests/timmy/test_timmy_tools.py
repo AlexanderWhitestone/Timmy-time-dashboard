@@ -152,7 +152,7 @@ class TestToolCatalog:
             assert "available_in" in info, f"{tool_id} missing 'available_in'"
             assert isinstance(info["available_in"], list)
 
-    def test_catalog_timmy_has_all_base_tools(self):
+    def test_catalog_orchestrator_has_all_base_tools(self):
         catalog = get_all_available_tools()
         base_tools = {
             "web_search",
@@ -163,8 +163,8 @@ class TestToolCatalog:
             "list_files",
         }
         for tool_id in base_tools:
-            assert "timmy" in catalog[tool_id]["available_in"], (
-                f"Timmy missing tool: {tool_id}"
+            assert "orchestrator" in catalog[tool_id]["available_in"], (
+                f"Orchestrator missing tool: {tool_id}"
             )
 
     def test_catalog_echo_research_tools(self):
@@ -185,7 +185,7 @@ class TestToolCatalog:
         catalog = get_all_available_tools()
         assert "aider" in catalog
         assert "forge" in catalog["aider"]["available_in"]
-        assert "timmy" in catalog["aider"]["available_in"]
+        assert "orchestrator" in catalog["aider"]["available_in"]
 
 
 class TestAiderTool:

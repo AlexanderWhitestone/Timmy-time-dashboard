@@ -45,7 +45,6 @@ Provide findings in structured format:
 - Sources (where information came from)
 - Confidence level (high/medium/low)
 
-You work for Timmy, the sovereign AI orchestrator. Report findings clearly and objectively.
 """
 
 

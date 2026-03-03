@@ -6,7 +6,7 @@
         {% if agent %}
           <span class="status-dot {{ 'green' if agent.status == 'idle' else 'amber' }}"></span>
         {% endif %}
-        // TIMMY INTERFACE
+        // AGENT INTERFACE
         <span id="timmy-status" class="ms-2" style="font-size: 0.75rem; color: #888;">
           <span class="htmx-indicator">checking...</span>
         </span>
@@ -43,7 +43,7 @@
         <input type="text"
                name="message"
                class="form-control mc-input"
-               placeholder="send a message to timmy..."
+               placeholder="send a message..."
                autocomplete="off"
                autocorrect="off"
                autocapitalize="none"
@@ -88,7 +88,7 @@
     }, 100);
   }
 
-  // Poll for Timmy's queue status (fallback) + WebSocket for real-time
+  // Poll for queue status (fallback) + WebSocket for real-time
 (function() {
   var statusEl = document.getElementById('timmy-status');
   var banner = document.getElementById('current-task-banner');
@@ -135,7 +135,7 @@
             }
           }
         }
-        placeholder.querySelector('.msg-meta').textContent = 'TIMMY // ' + timestamp;
+        placeholder.querySelector('.msg-meta').textContent = 'AGENT // ' + timestamp;
         // Remove queue-status indicator if present
         var qs = placeholder.nextElementSibling;
         if (qs && qs.classList.contains('queue-status')) qs.remove();
@@ -147,7 +147,7 @@
     div.className = 'chat-message ' + role;
     var meta = document.createElement('div');
     meta.className = 'msg-meta';
-    meta.textContent = (role === 'user' ? 'YOU' : 'TIMMY') + ' // ' + timestamp;
+    meta.textContent = (role === 'user' ? 'YOU' : 'AGENT') + ' // ' + timestamp;
     var body = document.createElement('div');
     body.className = 'msg-body timmy-md';
     body.textContent = content;
@@ -174,13 +174,13 @@
           // Refresh on task events
           if (msg.type === 'task_event') {
             fetchStatus();
-          } else if (msg.type === 'timmy_thought') {
-            // Timmy thought - could show in UI
-          } else if (msg.event === 'task_created' || msg.event === 'task_completed' || 
+          } else if (msg.type === 'agent_thought') {
+            // Agent thought - could show in UI
+          } else if (msg.event === 'task_created' || msg.event === 'task_completed' ||
                      msg.event === 'task_approved') {
             fetchStatus();
-          } else if (msg.event === 'timmy_response' && msg.data) {
-            // Timmy pushed a response via task processor
+          } else if (msg.event === 'agent_response' && msg.data) {
+            // Agent pushed a response via task processor
             var now = new Date();
             var ts = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
             appendMessage('agent', msg.data.response, ts, msg.data.task_id);

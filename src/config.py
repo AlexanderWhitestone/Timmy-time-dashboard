@@ -104,7 +104,7 @@ class Settings(BaseSettings):
     timmy_env: Literal["development", "production"] = "development"
 
     # ── Self-Modification ──────────────────────────────────────────────
-    # Enable self-modification capabilities. When enabled, Timmy can
+    # Enable self-modification capabilities. When enabled, the agent can
     # edit its own source code, run tests, and commit changes.
     self_modify_enabled: bool = False
     self_modify_max_retries: int = 2
@@ -142,8 +142,7 @@ class Settings(BaseSettings):
     browser_model_fallback: bool = True
 
     # ── Default Thinking ──────────────────────────────────────────────
-    # When enabled, Timmy starts an internal thought loop on server start.
-    # He ponders his existence, recent activity, scripture, and creative ideas.
+    # When enabled, the agent starts an internal thought loop on server start.
     thinking_enabled: bool = True
     thinking_interval_seconds: int = 300  # 5 minutes between thoughts
 
@@ -166,8 +165,7 @@ class Settings(BaseSettings):
     error_dedup_window_seconds: int = 300  # 5-min dedup window
 
     # ── Scripture / Biblical Integration ──────────────────────────────
-    # Enable the sovereign biblical text module.  When enabled, Timmy
-    # loads the local ESV text corpus and runs meditation workflows.
+    # Enable the biblical text module.
     scripture_enabled: bool = True
     # Primary translation for retrieval and citation.
     scripture_translation: str = "ESV"

@@ -15,15 +15,15 @@ from brain.client import BrainClient
 router = APIRouter(tags=["marketplace"])
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
-# Just Timmy - personas deprecated
+# Orchestrator only — personas deprecated
 AGENT_CATALOG = [
     {
-        "id": "timmy",
-        "name": "Timmy",
-        "role": "Sovereign AI",
+        "id": "orchestrator",
+        "name": "Orchestrator",
+        "role": "Local AI",
         "description": (
-            "Primary AI companion. Coordinates tasks, manages memory, "
-            "and maintains sovereignty. Now using distributed brain."
+            "Primary AI agent. Coordinates tasks, manages memory. "
+            "Uses distributed brain."
         ),
         "capabilities": "chat,reasoning,coordination,memory",
         "rate_sats": 0,
@@ -35,7 +35,6 @@ AGENT_CATALOG = [
 @router.get("/api/marketplace/agents")
 async def api_list_agents():
     """Return agent catalog with current status (JSON API)."""
-    # Just return Timmy + brain stats
     try:
         brain = BrainClient()
         pending_tasks = len(await brain.get_pending_tasks(limit=1000))
@@ -80,6 +79,6 @@ async def marketplace_ui(request: Request):
 @router.get("/marketplace/{agent_id}")
 async def agent_detail(agent_id: str):
     """Get agent details."""
-    if agent_id == "timmy":
+    if agent_id == "orchestrator":
         return AGENT_CATALOG[0]
     return {"error": "Agent not found — personas deprecated"}

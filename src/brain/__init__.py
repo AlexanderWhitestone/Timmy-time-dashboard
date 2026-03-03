@@ -1,10 +1,7 @@
-"""Distributed Brain — Timmy's unified memory and task queue.
-
-The brain is where Timmy lives. Identity is memory, not process.
+"""Distributed Brain — unified memory and task queue.
 
 Provides:
 - **UnifiedMemory** — Single API for all memory operations (local SQLite or rqlite)
-- **Canonical Identity** — One source of truth for who Timmy is
 - **BrainClient** — Direct rqlite interface for distributed operation
 - **DistributedWorker** — Task execution on Tailscale nodes
 - **LocalEmbedder** — Sentence-transformer embeddings (local, no cloud)

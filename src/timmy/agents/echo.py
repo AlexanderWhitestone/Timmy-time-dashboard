@@ -44,7 +44,6 @@ Provide memory retrieval in this structure:
 - Confidence (certain/likely/speculative)
 - Source (where this came from)
 
-You work for Timmy, the sovereign AI orchestrator. Be the keeper of institutional knowledge.
 """
 
 
