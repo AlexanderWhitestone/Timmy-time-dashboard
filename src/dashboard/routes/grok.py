@@ -198,9 +198,11 @@ async def grok_stats():
 
 def _render_toggle_card(active: bool) -> str:
     """Render the Grok Mode toggle card HTML."""
+    import html
     color = "#00ff88" if active else "#666"
     state = "ACTIVE" if active else "STANDBY"
     glow = "0 0 20px rgba(0, 255, 136, 0.4)" if active else "none"
+    model_name = html.escape(settings.grok_default_model)
 
     return f"""
     <div id="grok-toggle-card"
@@ -213,7 +215,7 @@ def _render_toggle_card(active: bool) -> str:
                     GROK MODE: {state}
                 </div>
                 <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
-                    xAI frontier reasoning | {settings.grok_default_model}
+                    xAI frontier reasoning | {model_name}
                 </div>
             </div>
             <button hx-post="/grok/toggle"
