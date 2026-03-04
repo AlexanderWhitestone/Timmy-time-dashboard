@@ -9,6 +9,18 @@ from fastapi.testclient import TestClient
 class TestCSRFMiddleware:
     """Test CSRF token validation and generation."""
 
+    @pytest.fixture(autouse=True)
+    def enable_csrf(self):
+        """Re-enable CSRF for these tests."""
+        import os
+        old_val = os.environ.get("TIMMY_DISABLE_CSRF")
+        os.environ["TIMMY_DISABLE_CSRF"] = "0"
+        yield
+        if old_val is not None:
+            os.environ["TIMMY_DISABLE_CSRF"] = old_val
+        else:
+            del os.environ["TIMMY_DISABLE_CSRF"]
+
     def test_csrf_token_generation(self):
         """CSRF token should be generated and stored in session/state."""
         from dashboard.middleware.csrf import generate_csrf_token

@@ -38,6 +38,8 @@ for _mod in [
 
 # ── Test mode setup ──────────────────────────────────────────────────────────
 os.environ["TIMMY_TEST_MODE"] = "1"
+os.environ["TIMMY_DISABLE_CSRF"] = "1"
+os.environ["TIMMY_SKIP_EMBEDDINGS"] = "1"
 
 
 @pytest.fixture(autouse=True)

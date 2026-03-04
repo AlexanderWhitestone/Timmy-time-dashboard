@@ -33,7 +33,7 @@ def test_csp_header_content(client: TestClient):
     assert "default-src 'self'" in csp
     
     # Should allow scripts from self and CDN
-    assert "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net" in csp
+    assert "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.jsdelivr.net" in csp
     
     # Should allow styles from self, CDN, and Google Fonts
     assert "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net" in csp

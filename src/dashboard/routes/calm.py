@@ -70,11 +70,7 @@ async def get_calm_view(request: Request, db: Session = Depends(get_db)):
     now_task = get_now_task(db)
     next_task = get_next_task(db)
     later_tasks_count = len(get_later_tasks(db))
-    return templates.TemplateResponse(
-        "calm/calm_view.html",
-        {
-            "request": request,
-            "now_task": now_task,
+    return templates.TemplateResponse(request, "calm/calm_view.html", {"now_task": now_task,
             "next_task": next_task,
             "later_tasks_count": later_tasks_count,
         },
@@ -83,9 +79,7 @@ async def get_calm_view(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/calm/ritual/morning", response_class=HTMLResponse)
 async def get_morning_ritual_form(request: Request):
-    return templates.TemplateResponse(
-        "calm/morning_ritual_form.html", {"request": request}
-    )
+    return templates.TemplateResponse(request, "calm/morning_ritual_form.html", {})
 
 
 @router.post("/calm/ritual/morning", response_class=HTMLResponse)
@@ -150,11 +144,7 @@ async def post_morning_ritual(
                 db.add(later_tasks[1])
     db.commit() # Commit changes after initial NOW/NEXT setup
 
-    return templates.TemplateResponse(
-        "calm/calm_view.html",
-        {
-            "request": request,
-            "now_task": get_now_task(db),
+    return templates.TemplateResponse(request, "calm/calm_view.html", {"now_task": get_now_task(db),
             "next_task": get_next_task(db),
             "later_tasks_count": len(get_later_tasks(db)),
         },
@@ -167,8 +157,7 @@ async def get_evening_ritual_form(request: Request, db: Session = Depends(get_db
     if not journal_entry:
         raise HTTPException(status_code=404, detail="No journal entry for today")
     return templates.TemplateResponse(
-        "calm/evening_ritual_form.html", {"request": request, "journal_entry": journal_entry}
-    )
+        "calm/evening_ritual_form.html", {"request": request, "journal_entry": journal_entry})
 
 
 @router.post("/calm/ritual/evening", response_class=HTMLResponse)
@@ -197,9 +186,7 @@ async def post_evening_ritual(
 
     db.commit()
 
-    return templates.TemplateResponse(
-        "calm/evening_ritual_complete.html", {"request": request}
-    )
+    return templates.TemplateResponse(request, "calm/evening_ritual_complete.html", {})
 
 
 @router.post("/calm/tasks", response_class=HTMLResponse)

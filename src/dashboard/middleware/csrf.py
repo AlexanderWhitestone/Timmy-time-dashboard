@@ -123,6 +123,11 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         For safe methods: Set a CSRF token cookie if not present.
         For unsafe methods: Validate the CSRF token.
         """
+        # Bypass CSRF if explicitly disabled (e.g. in tests)
+        import os
+        if os.environ.get("TIMMY_DISABLE_CSRF") == "1":
+            return await call_next(request)
+
         # Get existing CSRF token from cookie
         csrf_cookie = request.cookies.get(self.cookie_name)
         

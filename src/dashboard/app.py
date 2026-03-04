@@ -39,6 +39,8 @@ from dashboard.routes.models import api_router as models_api_router
 from dashboard.routes.chat_api import router as chat_api_router
 from dashboard.routes.thinking import router as thinking_router
 from dashboard.routes.calm import router as calm_router
+from dashboard.routes.swarm import router as swarm_router
+from dashboard.routes.system import router as system_router
 from infrastructure.router.api import router as cascade_router
 
 # Import dedicated middleware
@@ -302,6 +304,8 @@ app.include_router(models_api_router)
 app.include_router(chat_api_router)
 app.include_router(thinking_router)
 app.include_router(calm_router)
+app.include_router(swarm_router)
+app.include_router(system_router)
 app.include_router(cascade_router)
 
 
@@ -318,7 +322,7 @@ async def ws_redirect(websocket: WebSocket):
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     """Serve the main dashboard page."""
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request, "index.html", {})
 
 
 @app.get("/shortcuts/setup")

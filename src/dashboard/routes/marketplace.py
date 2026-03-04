@@ -66,9 +66,9 @@ async def marketplace_ui(request: Request):
         tasks = []
     
     return templates.TemplateResponse(
+        request,
         "marketplace.html",
         {
-            "request": request,
             "agents": AGENT_CATALOG,
             "pending_tasks": tasks,
             "message": "Personas deprecated — use Brain Task Queue",
