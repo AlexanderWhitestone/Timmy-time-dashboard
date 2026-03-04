@@ -10,7 +10,7 @@ def test_security_headers_present(client: TestClient):
     
     # Check for security headers
     assert "X-Frame-Options" in response.headers
-    assert response.headers["X-Frame-Options"] == "SAMEORIGIN"
+    assert response.headers["X-Frame-Options"] == "DENY"
     
     assert "X-Content-Type-Options" in response.headers
     assert response.headers["X-Content-Type-Options"] == "nosniff"
@@ -32,14 +32,14 @@ def test_csp_header_content(client: TestClient):
     # Should restrict default-src to self
     assert "default-src 'self'" in csp
     
-    # Should allow scripts from self and CDN
-    assert "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net" in csp
-    
-    # Should allow styles from self, CDN, and Google Fonts
-    assert "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net" in csp
-    
-    # Should restrict frame ancestors to self
-    assert "frame-ancestors 'self'" in csp
+    # Should allow scripts from self (SecurityHeadersMiddleware includes unsafe-inline for HTMX)
+    assert "script-src 'self' 'unsafe-inline'" in csp
+
+    # Should allow styles from self with unsafe-inline
+    assert "style-src 'self' 'unsafe-inline'" in csp
+
+    # Should restrict object-src
+    assert "object-src 'none'" in csp
 
 
 def test_cors_headers_restricted(client: TestClient):

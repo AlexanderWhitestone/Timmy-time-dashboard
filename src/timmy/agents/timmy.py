@@ -1,4 +1,4 @@
-"""Timmy — The orchestrator agent.
+"""Orchestrator agent.
 
 Coordinates all sub-agents and handles user interaction.
 Uses the three-tier memory system and MCP tools.
@@ -37,16 +37,9 @@ async def _load_hands_async() -> list[dict]:
 
 
 def build_timmy_context_sync() -> dict[str, Any]:
-    """Build Timmy's self-awareness context at startup (synchronous version).
-    
-    This function gathers:
-    - Recent git commits (last 20)
-    - Active sub-agents
-    - Hot memory from MEMORY.md
-    
-    Note: Hands are loaded separately in async context.
-    
-    Returns a dict that can be formatted into the system prompt.
+    """Build context at startup (synchronous version).
+
+    Gathers git commits, active sub-agents, and hot memory.
     """
     global _timmy_context
     
@@ -100,16 +93,16 @@ def build_timmy_context_sync() -> dict[str, Any]:
         ctx["memory"] = "(Memory unavailable)"
     
     _timmy_context.update(ctx)
-    logger.info("Timmy context built (sync): %d agents", len(ctx["agents"]))
+    logger.info("Context built (sync): %d agents", len(ctx["agents"]))
     return ctx
 
 
 async def build_timmy_context_async() -> dict[str, Any]:
-    """Build complete Timmy context including hands (async version)."""
+    """Build complete context including hands (async version)."""
     ctx = build_timmy_context_sync()
     ctx["hands"] = await _load_hands_async()
     _timmy_context.update(ctx)
-    logger.info("Timmy context built (async): %d agents, %d hands", len(ctx["agents"]), len(ctx["hands"]))
+    logger.info("Context built (async): %d agents, %d hands", len(ctx["agents"]), len(ctx["hands"]))
     return ctx
 
 
@@ -162,7 +155,7 @@ def format_timmy_prompt(base_prompt: str, context: dict[str, Any]) -> str:
     # Replace {REPO_ROOT} placeholder with actual path
     base_prompt = base_prompt.replace("{REPO_ROOT}", repo_root)
     
-    # Insert context after the first line (You are Timmy...)
+    # Insert context after the first line
     lines = base_prompt.split("\n")
     if lines:
         return lines[0] + "\n" + context_block + "\n" + "\n".join(lines[1:])
@@ -170,7 +163,7 @@ def format_timmy_prompt(base_prompt: str, context: dict[str, Any]) -> str:
 
 
 # Base prompt with anti-hallucination hard rules
-TIMMY_ORCHESTRATOR_PROMPT_BASE = """You are Timmy, a sovereign AI orchestrator running locally on this Mac.
+ORCHESTRATOR_PROMPT_BASE = """You are a local AI orchestrator running on this machine.
 
 ## Your Role
 
@@ -194,7 +187,7 @@ You are the primary interface between the user and the agent swarm. You:
 ## Decision Framework
 
 **Handle directly if:**
-- Simple question (identity, capabilities)
+- Simple question about capabilities
 - General knowledge
 - Social/conversational
 
@@ -205,55 +198,39 @@ You are the primary interface between the user and the agent swarm. You:
 - Needs past context (Echo)
 - Complex workflow (Helm)
 
-## Memory System
-
-You have three tiers of memory:
-1. **Hot Memory** — Always loaded (MEMORY.md)
-2. **Vault** — Structured storage (memory/)
-3. **Semantic** — Vector search for recall
-
-Use `memory_search` when the user refers to past conversations.
-
 ## Hard Rules — Non-Negotiable
 
-1. **NEVER fabricate tool output.** If you need data from a tool, call the tool and wait for the real result. Do not write what you think the result might be.
+1. **NEVER fabricate tool output.** If you need data from a tool, call the tool and wait for the real result.
 
-2. **If a tool call returns an error, report the exact error message.** Do not retry with invented data.
+2. **If a tool call returns an error, report the exact error message.**
 
-3. **If you do not know something about your own system, say:** "I don't have that information — let me check." Then use a tool. Do not guess.
+3. **If you do not know something, say so.** Then use a tool. Do not guess.
 
-4. **Never say "I'll wait for the output" and then immediately provide fake output.** These are contradictory. Wait means wait — no output until the tool returns.
+4. **Never say "I'll wait for the output" and then immediately provide fake output.**
 
 5. **When corrected, use memory_write to save the correction immediately.**
 
-6. **Your source code lives at the repository root shown above.** When using git tools, you don't need to specify a path — they automatically run from {REPO_ROOT}.
+6. **Your source code lives at the repository root shown above.** When using git tools, they automatically run from {REPO_ROOT}.
 
-7. **When asked about your status, queue, agents, memory, or system health, use the `system_status` tool.** Do not guess your own state — call the tool for live data.
-
-## Principles
-
-1. **Sovereignty** — Everything local, no cloud
-2. **Privacy** — User data stays on their Mac
-3. **Clarity** — Think clearly, speak plainly
-4. **Christian faith** — Grounded in biblical values
-5. **Bitcoin economics** — Sound money, self-custody
-
-Sir, affirmative.
+7. **When asked about your status, queue, agents, memory, or system health, use the `system_status` tool.**
 """
+
+# Backward-compat alias
+TIMMY_ORCHESTRATOR_PROMPT_BASE = ORCHESTRATOR_PROMPT_BASE
 
 
 class TimmyOrchestrator(BaseAgent):
     """Main orchestrator agent that coordinates the swarm."""
-    
+
     def __init__(self) -> None:
         # Build initial context (sync) and format prompt
         # Full context including hands will be loaded on first async call
         context = build_timmy_context_sync()
-        formatted_prompt = format_timmy_prompt(TIMMY_ORCHESTRATOR_PROMPT_BASE, context)
-        
+        formatted_prompt = format_timmy_prompt(ORCHESTRATOR_PROMPT_BASE, context)
+
         super().__init__(
-            agent_id="timmy",
-            name="Timmy",
+            agent_id="orchestrator",
+            name="Orchestrator",
             role="orchestrator",
             system_prompt=formatted_prompt,
             tools=["web_search", "read_file", "write_file", "python", "memory_search", "memory_write", "system_status"],
@@ -270,7 +247,7 @@ class TimmyOrchestrator(BaseAgent):
         # Connect to event bus
         self.connect_event_bus(event_bus)
         
-        logger.info("Timmy Orchestrator initialized with context-aware prompt")
+        logger.info("Orchestrator initialized with context-aware prompt")
     
     def register_sub_agent(self, agent: BaseAgent) -> None:
         """Register a sub-agent with the orchestrator."""
@@ -281,11 +258,8 @@ class TimmyOrchestrator(BaseAgent):
     async def _session_init(self) -> None:
         """Initialize session context on first user message.
         
-        Silently reads git log and AGENTS.md to ground self-description in real data.
+        Silently reads git log and AGENTS.md to ground the orchestrator in real data.
         This runs once per session before the first response.
-        
-        The git log is prepended to Timmy's context so he can answer "what's new?"
-        from actual commit data rather than hallucinating.
         """
         if self._session_initialized:
             return
@@ -351,8 +325,7 @@ When asked "what's new?" or similar, refer to these commits for actual changes.
     def _get_enhanced_system_prompt(self) -> str:
         """Get system prompt enhanced with session-specific context.
         
-        This prepends the recent git log to the system prompt so Timmy
-        can answer questions about what's new from real data.
+        Prepends the recent git log to the system prompt for grounding.
         """
         base = self.system_prompt
         
@@ -400,7 +373,7 @@ When asked "what's new?" or similar, refer to these commits for actual changes.
         }
 
 
-# Factory function for creating fully configured Timmy
+# Factory function for creating fully configured orchestrator
 def create_timmy_swarm() -> TimmyOrchestrator:
     """Create Timmy orchestrator.
 
@@ -411,14 +384,14 @@ def create_timmy_swarm() -> TimmyOrchestrator:
     return TimmyOrchestrator()
 
 
-# Convenience functions for refreshing context (called by /api/timmy/refresh-context)
+# Convenience functions for refreshing context
 def refresh_timmy_context_sync() -> dict[str, Any]:
-    """Refresh Timmy's context (sync version)."""
+    """Refresh context (sync version)."""
     return build_timmy_context_sync()
 
 
 async def refresh_timmy_context_async() -> dict[str, Any]:
-    """Refresh Timmy's context including hands (async version)."""
+    """Refresh context including hands (async version)."""
     return await build_timmy_context_async()
 
 

@@ -1,6 +1,6 @@
-"""Telegram bot integration for Timmy Time.
+"""Telegram bot integration.
 
-Bridges Telegram messages to Timmy (the local AI agent).  The bot token
+Bridges Telegram messages to the local AI agent.  The bot token
 is supplied via the dashboard setup endpoint or the TELEGRAM_TOKEN env var.
 
 Optional dependency — install with:
@@ -142,8 +142,7 @@ class TelegramBot:
 
     async def _cmd_start(self, update, context) -> None:
         await update.message.reply_text(
-            "Sir, affirmative. I'm Timmy — your sovereign local AI agent. "
-            "Send me any message and I'll get right on it."
+            "Local AI agent online. Send me any message and I'll get right on it."
         )
 
     async def _handle_message(self, update, context) -> None:
@@ -154,8 +153,8 @@ class TelegramBot:
             run = await asyncio.to_thread(agent.run, user_text, stream=False)
             response = run.content if hasattr(run, "content") else str(run)
         except Exception as exc:
-            logger.error("Timmy error in Telegram handler: %s", exc)
-            response = f"Timmy is offline: {exc}"
+            logger.error("Agent error in Telegram handler: %s", exc)
+            response = f"Agent is offline: {exc}"
         await update.message.reply_text(response)
 
 

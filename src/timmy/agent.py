@@ -1,4 +1,4 @@
-"""Timmy agent creation with three-tier memory system.
+"""Agent creation with three-tier memory system.
 
 Memory Architecture:
 - Tier 1 (Hot): MEMORY.md — always loaded, ~300 lines
@@ -220,14 +220,14 @@ def create_timmy(
     backend: str | None = None,
     model_size: str | None = None,
 ) -> TimmyAgent:
-    """Instantiate Timmy — Ollama or AirLLM, same public interface either way.
+    """Instantiate the agent — Ollama or AirLLM, same public interface.
 
     Args:
         db_file:    SQLite file for Agno conversation memory (Ollama path only).
         backend:    "ollama" | "airllm" | "auto" | None (reads config/env).
         model_size: AirLLM size — "8b" | "70b" | "405b" | None (reads config).
 
-    Returns an Agno Agent (Ollama) or TimmyAirLLMAgent — both expose
+    Returns an Agno Agent or backend-specific agent — all expose
     print_response(message, stream).
     """
     resolved = _resolve_backend(backend)
@@ -294,7 +294,7 @@ def create_timmy(
         full_prompt = base_prompt
 
     return Agent(
-        name="Timmy",
+        name="Agent",
         model=Ollama(id=model_name, host=settings.ollama_url),
         db=SqliteDb(db_file=db_file),
         description=full_prompt,
@@ -307,7 +307,7 @@ def create_timmy(
 
 
 class TimmyWithMemory:
-    """Timmy wrapper with explicit three-tier memory management."""
+    """Agent wrapper with explicit three-tier memory management."""
     
     def __init__(self, db_file: str = "timmy.db") -> None:
         from timmy.memory_system import memory_system

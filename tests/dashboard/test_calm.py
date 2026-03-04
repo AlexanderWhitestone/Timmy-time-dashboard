@@ -12,7 +12,6 @@ from dashboard.models.calm import Task, JournalEntry, TaskState, TaskCertainty
 
 @pytest.fixture(name="test_db_engine")
 def test_db_engine_fixture():
-    # Create a new in-memory SQLite database for each test.
     # StaticPool ensures all connections share the same in-memory DB.
     engine = create_engine(
         "sqlite:///:memory:",

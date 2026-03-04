@@ -125,7 +125,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         """
         # Get existing CSRF token from cookie
         csrf_cookie = request.cookies.get(self.cookie_name)
-        
+
         # For safe methods, just ensure a token exists
         if request.method in self.SAFE_METHODS:
             response = await call_next(request)

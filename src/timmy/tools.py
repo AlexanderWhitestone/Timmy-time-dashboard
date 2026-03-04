@@ -1,26 +1,14 @@
-"""Timmy Tools — sovereign, local-first tool integration.
+"""Tool integration for the agent swarm.
 
-Provides Timmy and swarm agents with capabilities for:
+Provides agents with capabilities for:
 - Web search (DuckDuckGo)
 - File read/write (local filesystem)
 - Shell command execution (sandboxed)
 - Python code execution
-- Git operations (clone, commit, push, pull, branch, diff, etc.)
-- Image generation (FLUX text-to-image, storyboards)
-- Music generation (ACE-Step vocals + instrumentals)
-- Video generation (Wan 2.1 text-to-video, image-to-video)
-- Creative pipeline (storyboard → music → video → assembly)
+- Git operations
+- Image / Music / Video generation (creative pipeline)
 
-Tools are assigned to personas based on their specialties:
-- Echo (Research): web search, file read
-- Forge (Code): shell, python execution, file write, git
-- Seer (Data): python execution, file read
-- Quill (Writing): file read/write
-- Helm (DevOps): shell, file operations, git
-- Mace (Security): shell, web search, file read
-- Pixel (Visual): image generation, storyboards
-- Lyra (Music): song/vocal/instrumental generation
-- Reel (Video): video clip generation, image-to-video
+Tools are assigned to agents based on their specialties.
 """
 
 from __future__ import annotations
@@ -63,13 +51,17 @@ class ToolStats:
 
 
 @dataclass
-class PersonaTools:
-    """Tools assigned to a persona/agent."""
+class AgentTools:
+    """Tools assigned to an agent."""
 
     agent_id: str
     agent_name: str
     toolkit: Toolkit
     available_tools: list[str] = field(default_factory=list)
+
+
+# Backward-compat alias
+PersonaTools = AgentTools
 
 
 def _track_tool_usage(agent_id: str, tool_name: str, success: bool = True) -> None:
@@ -141,7 +133,7 @@ def calculator(expression: str) -> str:
 
 
 def create_research_tools(base_dir: str | Path | None = None):
-    """Create tools for research personas (Echo).
+    """Create tools for the research agent (Echo).
 
     Includes: web search, file reading
     """
@@ -165,7 +157,7 @@ def create_research_tools(base_dir: str | Path | None = None):
 
 
 def create_code_tools(base_dir: str | Path | None = None):
-    """Create tools for coding personas (Forge).
+    """Create tools for the code agent (Forge).
 
     Includes: shell commands, python execution, file read/write, Aider AI assist
     """
@@ -253,7 +245,7 @@ def create_aider_tool(base_path: Path):
 
 
 def create_data_tools(base_dir: str | Path | None = None):
-    """Create tools for data personas (Seer).
+    """Create tools for the data agent (Seer).
 
     Includes: python execution, file reading, web search for data sources
     """
@@ -281,7 +273,7 @@ def create_data_tools(base_dir: str | Path | None = None):
 
 
 def create_writing_tools(base_dir: str | Path | None = None):
-    """Create tools for writing personas (Quill).
+    """Create tools for the writing agent (Quill).
 
     Includes: file read/write
     """
@@ -300,7 +292,7 @@ def create_writing_tools(base_dir: str | Path | None = None):
 
 
 def create_security_tools(base_dir: str | Path | None = None):
-    """Create tools for security personas (Mace).
+    """Create tools for the security agent (Mace).
 
     Includes: shell commands (for scanning), web search (for threat intel), file read
     """
@@ -326,7 +318,7 @@ def create_security_tools(base_dir: str | Path | None = None):
 
 
 def create_devops_tools(base_dir: str | Path | None = None):
-    """Create tools for DevOps personas (Helm).
+    """Create tools for the DevOps agent (Helm).
 
     Includes: shell commands, file read/write
     """
@@ -409,7 +401,7 @@ def consult_grok(query: str) -> str:
 
 
 def create_full_toolkit(base_dir: str | Path | None = None):
-    """Create a full toolkit with all available tools (for Timmy).
+    """Create a full toolkit with all available tools (for the orchestrator).
 
     Includes: web search, file read/write, shell commands, python execution,
     memory search for contextual recall, and Grok consultation.
@@ -487,8 +479,8 @@ def create_full_toolkit(base_dir: str | Path | None = None):
     return toolkit
 
 
-# Mapping of persona IDs to their toolkits
-PERSONA_TOOLKITS: dict[str, Callable[[], Toolkit]] = {
+# Mapping of agent IDs to their toolkits
+AGENT_TOOLKITS: dict[str, Callable[[], Toolkit]] = {
     "echo": create_research_tools,
     "mace": create_security_tools,
     "helm": create_devops_tools,
@@ -502,12 +494,11 @@ PERSONA_TOOLKITS: dict[str, Callable[[], Toolkit]] = {
 
 
 def _create_stub_toolkit(name: str):
-    """Create a minimal Agno toolkit for creative personas.
+    """Create a minimal Agno toolkit for creative agents.
 
-    Creative personas use their own dedicated tool modules (tools.image_tools,
-    tools.music_tools, tools.video_tools) rather than Agno-wrapped functions.
-    This stub ensures PERSONA_TOOLKITS has an entry so ToolExecutor doesn't
-    fall back to the full toolkit.
+    Creative agents use their own dedicated tool modules rather than
+    Agno-wrapped functions.  This stub ensures AGENT_TOOLKITS has an
+    entry so ToolExecutor doesn't fall back to the full toolkit.
     """
     if not _AGNO_TOOLS_AVAILABLE:
         return None
@@ -515,22 +506,27 @@ def _create_stub_toolkit(name: str):
     return toolkit
 
 
-def get_tools_for_persona(
-    persona_id: str, base_dir: str | Path | None = None
+def get_tools_for_agent(
+    agent_id: str, base_dir: str | Path | None = None
 ) -> Toolkit | None:
-    """Get the appropriate toolkit for a persona.
+    """Get the appropriate toolkit for an agent.
 
     Args:
-        persona_id: The persona ID (echo, mace, helm, seer, forge, quill)
+        agent_id: The agent ID (echo, mace, helm, seer, forge, quill)
         base_dir: Optional base directory for file operations
 
     Returns:
-        A Toolkit instance or None if persona_id is not recognized
+        A Toolkit instance or None if agent_id is not recognized
     """
-    factory = PERSONA_TOOLKITS.get(persona_id)
+    factory = AGENT_TOOLKITS.get(agent_id)
     if factory:
         return factory(base_dir)
     return None
+
+
+# Backward-compat alias
+get_tools_for_persona = get_tools_for_agent
+PERSONA_TOOLKITS = AGENT_TOOLKITS
 
 
 def get_all_available_tools() -> dict[str, dict]:
@@ -543,62 +539,62 @@ def get_all_available_tools() -> dict[str, dict]:
         "web_search": {
             "name": "Web Search",
             "description": "Search the web using DuckDuckGo",
-            "available_in": ["echo", "seer", "mace", "timmy"],
+            "available_in": ["echo", "seer", "mace", "orchestrator"],
         },
         "shell": {
             "name": "Shell Commands",
             "description": "Execute shell commands (sandboxed)",
-            "available_in": ["forge", "mace", "helm", "timmy"],
+            "available_in": ["forge", "mace", "helm", "orchestrator"],
         },
         "python": {
             "name": "Python Execution",
             "description": "Execute Python code for analysis and scripting",
-            "available_in": ["forge", "seer", "timmy"],
+            "available_in": ["forge", "seer", "orchestrator"],
         },
         "read_file": {
             "name": "Read File",
             "description": "Read contents of local files",
-            "available_in": ["echo", "seer", "forge", "quill", "mace", "helm", "timmy"],
+            "available_in": ["echo", "seer", "forge", "quill", "mace", "helm", "orchestrator"],
         },
         "write_file": {
             "name": "Write File",
             "description": "Write content to local files",
-            "available_in": ["forge", "quill", "helm", "timmy"],
+            "available_in": ["forge", "quill", "helm", "orchestrator"],
         },
         "list_files": {
             "name": "List Files",
             "description": "List files in a directory",
-            "available_in": ["echo", "seer", "forge", "quill", "mace", "helm", "timmy"],
+            "available_in": ["echo", "seer", "forge", "quill", "mace", "helm", "orchestrator"],
         },
         "calculator": {
             "name": "Calculator",
             "description": "Evaluate mathematical expressions with exact results",
-            "available_in": ["timmy"],
+            "available_in": ["orchestrator"],
         },
         "consult_grok": {
             "name": "Consult Grok",
             "description": "Premium frontier reasoning via xAI Grok (opt-in, Lightning-payable)",
-            "available_in": ["timmy"],
+            "available_in": ["orchestrator"],
         },
         "get_system_info": {
             "name": "System Info",
             "description": "Introspect runtime environment - discover model, Python version, config",
-            "available_in": ["timmy"],
+            "available_in": ["orchestrator"],
         },
         "check_ollama_health": {
             "name": "Ollama Health",
             "description": "Check if Ollama is accessible and what models are available",
-            "available_in": ["timmy"],
+            "available_in": ["orchestrator"],
         },
         "get_memory_status": {
             "name": "Memory Status",
-            "description": "Check status of Timmy's memory tiers (hot memory, vault)",
-            "available_in": ["timmy"],
+            "description": "Check status of memory tiers (hot memory, vault)",
+            "available_in": ["orchestrator"],
         },
         "aider": {
             "name": "Aider AI Assistant",
             "description": "Local AI coding assistant using Ollama (qwen2.5:14b or deepseek-coder)",
-            "available_in": ["forge", "timmy"],
+            "available_in": ["forge", "orchestrator"],
         },
     }
 
@@ -610,12 +606,12 @@ def get_all_available_tools() -> dict[str, dict]:
             catalog[tool_id] = {
                 "name": info["name"],
                 "description": info["description"],
-                "available_in": ["forge", "helm", "timmy"],
+                "available_in": ["forge", "helm", "orchestrator"],
             }
     except ImportError:
         pass
 
-    # ── Image tools (Pixel) ───────────────────────────────────────────────────
+    # ── Image tools ────────────────────────────────────────────────────────────
     try:
         from creative.tools.image_tools import IMAGE_TOOL_CATALOG
 
@@ -623,12 +619,12 @@ def get_all_available_tools() -> dict[str, dict]:
             catalog[tool_id] = {
                 "name": info["name"],
                 "description": info["description"],
-                "available_in": ["pixel", "timmy"],
+                "available_in": ["pixel", "orchestrator"],
             }
     except ImportError:
         pass
 
-    # ── Music tools (Lyra) ────────────────────────────────────────────────────
+    # ── Music tools ────────────────────────────────────────────────────────────
     try:
         from creative.tools.music_tools import MUSIC_TOOL_CATALOG
 
@@ -636,12 +632,12 @@ def get_all_available_tools() -> dict[str, dict]:
             catalog[tool_id] = {
                 "name": info["name"],
                 "description": info["description"],
-                "available_in": ["lyra", "timmy"],
+                "available_in": ["lyra", "orchestrator"],
             }
     except ImportError:
         pass
 
-    # ── Video tools (Reel) ────────────────────────────────────────────────────
+    # ── Video tools ────────────────────────────────────────────────────────────
     try:
         from creative.tools.video_tools import VIDEO_TOOL_CATALOG
 
@@ -649,12 +645,12 @@ def get_all_available_tools() -> dict[str, dict]:
             catalog[tool_id] = {
                 "name": info["name"],
                 "description": info["description"],
-                "available_in": ["reel", "timmy"],
+                "available_in": ["reel", "orchestrator"],
             }
     except ImportError:
         pass
 
-    # ── Creative pipeline (Director) ──────────────────────────────────────────
+    # ── Creative pipeline ──────────────────────────────────────────────────────
     try:
         from creative.director import DIRECTOR_TOOL_CATALOG
 
@@ -662,7 +658,7 @@ def get_all_available_tools() -> dict[str, dict]:
             catalog[tool_id] = {
                 "name": info["name"],
                 "description": info["description"],
-                "available_in": ["timmy"],
+                "available_in": ["orchestrator"],
             }
     except ImportError:
         pass
@@ -675,7 +671,7 @@ def get_all_available_tools() -> dict[str, dict]:
             catalog[tool_id] = {
                 "name": info["name"],
                 "description": info["description"],
-                "available_in": ["reel", "timmy"],
+                "available_in": ["reel", "orchestrator"],
             }
     except ImportError:
         pass

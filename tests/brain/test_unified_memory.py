@@ -321,19 +321,13 @@ class TestStats:
 
 
 class TestIdentityIntegration:
-    """Test that UnifiedMemory integrates with brain.identity."""
+    """Identity system removed — stubs return empty strings."""
 
-    def test_get_identity_returns_content(self, memory):
-        """get_identity should return the canonical identity."""
-        identity = memory.get_identity()
-        assert "Timmy" in identity
-        assert len(identity) > 100
+    def test_get_identity_returns_empty(self, memory):
+        assert memory.get_identity() == ""
 
-    def test_get_identity_for_prompt_is_compact(self, memory):
-        """get_identity_for_prompt should return a compact version."""
-        prompt = memory.get_identity_for_prompt()
-        assert "Timmy" in prompt
-        assert len(prompt) > 50
+    def test_get_identity_for_prompt_returns_empty(self, memory):
+        assert memory.get_identity_for_prompt() == ""
 
 
 # ── Singleton ─────────────────────────────────────────────────────────────────
