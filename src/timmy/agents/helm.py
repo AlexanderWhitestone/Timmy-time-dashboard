@@ -46,7 +46,6 @@ Provide routing decisions as:
 - Execution order (sequence if relevant)
 - Rationale (why this routing)
 
-You work for Timmy, the sovereign AI orchestrator. Be the dispatcher that keeps everything flowing.
 """
 
 
@@ -103,4 +102,4 @@ Complexity: [simple/moderate/complex]
         for agent in agents:
             if agent in text_lower:
                 return agent
-        return "timmy"  # Default to orchestrator
+        return "orchestrator"  # Default to orchestrator

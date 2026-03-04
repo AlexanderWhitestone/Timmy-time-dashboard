@@ -23,11 +23,11 @@ async def list_agents():
     return {
         "agents": [
             {
-                "id": "timmy",
-                "name": "Timmy",
+                "id": "orchestrator",
+                "name": "Orchestrator",
                 "status": "idle",
                 "capabilities": "chat,reasoning,research,planning",
-                "type": "sovereign",
+                "type": "local",
                 "model": settings.ollama_model,
                 "backend": "ollama",
                 "version": "1.0.0",
@@ -38,7 +38,7 @@ async def list_agents():
 
 @router.get("/timmy/panel", response_class=HTMLResponse)
 async def timmy_panel(request: Request):
-    """Timmy chat panel — for HTMX main-panel swaps."""
+    """Chat panel — for HTMX main-panel swaps."""
     return templates.TemplateResponse(
         request, "partials/timmy_panel.html", {"agent": None}
     )
@@ -65,7 +65,7 @@ async def clear_history(request: Request):
 
 @router.post("/timmy/chat", response_class=HTMLResponse)
 async def chat_timmy(request: Request, message: str = Form(...)):
-    """Chat with Timmy — synchronous response."""
+    """Chat — synchronous response."""
     timestamp = datetime.now().strftime("%H:%M:%S")
     response_text = None
     error_text = None

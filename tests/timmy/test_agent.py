@@ -26,7 +26,7 @@ def test_create_timmy_agent_name():
         create_timmy()
 
         kwargs = MockAgent.call_args.kwargs
-        assert kwargs["name"] == "Timmy"
+        assert kwargs["name"] == "Agent"
 
 
 def test_create_timmy_history_config():
@@ -67,8 +67,7 @@ def test_create_timmy_embeds_system_prompt():
         kwargs = MockAgent.call_args.kwargs
         # Prompt should contain base system prompt (may have memory context appended)
         # Default model (llama3.2) uses the lite prompt
-        assert "Timmy" in kwargs["description"]
-        assert "sovereign" in kwargs["description"]
+        assert "local AI assistant" in kwargs["description"]
 
 
 # ── Ollama host regression (container connectivity) ─────────────────────────

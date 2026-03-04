@@ -1,14 +1,14 @@
-# ── Timmy Time — Development Compose ────────────────────────────────────────
+# ── Development Compose ───────────────────────────────────────────────────────
 #
 # Services
-#   dashboard   FastAPI app (always on)
-#
-# Volumes
-#   timmy-data  Shared SQLite (data/timmy.db)
+#   dashboard     FastAPI app (always on)
+#   taskosaur     Taskosaur PM + AI task execution
+#   postgres      PostgreSQL 16 (for Taskosaur)
+#   redis         Redis 7 (for Taskosaur queues)
 #
 # Usage
 #   make docker-build    build the image
-#   make docker-up       start dashboard only
+#   make docker-up       start dashboard + taskosaur
 #   make docker-down     stop everything
 #   make docker-logs     tail logs
 #
@@ -45,8 +45,13 @@ services:
       GROK_ENABLED: "${GROK_ENABLED:-false}"
       XAI_API_KEY: "${XAI_API_KEY:-}"
       GROK_DEFAULT_MODEL: "${GROK_DEFAULT_MODEL:-grok-3-fast}"
+      # Taskosaur API — dashboard can reach it on the internal network
+      TASKOSAUR_API_URL: "http://taskosaur:3000/api"
     extra_hosts:
       - "host.docker.internal:host-gateway"  # Linux: maps to host IP
+    depends_on:
+      taskosaur:
+        condition: service_healthy
     networks:
       - timmy-net
     restart: unless-stopped
@@ -56,6 +61,75 @@ services:
       timeout: 5s
       retries: 3
       start_period: 30s
+
+  # ── Taskosaur — project management + conversational AI tasks ───────────
+  # https://github.com/Taskosaur/Taskosaur
+  taskosaur:
+    image: ghcr.io/taskosaur/taskosaur:latest
+    container_name: taskosaur
+    ports:
+      - "3000:3000"   # Backend API + Swagger docs at /api/docs
+      - "3001:3001"   # Frontend UI
+    environment:
+      DATABASE_URL: "postgresql://taskosaur:taskosaur@postgres:5432/taskosaur"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      JWT_SECRET: "${TASKOSAUR_JWT_SECRET:-dev-jwt-secret-change-in-prod}"
+      JWT_REFRESH_SECRET: "${TASKOSAUR_JWT_REFRESH_SECRET:-dev-refresh-secret-change-in-prod}"
+      ENCRYPTION_KEY: "${TASKOSAUR_ENCRYPTION_KEY:-dev-encryption-key-change-in-prod}"
+      FRONTEND_URL: "http://localhost:3001"
+      NEXT_PUBLIC_API_BASE_URL: "http://localhost:3000/api"
+      NODE_ENV: "development"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - timmy-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
+  # ── PostgreSQL — Taskosaur database ────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: taskosaur-postgres
+    environment:
+      POSTGRES_USER: taskosaur
+      POSTGRES_PASSWORD: taskosaur
+      POSTGRES_DB: taskosaur
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - timmy-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskosaur"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Redis — Taskosaur queue backend ────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: taskosaur-redis
+    volumes:
+      - redis-data:/data
+    networks:
+      - timmy-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
   # ── OpenFang — vendored agent runtime sidecar ────────────────────────────
   openfang:
@@ -83,7 +157,7 @@ services:
       retries: 3
       start_period: 15s
 
-# ── Shared volume ─────────────────────────────────────────────────────────────
+# ── Volumes ──────────────────────────────────────────────────────────────────
 volumes:
   timmy-data:
     driver: local
@@ -93,8 +167,12 @@ volumes:
       device: "${PWD}/data"
   openfang-data:
     driver: local
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
 
-# ── Internal network ──────────────────────────────────────────────────────────
+# ── Internal network ────────────────────────────────────────────────────────
 networks:
   timmy-net:
     driver: bridge

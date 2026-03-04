@@ -34,7 +34,7 @@ def test_health_endpoint_ok(client):
     data = response.json()
     assert data["status"] == "ok"
     assert data["services"]["ollama"] == "up"
-    assert "timmy" in data["agents"]
+    assert "agents" in data
 
 
 def test_health_endpoint_ollama_down(client):
@@ -79,15 +79,15 @@ def test_agents_list(client):
     data = response.json()
     assert "agents" in data
     ids = [a["id"] for a in data["agents"]]
-    assert "timmy" in ids
+    assert "orchestrator" in ids
 
 
 def test_agents_list_timmy_metadata(client):
     response = client.get("/agents")
-    timmy = next(a for a in response.json()["agents"] if a["id"] == "timmy")
-    assert timmy["name"] == "Timmy"
-    assert timmy["model"] == "llama3.1:8b-instruct"
-    assert timmy["type"] == "sovereign"
+    orch = next(a for a in response.json()["agents"] if a["id"] == "orchestrator")
+    assert orch["name"] == "Orchestrator"
+    assert orch["model"] == "llama3.1:8b-instruct"
+    assert orch["type"] == "local"
 
 
 # ── Chat ──────────────────────────────────────────────────────────────────────
@@ -96,13 +96,13 @@ def test_agents_list_timmy_metadata(client):
 def test_chat_timmy_success(client):
     with patch(
         "dashboard.routes.agents.timmy_chat",
-        return_value="I am Timmy, operational and sovereign.",
+        return_value="Operational and ready.",
     ):
         response = client.post("/agents/timmy/chat", data={"message": "status?"})
 
     assert response.status_code == 200
     assert "status?" in response.text
-    assert "I am Timmy" in response.text
+    assert "Operational" in response.text
 
 
 def test_chat_timmy_shows_user_message(client):

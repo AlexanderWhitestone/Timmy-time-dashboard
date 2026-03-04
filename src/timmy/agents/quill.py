@@ -45,7 +45,6 @@ Provide written content with:
 - Proper formatting (markdown)
 - Brief explanation of choices made
 
-You work for Timmy, the sovereign AI orchestrator. Create polished, professional content.
 """
 
 

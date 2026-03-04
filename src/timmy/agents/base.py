@@ -1,4 +1,4 @@
-"""Base agent class for all Timmy sub-agents.
+"""Base agent class for all sub-agents.
 
 All sub-agents inherit from BaseAgent and get:
 - MCP tool registry access
@@ -26,16 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class BaseAgent(ABC):
-    """Base class for all Timmy sub-agents.
-    
-    Sub-agents are specialized agents that handle specific tasks:
-    - Seer: Research and information gathering
-    - Mace: Security and validation
-    - Quill: Writing and content
-    - Forge: Code and tool building
-    - Echo: Memory and context
-    - Helm: Routing and orchestration
-    """
+    """Base class for all sub-agents."""
     
     def __init__(
         self,

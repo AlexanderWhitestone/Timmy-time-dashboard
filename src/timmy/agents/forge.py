@@ -45,7 +45,6 @@ Provide code in this structure:
 - Usage example
 - Notes (any important considerations)
 
-You work for Timmy, the sovereign AI orchestrator. Build reliable, well-documented tools.
 """
 
 

@@ -1,11 +1,10 @@
-"""Unified memory interface for Timmy.
+"""Unified memory interface.
 
 One API, two backends:
 - **Local SQLite** (default) — works immediately, no setup
 - **Distributed rqlite** — same API, replicated across Tailscale devices
 
 Every module that needs to store or recall memory uses this interface.
-No more fragmented SQLite databases scattered across the codebase.
 
 Usage:
     from brain.memory import UnifiedMemory
@@ -14,18 +13,13 @@ Usage:
 
     # Store
     await memory.remember("User prefers dark mode", tags=["preference"])
-    memory.remember_sync("User prefers dark mode", tags=["preference"])
 
     # Recall
     results = await memory.recall("what does the user prefer?")
-    results = memory.recall_sync("what does the user prefer?")
 
     # Facts
     await memory.store_fact("user_preference", "Prefers dark mode")
     facts = await memory.get_facts("user_preference")
-
-    # Identity
-    identity = memory.get_identity()
 
     # Context for prompt
     context = await memory.get_context("current user question")
@@ -61,13 +55,11 @@ def _get_db_path() -> Path:
 
 
 class UnifiedMemory:
-    """Unified memory interface for Timmy.
+    """Unified memory interface.
 
     Provides a single API for all memory operations. Defaults to local
     SQLite. When rqlite is available (detected via RQLITE_URL env var),
     delegates to BrainClient for distributed operation.
-
-    The interface is the same. The substrate is disposable.
     """
 
     def __init__(
@@ -525,22 +517,12 @@ class UnifiedMemory:
     # ──────────────────────────────────────────────────────────────────────
 
     def get_identity(self) -> str:
-        """Load the canonical identity document.
-
-        Returns:
-            Full text of TIMMY_IDENTITY.md.
-        """
-        from brain.identity import get_canonical_identity
-        return get_canonical_identity()
+        """Return empty string — identity system removed."""
+        return ""
 
     def get_identity_for_prompt(self) -> str:
-        """Get identity formatted for system prompt injection.
-
-        Returns:
-            Compact identity block for prompt injection.
-        """
-        from brain.identity import get_identity_for_prompt
-        return get_identity_for_prompt()
+        """Return empty string — identity system removed."""
+        return ""
 
     # ──────────────────────────────────────────────────────────────────────
     # Context Building
@@ -558,11 +540,6 @@ class UnifiedMemory:
             Formatted context string for prompt injection.
         """
         parts = []
-
-        # Identity (always first)
-        identity = self.get_identity_for_prompt()
-        if identity:
-            parts.append(identity)
 
         # Recent activity
         recent = await self.get_recent(hours=24, limit=5)
@@ -622,7 +599,7 @@ class UnifiedMemory:
 _default_memory: Optional[UnifiedMemory] = None
 
 
-def get_memory(source: str = "timmy") -> UnifiedMemory:
+def get_memory(source: str = "agent") -> UnifiedMemory:
     """Get the singleton UnifiedMemory instance.
 
     Args:
@@ -647,7 +624,7 @@ CREATE TABLE IF NOT EXISTS memories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     content TEXT NOT NULL,
     embedding BLOB,
-    source TEXT DEFAULT 'timmy',
+    source TEXT DEFAULT 'agent',
     tags TEXT DEFAULT '[]',
     metadata TEXT DEFAULT '{}',
     created_at TEXT NOT NULL

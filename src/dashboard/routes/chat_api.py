@@ -1,10 +1,10 @@
 """JSON REST API for mobile / external chat clients.
 
-Provides the same Timmy chat experience as the HTMX dashboard but over
+Provides the same chat experience as the HTMX dashboard but over
 a JSON interface that React Native (or any HTTP client) can consume.
 
 Endpoints:
-    POST /api/chat       — send a message, get Timmy's reply
+    POST /api/chat       — send a message, get the agent's reply
     POST /api/upload     — upload a file attachment
     GET  /api/chat/history  — retrieve recent chat history
     DELETE /api/chat/history — clear chat history
@@ -33,7 +33,7 @@ _UPLOAD_DIR = os.path.join("data", "chat-uploads")
 
 @router.post("/chat")
 async def api_chat(request: Request):
-    """Accept a JSON chat payload and return Timmy's reply.
+    """Accept a JSON chat payload and return the agent's reply.
 
     Request body:
         {"messages": [{"role": "user"|"assistant", "content": "..."}]}
@@ -90,7 +90,7 @@ async def api_chat(request: Request):
         return {"reply": response_text, "timestamp": timestamp}
 
     except Exception as exc:
-        error_msg = f"Timmy is offline: {exc}"
+        error_msg = f"Agent is offline: {exc}"
         logger.error("api_chat error: %s", exc)
         message_log.append(role="user", content=last_user_msg, timestamp=timestamp, source="api")
         message_log.append(role="error", content=error_msg, timestamp=timestamp, source="api")
