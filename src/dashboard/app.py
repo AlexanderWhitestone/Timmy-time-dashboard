@@ -4,6 +4,7 @@ Key improvements:
 1. Background tasks use asyncio.create_task() to avoid blocking startup
 2. Chat integrations start in background
 3. All startup operations complete quickly
+4. Security and logging handled by dedicated middleware
 """
 
 import asyncio
@@ -39,6 +40,11 @@ from dashboard.routes.chat_api import router as chat_api_router
 from dashboard.routes.thinking import router as thinking_router
 from dashboard.routes.calm import router as calm_router
 from infrastructure.router.api import router as cascade_router
+
+# Import dedicated middleware
+from dashboard.middleware.csrf import CSRFMiddleware
+from dashboard.middleware.request_logging import RequestLoggingMiddleware
+from dashboard.middleware.security_headers import SecurityHeadersMiddleware
 
 
 def _configure_logging() -> None:
@@ -241,29 +247,20 @@ def _get_cors_origins() -> list[str]:
     return origins
 
 
-async def add_security_headers(request: Request, call_next):
-    """Add security headers to all responses."""
-    response = await call_next(request)
-    response.headers["X-Frame-Options"] = "SAMEORIGIN"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "
-        "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net; "
-        "font-src 'self' fonts.gstatic.com; "
-        "img-src 'self' data: https:; "
-        "connect-src 'self' ws: wss:; "
-        "frame-ancestors 'self'; "
-        "base-uri 'self'; "
-        "form-action 'self'"
-    )
-    return response
+# Add dedicated middleware in correct order
+# 1. Logging (outermost to capture everything)
+app.add_middleware(RequestLoggingMiddleware, skip_paths=["/health"])
 
+# 2. Security Headers
+app.add_middleware(
+    SecurityHeadersMiddleware, 
+    production=not settings.debug
+)
 
-app.middleware("http")(add_security_headers)
+# 3. CSRF Protection
+app.add_middleware(CSRFMiddleware)
 
+# 4. Standard FastAPI middleware
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=["localhost", "127.0.0.1", "*.local", "testserver"],
