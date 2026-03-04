@@ -35,7 +35,7 @@ class TestSecurityHeadersMiddleware:
     def test_x_frame_options_header(self, client_with_headers):
         """X-Frame-Options should be set to DENY."""
         response = client_with_headers.get("/test")
-        assert response.headers.get("x-frame-options") == "DENY"
+        assert response.headers.get("x-frame-options") == "SAMEORIGIN"
 
     def test_x_xss_protection_header(self, client_with_headers):
         """X-XSS-Protection should be enabled."""
@@ -104,4 +104,4 @@ class TestSecurityHeadersMiddleware:
         # Even on 500 error, security headers should be present
         assert response.status_code == 500
         assert response.headers.get("x-content-type-options") == "nosniff"
-        assert response.headers.get("x-frame-options") == "DENY"
+        assert response.headers.get("x-frame-options") == "SAMEORIGIN"

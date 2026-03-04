@@ -1,0 +1,551 @@
+SEC: L402_HMAC_SECRET is not set — set a unique secret in .env before deploying to production.
+SEC: L402_MACAROON_SECRET is not set — set a unique secret in .env before deploying to production.
+INFO:     Started server process [6304]
+INFO:     Waiting for application startup.
+17:10:49 INFO     dashboard.app — Spark Intelligence active — event capture enabled
+17:10:49 INFO     dashboard.app — ✓ Timmy Time dashboard ready for requests
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+17:10:50 INFO     integrations.chat_bridge.registry — Registered chat platform: discord
+17:10:50 ERROR    integrations.chat_bridge.vendors.discord — discord.py is not installed. Run: pip install ".[discord]"
+17:10:50 INFO     dashboard.app — Discord bot started
+17:10:51 INFO     dashboard.app — Briefing is fresh; skipping generation.
+INFO:     127.0.0.1:59754 - "GET /health HTTP/1.1" 200 OK
+17:10:58 INFO     timmy.requests — [b0dfd2b2] GET /swarm/live - 200 - 12.54ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:59768 - "GET /swarm/live HTTP/1.1" 200 OK
+17:10:58 INFO     timmy.requests — [009d32fb] GET /static/notifications.js - 200 - 2.42ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+17:10:58 INFO     timmy.requests — [c2cd08a2] GET /static/style.css - 200 - 3.16ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:59770 - "GET /static/notifications.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59768 - "GET /static/style.css?v=5 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59776 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:10:58 INFO     timmy.requests — [a501b089] GET /static/bg.svg - 200 - 0.71ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:59768 - "GET /static/bg.svg HTTP/1.1" 200 OK
+17:10:58 WARNING  timmy.requests — [9b6b8a6e] GET /favicon.ico - 404 - 0.62ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:59768 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+17:10:58 INFO     timmy.requests — [08a0cc50] GET /swarm/events - 200 - 11.94ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:59768 - "GET /swarm/events HTTP/1.1" 200 OK
+17:10:59 WARNING  infrastructure.router.cascade — Provider ollama-local not available, skipping
+17:10:59 WARNING  infrastructure.models.multimodal — Could not refresh available models: <urlopen error [Errno 111] Connection refused>
+17:10:59 INFO     infrastructure.router.cascade — CascadeRouter initialized with 0 providers
+17:10:59 INFO     timmy.cascade_adapter — TimmyCascadeAdapter initialized with 0 providers
+17:10:59 INFO     timmy.requests — [ba08c1dd] GET /router/status - 200 - 23.94ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:59768 - "GET /router/status HTTP/1.1" 200 OK
+17:10:59 INFO     timmy.requests — [3190ded4] GET /self-modify/queue - 200 - 11.91ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:59768 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:10:59 INFO     timmy.requests — [a0539a48] GET /swarm/events - 200 - 1.50ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:59768 - "GET /swarm/events HTTP/1.1" 200 OK
+17:10:59 INFO     timmy.requests — [d0c4ca84] GET /lightning/ledger - 200 - 11.84ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:59768 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:10:59 INFO     timmy.requests — [df4ba8b5] GET /memory - 200 - 12.12ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:59768 - "GET /memory HTTP/1.1" 200 OK
+17:10:59 INFO     timmy.requests — [c68da5f1] GET /router/status - 200 - 0.62ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:59768 - "GET /router/status HTTP/1.1" 200 OK
+17:10:59 INFO     timmy.requests — [5c0774e0] GET /self-modify/queue - 200 - 0.69ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:59768 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:10:59 INFO     timmy.requests — [b5371101] GET /swarm/live - 200 - 4.08ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:59768 - "GET /swarm/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59790 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:11:00 INFO     timmy.requests — [384720c5] GET /swarm/events - 200 - 1.31ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:59802 - "GET /swarm/events HTTP/1.1" 200 OK
+17:11:00 INFO     timmy.requests — [0ee30861] GET /lightning/ledger - 200 - 1.43ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:59810 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:11:00 INFO     timmy.requests — [b3d27a9e] GET /memory - 200 - 1.93ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:59824 - "GET /memory HTTP/1.1" 200 OK
+17:11:00 INFO     timmy.requests — [69d0c8a9] GET /router/status - 200 - 0.63ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:59834 - "GET /router/status HTTP/1.1" 200 OK
+17:11:00 INFO     timmy.requests — [604982f2] GET /self-modify/queue - 200 - 0.64ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:59846 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:11:00 INFO     timmy.requests — [fa71ada7] GET /swarm/live - 200 - 4.08ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:59858 - "GET /swarm/live HTTP/1.1" 200 OK
+17:11:20 ERROR    integrations.chat_bridge.vendors.discord — discord.py is not installed. Run: pip install ".[discord]"
+17:11:50 ERROR    integrations.chat_bridge.vendors.discord — discord.py is not installed. Run: pip install ".[discord]"
+17:12:03 INFO     timmy.requests — [d898aaaa] GET /swarm/events - 200 - 1.47ms - 127.0.0.1 - curl/7.81.0
+INFO:     127.0.0.1:54646 - "GET /swarm/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54660 - "GET /health HTTP/1.1" 200 OK
+17:12:11 INFO     timmy.requests — [48e59a3f] GET /swarm/events - 200 - 1.41ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54674 - "GET /swarm/events HTTP/1.1" 200 OK
+17:12:11 INFO     timmy.requests — [c17352e3] GET /static/style.css - 200 - 2.41ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54674 - "GET /static/style.css?v=5 HTTP/1.1" 200 OK
+17:12:11 INFO     timmy.requests — [4c2dd807] GET /static/notifications.js - 200 - 3.42ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54680 - "GET /static/notifications.js HTTP/1.1" 200 OK
+17:12:11 INFO     timmy.requests — [da2565a6] GET /static/bg.svg - 200 - 0.67ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54680 - "GET /static/bg.svg HTTP/1.1" 200 OK
+17:12:12 WARNING  timmy.requests — [73093f7b] GET /favicon.ico - 404 - 0.61ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54680 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+17:12:20 ERROR    integrations.chat_bridge.vendors.discord — discord.py is not installed. Run: pip install ".[discord]"
+INFO:     127.0.0.1:40286 - "GET /health HTTP/1.1" 200 OK
+17:12:25 INFO     timmy.requests — [3049ca4b] GET /swarm/live - 200 - 3.93ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40288 - "GET /swarm/live HTTP/1.1" 200 OK
+17:12:25 INFO     timmy.requests — [02741cfb] GET /static/style.css - 200 - 2.43ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40288 - "GET /static/style.css?v=5 HTTP/1.1" 200 OK
+17:12:25 INFO     timmy.requests — [63bdca78] GET /static/notifications.js - 200 - 4.83ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40296 - "GET /static/notifications.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40300 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:12:25 INFO     timmy.requests — [dfb9f0c1] GET /static/bg.svg - 200 - 0.72ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40296 - "GET /static/bg.svg HTTP/1.1" 200 OK
+17:12:25 WARNING  timmy.requests — [ac1e5402] GET /favicon.ico - 404 - 0.61ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40296 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+17:12:25 INFO     timmy.requests — [b55b0447] GET /self-modify/queue - 200 - 0.69ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40296 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:12:26 INFO     timmy.requests — [66e55af7] GET /swarm/events - 200 - 1.34ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:40316 - "GET /swarm/events HTTP/1.1" 200 OK
+17:12:26 INFO     timmy.requests — [0c80d97d] GET /lightning/ledger - 200 - 1.27ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:40324 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:12:26 INFO     timmy.requests — [8db040eb] GET /memory - 200 - 1.81ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:40326 - "GET /memory HTTP/1.1" 200 OK
+17:12:26 INFO     timmy.requests — [ad6c107e] GET /router/status - 200 - 0.61ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:40338 - "GET /router/status HTTP/1.1" 200 OK
+17:12:26 INFO     timmy.requests — [8392360f] GET /self-modify/queue - 200 - 1.68ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:40352 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:12:26 INFO     timmy.requests — [7f199b48] GET /swarm/live - 200 - 4.23ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:40358 - "GET /swarm/live HTTP/1.1" 200 OK
+17:12:26 INFO     timmy.requests — [d491d942] GET /router/status - 200 - 0.55ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40296 - "GET /router/status HTTP/1.1" 200 OK
+17:12:26 INFO     timmy.requests — [c32129f2] GET /swarm/events - 200 - 1.38ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40296 - "GET /swarm/events HTTP/1.1" 200 OK
+17:12:26 INFO     timmy.requests — [ab782c5d] GET /lightning/ledger - 200 - 1.80ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40296 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:12:26 INFO     timmy.requests — [f34393af] GET /memory - 200 - 1.88ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40296 - "GET /memory HTTP/1.1" 200 OK
+17:12:26 INFO     timmy.requests — [f530a704] GET /router/status - 200 - 0.59ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40296 - "GET /router/status HTTP/1.1" 200 OK
+17:12:26 INFO     timmy.requests — [9d003ae9] GET /self-modify/queue - 200 - 0.65ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40296 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:12:27 INFO     timmy.requests — [186cd229] GET /swarm/live - 200 - 4.15ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40296 - "GET /swarm/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40366 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:12:27 INFO     timmy.requests — [80b73ed3] GET /swarm/events - 200 - 1.78ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40296 - "GET /swarm/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40378 - "POST /swarm/tasks HTTP/1.1" 403 Forbidden
+17:12:33 INFO     timmy.requests — [519490a3] GET /memory - 200 - 5929.63ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40296 - "GET /memory?query=test HTTP/1.1" 200 OK
+17:12:33 INFO     timmy.requests — [c33a2f32] GET /lightning/ledger - 200 - 1.29ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40296 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:12:50 ERROR    integrations.chat_bridge.vendors.discord — discord.py is not installed. Run: pip install ".[discord]"
+INFO:     127.0.0.1:55000 - "GET /health HTTP/1.1" 200 OK
+17:13:19 INFO     timmy.requests — [42da7a97] GET /swarm/events - 200 - 1.75ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55010 - "GET /swarm/events HTTP/1.1" 200 OK
+17:13:19 INFO     timmy.requests — [16df8e91] GET /static/style.css - 200 - 1.83ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55010 - "GET /static/style.css?v=5 HTTP/1.1" 200 OK
+17:13:19 INFO     timmy.requests — [32dcf212] GET /static/notifications.js - 200 - 4.00ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55022 - "GET /static/notifications.js HTTP/1.1" 200 OK
+17:13:19 INFO     timmy.requests — [210243e6] GET /static/bg.svg - 200 - 0.73ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55022 - "GET /static/bg.svg HTTP/1.1" 200 OK
+17:13:19 WARNING  timmy.requests — [a8cb3144] GET /favicon.ico - 404 - 0.83ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55022 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+17:13:20 ERROR    integrations.chat_bridge.vendors.discord — discord.py is not installed. Run: pip install ".[discord]"
+17:13:20 INFO     timmy.requests — [211b717e] GET /lightning/ledger - 200 - 1.27ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55022 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:13:20 INFO     timmy.requests — [c0c92b62] GET /memory - 200 - 2.21ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55022 - "GET /memory HTTP/1.1" 200 OK
+17:13:21 INFO     timmy.requests — [e02ef401] GET /router/status - 200 - 0.73ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55022 - "GET /router/status HTTP/1.1" 200 OK
+17:13:22 INFO     timmy.requests — [8ae2c0f7] GET /self-modify/queue - 200 - 0.69ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55022 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:13:22 INFO     timmy.requests — [d2cba9f5] GET /swarm/live - 200 - 4.44ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55022 - "GET /swarm/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45536 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:13:23 INFO     timmy.requests — [27727684] GET /swarm/events - 200 - 1.47ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:45548 - "GET /swarm/events HTTP/1.1" 200 OK
+17:13:23 INFO     timmy.requests — [0de97b8c] GET /lightning/ledger - 200 - 1.32ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:45550 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:13:23 INFO     timmy.requests — [143646ea] GET /memory - 200 - 2.53ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:45552 - "GET /memory HTTP/1.1" 200 OK
+17:13:23 INFO     timmy.requests — [095ad1d1] GET /router/status - 200 - 0.86ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:45554 - "GET /router/status HTTP/1.1" 200 OK
+17:13:23 INFO     timmy.requests — [ef4dd890] GET /self-modify/queue - 200 - 0.94ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:45562 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:13:23 INFO     timmy.requests — [fc7f9e5f] GET /swarm/live - 200 - 4.47ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:45576 - "GET /swarm/live HTTP/1.1" 200 OK
+17:13:23 INFO     timmy.requests — [9e592401] GET /self-modify/queue - 200 - 0.99ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55022 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:13:27 INFO     timmy.requests — [3b483e25] GET /router/status - 200 - 0.59ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55022 - "GET /router/status HTTP/1.1" 200 OK
+17:13:27 INFO     timmy.requests — [23fb9b21] GET / - 200 - 4.99ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55022 - "GET / HTTP/1.1" 200 OK
+17:13:27 INFO     timmy.requests — [4da52666] GET /agents/timmy/panel - 200 - 3.17ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55022 - "GET /agents/timmy/panel HTTP/1.1" 200 OK
+17:13:27 WARNING  timmy.requests — [a0b66ec0] GET /api/queue/status - 404 - 1.15ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:45600 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:55022 - "GET /api/queue/status?assigned_to=timmy HTTP/1.1" 404 Not Found
+INFO:     connection closed
+17:13:27 INFO     timmy.requests — [dadda45a] GET /agents/timmy/history - 200 - 4.98ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55022 - "GET /agents/timmy/history HTTP/1.1" 200 OK
+17:13:28 INFO     timmy.requests — [d222fadf] GET /swarm/live - 200 - 4.47ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55022 - "GET /swarm/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45616 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:13:28 INFO     timmy.requests — [dc884c4f] GET /swarm/events - 200 - 1.50ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:55022 - "GET /swarm/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54350 - "GET /health HTTP/1.1" 200 OK
+17:13:44 INFO     timmy.requests — [f9026fd0] GET /swarm/live - 200 - 6.44ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54358 - "GET /swarm/live HTTP/1.1" 200 OK
+17:13:44 INFO     timmy.requests — [7116d535] GET /static/style.css - 200 - 2.19ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54358 - "GET /static/style.css?v=5 HTTP/1.1" 200 OK
+17:13:44 INFO     timmy.requests — [d9fda4ae] GET /static/notifications.js - 200 - 2.56ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /static/notifications.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54378 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:13:44 INFO     timmy.requests — [efb07a4c] GET /static/bg.svg - 200 - 0.66ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /static/bg.svg HTTP/1.1" 200 OK
+17:13:44 WARNING  timmy.requests — [aa70e411] GET /favicon.ico - 404 - 0.59ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+17:13:44 INFO     timmy.requests — [f465147d] GET /router/status - 200 - 0.57ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /router/status HTTP/1.1" 200 OK
+17:13:44 INFO     timmy.requests — [884d6c59] GET / - 200 - 0.70ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET / HTTP/1.1" 200 OK
+17:13:44 INFO     timmy.requests — [af9297d8] GET /agents/timmy/panel - 200 - 0.58ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /agents/timmy/panel HTTP/1.1" 200 OK
+17:13:44 WARNING  timmy.requests — [3cd11a4f] GET /api/queue/status - 404 - 0.58ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /api/queue/status?assigned_to=timmy HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54386 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:13:44 INFO     timmy.requests — [399b8f29] GET /agents/timmy/history - 200 - 0.49ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /agents/timmy/history HTTP/1.1" 200 OK
+17:13:44 INFO     timmy.requests — [de2411fe] GET /self-modify/queue - 200 - 0.64ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:13:48 INFO     timmy.requests — [8204a84b] GET /swarm/events - 200 - 2.14ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:54398 - "GET /swarm/events HTTP/1.1" 200 OK
+17:13:49 INFO     timmy.requests — [e5a38e93] GET /lightning/ledger - 200 - 1.68ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:54410 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:13:49 INFO     timmy.requests — [f1faa9c7] GET /memory - 200 - 2.59ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:54420 - "GET /memory HTTP/1.1" 200 OK
+17:13:49 INFO     timmy.requests — [2f2dc233] GET /router/status - 200 - 0.62ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:54434 - "GET /router/status HTTP/1.1" 200 OK
+17:13:49 INFO     timmy.requests — [2825391c] GET /self-modify/queue - 200 - 0.90ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:54444 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:13:49 INFO     timmy.requests — [76b5f86d] GET /swarm/live - 200 - 5.61ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:54454 - "GET /swarm/live HTTP/1.1" 200 OK
+17:13:49 INFO     timmy.requests — [e55fb9dc] GET /swarm/events - 200 - 2.01ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /swarm/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54462 - "POST /swarm/tasks HTTP/1.1" 403 Forbidden
+17:13:49 INFO     timmy.requests — [53a53b32] GET /memory - 200 - 2.90ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /memory?query=test HTTP/1.1" 200 OK
+17:13:50 INFO     timmy.requests — [979a8f1e] GET /lightning/ledger - 200 - 1.59ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:13:50 ERROR    integrations.chat_bridge.vendors.discord — discord.py is not installed. Run: pip install ".[discord]"
+17:13:50 INFO     timmy.requests — [63764bdd] GET /swarm/events - 200 - 2.02ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /swarm/events HTTP/1.1" 200 OK
+17:13:50 INFO     timmy.requests — [ee0fde43] GET /lightning/ledger - 200 - 1.27ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:13:51 INFO     timmy.requests — [834445bd] GET /memory - 200 - 2.84ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /memory HTTP/1.1" 200 OK
+17:13:52 INFO     timmy.requests — [3ea6326b] GET /router/status - 200 - 0.61ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /router/status HTTP/1.1" 200 OK
+17:13:52 INFO     timmy.requests — [ed315118] GET /self-modify/queue - 200 - 0.66ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:13:53 INFO     timmy.requests — [3a512d2a] GET /swarm/live - 200 - 5.47ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:54364 - "GET /swarm/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34770 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+INFO:     127.0.0.1:40050 - "GET /health HTTP/1.1" 200 OK
+17:14:11 INFO     timmy.requests — [dc547943] GET /swarm/events - 200 - 1.51ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40060 - "GET /swarm/events HTTP/1.1" 200 OK
+17:14:12 INFO     timmy.requests — [4a48cc76] GET /static/style.css - 200 - 2.05ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40060 - "GET /static/style.css?v=5 HTTP/1.1" 200 OK
+17:14:12 INFO     timmy.requests — [101295ff] GET /static/notifications.js - 200 - 2.68ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET /static/notifications.js HTTP/1.1" 200 OK
+17:14:12 INFO     timmy.requests — [b34e9b14] GET /static/bg.svg - 200 - 0.70ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET /static/bg.svg HTTP/1.1" 200 OK
+17:14:12 WARNING  timmy.requests — [8b9e23b9] GET /favicon.ico - 404 - 0.70ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+17:14:12 INFO     timmy.requests — [bff7b37f] GET /lightning/ledger - 200 - 1.33ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:14:13 INFO     timmy.requests — [862024d3] GET /memory - 200 - 2.88ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET /memory HTTP/1.1" 200 OK
+17:14:14 INFO     timmy.requests — [0079906f] GET /router/status - 200 - 0.86ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET /router/status HTTP/1.1" 200 OK
+17:14:14 INFO     timmy.requests — [27b5da7c] GET /self-modify/queue - 200 - 0.67ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:14:15 INFO     timmy.requests — [11959de8] GET /swarm/live - 200 - 4.50ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET /swarm/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43578 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:14:15 INFO     timmy.requests — [d0c8c26d] GET /router/status - 200 - 1.00ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET /router/status HTTP/1.1" 200 OK
+17:14:16 INFO     timmy.requests — [73158032] GET / - 200 - 0.73ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET / HTTP/1.1" 200 OK
+17:14:16 INFO     timmy.requests — [b02de8a7] GET /agents/timmy/panel - 200 - 0.51ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET /agents/timmy/panel HTTP/1.1" 200 OK
+17:14:16 WARNING  timmy.requests — [cf15fcb7] GET /api/queue/status - 404 - 1.64ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:43586 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:40066 - "GET /api/queue/status?assigned_to=timmy HTTP/1.1" 404 Not Found
+INFO:     connection closed
+17:14:16 INFO     timmy.requests — [103f52eb] GET /agents/timmy/history - 200 - 0.49ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET /agents/timmy/history HTTP/1.1" 200 OK
+17:14:16 INFO     timmy.requests — [87cbdb76] GET /swarm/live - 200 - 6.32ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET /swarm/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43592 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:14:16 INFO     timmy.requests — [65b5a3a7] GET /self-modify/queue - 200 - 0.80ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:14:16 INFO     timmy.requests — [47816e3e] GET /swarm/events - 200 - 2.61ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:43600 - "GET /swarm/events HTTP/1.1" 200 OK
+17:14:16 INFO     timmy.requests — [b5099142] GET /lightning/ledger - 200 - 1.20ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:43606 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:14:16 INFO     timmy.requests — [1489b832] GET /memory - 200 - 3.17ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:43618 - "GET /memory HTTP/1.1" 200 OK
+17:14:16 INFO     timmy.requests — [b37b856e] GET /router/status - 200 - 0.71ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:43632 - "GET /router/status HTTP/1.1" 200 OK
+17:14:16 INFO     timmy.requests — [5e946795] GET /self-modify/queue - 200 - 1.01ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:43648 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:14:16 INFO     timmy.requests — [cbe6b595] GET /swarm/live - 200 - 7.17ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:43662 - "GET /swarm/live HTTP/1.1" 200 OK
+17:14:16 INFO     timmy.requests — [c2c33b9a] GET /swarm/events - 200 - 1.57ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET /swarm/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43678 - "POST /swarm/tasks HTTP/1.1" 403 Forbidden
+17:14:17 INFO     timmy.requests — [3fdd4726] GET /memory - 200 - 3.08ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET /memory?query=test HTTP/1.1" 200 OK
+17:14:17 INFO     timmy.requests — [3924179a] GET /lightning/ledger - 200 - 1.58ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40066 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:14:20 ERROR    integrations.chat_bridge.vendors.discord — discord.py is not installed. Run: pip install ".[discord]"
+INFO:     127.0.0.1:36260 - "GET /health HTTP/1.1" 200 OK
+17:14:35 INFO     timmy.requests — [9b1fe222] GET /swarm/events - 200 - 1.58ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:36270 - "GET /swarm/events HTTP/1.1" 200 OK
+17:14:35 INFO     timmy.requests — [a577ad30] GET /lightning/ledger - 200 - 1.25ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:36286 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:14:35 INFO     timmy.requests — [c586c8b0] GET /memory - 200 - 2.29ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:36292 - "GET /memory HTTP/1.1" 200 OK
+17:14:35 INFO     timmy.requests — [ec8f7adb] GET /router/status - 200 - 0.64ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:36304 - "GET /router/status HTTP/1.1" 200 OK
+17:14:35 INFO     timmy.requests — [181a7a1c] GET /self-modify/queue - 200 - 0.71ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:36316 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:14:35 INFO     timmy.requests — [85894057] GET /swarm/live - 200 - 6.48ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:36318 - "GET /swarm/live HTTP/1.1" 200 OK
+17:14:36 INFO     timmy.requests — [e8a3a2fa] GET /swarm/events - 200 - 1.91ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:36320 - "GET /swarm/events HTTP/1.1" 200 OK
+17:14:36 INFO     timmy.requests — [4166befa] GET /static/style.css - 200 - 2.14ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:36320 - "GET /static/style.css?v=5 HTTP/1.1" 200 OK
+17:14:36 INFO     timmy.requests — [b26b7eaf] GET /static/notifications.js - 200 - 2.78ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:36324 - "GET /static/notifications.js HTTP/1.1" 200 OK
+17:14:36 INFO     timmy.requests — [8d5c3246] GET /static/bg.svg - 200 - 0.68ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:36324 - "GET /static/bg.svg HTTP/1.1" 200 OK
+17:14:36 WARNING  timmy.requests — [238f6b89] GET /favicon.ico - 404 - 0.97ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:36324 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+17:14:36 INFO     timmy.requests — [533bae83] GET /lightning/ledger - 200 - 1.22ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:36324 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:14:37 INFO     timmy.requests — [43352780] GET /memory - 200 - 2.47ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:36324 - "GET /memory HTTP/1.1" 200 OK
+17:14:38 INFO     timmy.requests — [de88a783] GET /router/status - 200 - 1.06ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:36324 - "GET /router/status HTTP/1.1" 200 OK
+17:14:38 INFO     timmy.requests — [1f0a8d5b] GET /self-modify/queue - 200 - 0.70ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:36324 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:14:39 INFO     timmy.requests — [78cce29c] GET /swarm/live - 200 - 4.76ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:36324 - "GET /swarm/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36338 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:14:39 INFO     timmy.requests — [f09603cf] GET /router/status - 200 - 0.97ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:36324 - "GET /router/status HTTP/1.1" 200 OK
+17:14:40 INFO     timmy.requests — [90611aab] GET /self-modify/queue - 200 - 0.72ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:36324 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:14:44 INFO     timmy.requests — [e782f3ae] GET /swarm/live - 200 - 4.99ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:36324 - "GET /swarm/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53526 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:14:45 INFO     timmy.requests — [1d0d0c0b] GET /swarm/events - 200 - 1.52ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:36324 - "GET /swarm/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53538 - "POST /swarm/tasks HTTP/1.1" 403 Forbidden
+17:14:46 INFO     timmy.requests — [01e31f6a] GET /memory - 200 - 2.87ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:36324 - "GET /memory?query=test HTTP/1.1" 200 OK
+17:14:46 INFO     timmy.requests — [39580ad6] GET /lightning/ledger - 200 - 1.72ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:36324 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:14:50 ERROR    integrations.chat_bridge.vendors.discord — discord.py is not installed. Run: pip install ".[discord]"
+INFO:     127.0.0.1:50314 - "GET /health HTTP/1.1" 200 OK
+17:15:07 INFO     timmy.requests — [12a48ec0] GET /swarm/events - 200 - 1.47ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50326 - "GET /swarm/events HTTP/1.1" 200 OK
+17:15:07 INFO     timmy.requests — [30879238] GET /static/style.css - 200 - 1.70ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50326 - "GET /static/style.css?v=5 HTTP/1.1" 200 OK
+17:15:07 INFO     timmy.requests — [2943fc67] GET /static/notifications.js - 200 - 3.13ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /static/notifications.js HTTP/1.1" 200 OK
+17:15:07 INFO     timmy.requests — [c98d506f] GET /static/bg.svg - 200 - 0.76ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /static/bg.svg HTTP/1.1" 200 OK
+17:15:07 WARNING  timmy.requests — [10e75365] GET /favicon.ico - 404 - 0.74ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+17:15:08 INFO     timmy.requests — [bd90e98a] GET /lightning/ledger - 200 - 1.27ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:15:08 INFO     timmy.requests — [2c1ea4d2] GET /memory - 200 - 2.68ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /memory HTTP/1.1" 200 OK
+17:15:09 INFO     timmy.requests — [6f5a64a6] GET /router/status - 200 - 0.66ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /router/status HTTP/1.1" 200 OK
+17:15:09 INFO     timmy.requests — [a909f131] GET /self-modify/queue - 200 - 0.70ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:15:10 INFO     timmy.requests — [d5a27b07] GET /swarm/live - 200 - 4.41ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /swarm/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50346 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:15:11 INFO     timmy.requests — [a1f2dd86] GET /swarm/events - 200 - 1.87ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:50360 - "GET /swarm/events HTTP/1.1" 200 OK
+17:15:11 INFO     timmy.requests — [ea99d599] GET /lightning/ledger - 200 - 1.30ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:50370 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:15:11 INFO     timmy.requests — [3b413c5e] GET /memory - 200 - 2.12ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:50374 - "GET /memory HTTP/1.1" 200 OK
+17:15:11 INFO     timmy.requests — [5c778b59] GET /router/status - 200 - 0.63ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:50388 - "GET /router/status HTTP/1.1" 200 OK
+17:15:11 INFO     timmy.requests — [bd3f58aa] GET /self-modify/queue - 200 - 0.68ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:50392 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:15:11 INFO     timmy.requests — [64c0e272] GET /swarm/live - 200 - 4.53ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:50408 - "GET /swarm/live HTTP/1.1" 200 OK
+17:15:11 INFO     timmy.requests — [a0690075] GET /router/status - 200 - 0.65ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /router/status HTTP/1.1" 200 OK
+17:15:12 INFO     timmy.requests — [9993b416] GET / - 200 - 0.97ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET / HTTP/1.1" 200 OK
+17:15:12 INFO     timmy.requests — [f1aa5549] GET /agents/timmy/panel - 200 - 0.46ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /agents/timmy/panel HTTP/1.1" 200 OK
+17:15:12 WARNING  timmy.requests — [5d828de0] GET /api/queue/status - 404 - 0.60ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /api/queue/status?assigned_to=timmy HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:50418 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:15:12 INFO     timmy.requests — [aa318d1d] GET /agents/timmy/history - 200 - 0.85ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /agents/timmy/history HTTP/1.1" 200 OK
+17:15:12 INFO     timmy.requests — [a41d4883] GET /swarm/events - 200 - 1.51ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /swarm/events HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49126 - "POST /swarm/tasks HTTP/1.1" 403 Forbidden
+17:15:12 INFO     timmy.requests — [970d6786] GET /memory - 200 - 3.45ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /memory?query=test HTTP/1.1" 200 OK
+17:15:12 INFO     timmy.requests — [be8d558e] GET /lightning/ledger - 200 - 1.62ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:15:13 INFO     timmy.requests — [b2458a93] GET /swarm/live - 200 - 6.19ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /swarm/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49140 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:15:14 INFO     timmy.requests — [2838e345] GET /self-modify/queue - 200 - 1.54ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:50330 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:15:20 ERROR    integrations.chat_bridge.vendors.discord — discord.py is not installed. Run: pip install ".[discord]"
+INFO:     127.0.0.1:49156 - "GET /health HTTP/1.1" 200 OK
+17:15:22 INFO     timmy.requests — [5089ea51] GET /swarm/events - 200 - 1.43ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET /swarm/events HTTP/1.1" 200 OK
+17:15:22 INFO     timmy.requests — [41ba0bb8] GET /static/notifications.js - 200 - 1.35ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+17:15:22 INFO     timmy.requests — [8be69bfa] GET /static/style.css - 200 - 2.04ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49180 - "GET /static/notifications.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49164 - "GET /static/style.css?v=5 HTTP/1.1" 200 OK
+17:15:22 INFO     timmy.requests — [5c4adb90] GET /static/bg.svg - 200 - 0.81ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET /static/bg.svg HTTP/1.1" 200 OK
+17:15:22 WARNING  timmy.requests — [b5dc8ab1] GET /favicon.ico - 404 - 0.90ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:45624 - "POST /swarm/tasks HTTP/1.1" 403 Forbidden
+17:15:23 INFO     timmy.requests — [5e851039] GET /memory - 200 - 2.86ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET /memory?query=test HTTP/1.1" 200 OK
+17:15:23 INFO     timmy.requests — [1df87f30] GET /lightning/ledger - 200 - 1.55ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:15:23 INFO     timmy.requests — [87f702d3] GET /swarm/events - 200 - 1.46ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET /swarm/events HTTP/1.1" 200 OK
+17:15:24 INFO     timmy.requests — [c5bc6cc2] GET /lightning/ledger - 200 - 1.62ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:15:25 INFO     timmy.requests — [23f6de01] GET /memory - 200 - 2.13ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET /memory HTTP/1.1" 200 OK
+17:15:25 INFO     timmy.requests — [8b71465d] GET /router/status - 200 - 0.63ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET /router/status HTTP/1.1" 200 OK
+17:15:26 INFO     timmy.requests — [57a6f973] GET /self-modify/queue - 200 - 6.01ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:15:27 INFO     timmy.requests — [7320a349] GET /swarm/live - 200 - 4.65ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET /swarm/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45636 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:15:27 INFO     timmy.requests — [e4afc53f] GET /router/status - 200 - 0.75ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET /router/status HTTP/1.1" 200 OK
+17:15:28 INFO     timmy.requests — [00447cb2] GET / - 200 - 0.76ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET / HTTP/1.1" 200 OK
+17:15:28 INFO     timmy.requests — [1164bd22] GET /agents/timmy/panel - 200 - 0.44ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET /agents/timmy/panel HTTP/1.1" 200 OK
+17:15:28 WARNING  timmy.requests — [39239884] GET /api/queue/status - 404 - 2.09ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:45652 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:49164 - "GET /api/queue/status?assigned_to=timmy HTTP/1.1" 404 Not Found
+INFO:     connection closed
+17:15:28 INFO     timmy.requests — [3368d903] GET /agents/timmy/history - 200 - 0.48ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET /agents/timmy/history HTTP/1.1" 200 OK
+17:15:28 INFO     timmy.requests — [b3c8de3d] GET /self-modify/queue - 200 - 0.66ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:15:33 INFO     timmy.requests — [ca285cb2] GET /swarm/live - 200 - 4.31ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:49164 - "GET /swarm/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37244 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:15:33 INFO     timmy.requests — [1f3ff736] GET /swarm/events - 200 - 1.46ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:37254 - "GET /swarm/events HTTP/1.1" 200 OK
+17:15:33 INFO     timmy.requests — [d3a1feea] GET /lightning/ledger - 200 - 1.24ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:37264 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:15:33 INFO     timmy.requests — [fd404788] GET /memory - 200 - 2.12ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:37276 - "GET /memory HTTP/1.1" 200 OK
+17:15:33 INFO     timmy.requests — [035b4cc3] GET /router/status - 200 - 1.03ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:37286 - "GET /router/status HTTP/1.1" 200 OK
+17:15:34 INFO     timmy.requests — [e8bbb929] GET /self-modify/queue - 200 - 0.67ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:37294 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:15:34 INFO     timmy.requests — [fcc8f0a4] GET /swarm/live - 200 - 4.94ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:37296 - "GET /swarm/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37300 - "GET /health HTTP/1.1" 200 OK
+17:15:37 INFO     timmy.requests — [29c95c82] GET /swarm/events - 200 - 2.47ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:37302 - "GET /swarm/events HTTP/1.1" 200 OK
+17:15:37 INFO     timmy.requests — [3eece7b5] GET /static/style.css - 200 - 2.22ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:37302 - "GET /static/style.css?v=5 HTTP/1.1" 200 OK
+17:15:37 INFO     timmy.requests — [a085a57e] GET /static/notifications.js - 200 - 3.33ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:37314 - "GET /static/notifications.js HTTP/1.1" 200 OK
+17:15:37 INFO     timmy.requests — [837c1758] GET /static/bg.svg - 200 - 0.95ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:37314 - "GET /static/bg.svg HTTP/1.1" 200 OK
+17:15:37 WARNING  timmy.requests — [1d116d7e] GET /favicon.ico - 404 - 0.88ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:37314 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:37330 - "POST /swarm/tasks HTTP/1.1" 403 Forbidden
+17:15:38 INFO     timmy.requests — [73064a26] GET /memory - 200 - 4.42ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:37314 - "GET /memory?query=test HTTP/1.1" 200 OK
+17:15:38 INFO     timmy.requests — [bc7a41f6] GET /lightning/ledger - 200 - 1.28ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:37314 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:15:39 INFO     timmy.requests — [d76e3109] GET /swarm/live - 200 - 4.42ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:37314 - "GET /swarm/live HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37334 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     connection closed
+17:15:39 INFO     timmy.requests — [0cb44bfa] GET /self-modify/queue - 200 - 0.65ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:37314 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:15:44 INFO     timmy.requests — [70c37df0] GET /router/status - 200 - 0.77ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:37314 - "GET /router/status HTTP/1.1" 200 OK
+17:15:44 INFO     timmy.requests — [3978d3db] GET / - 200 - 1.60ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:37314 - "GET / HTTP/1.1" 200 OK
+17:15:44 INFO     timmy.requests — [f9301496] GET /agents/timmy/panel - 200 - 0.44ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:37314 - "GET /agents/timmy/panel HTTP/1.1" 200 OK
+17:15:45 WARNING  timmy.requests — [4a38779b] GET /api/queue/status - 404 - 1.08ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:40840 - "WebSocket /swarm/live" 403
+INFO:     connection rejected (403 Forbidden)
+INFO:     127.0.0.1:37314 - "GET /api/queue/status?assigned_to=timmy HTTP/1.1" 404 Not Found
+INFO:     connection closed
+17:15:45 INFO     timmy.requests — [d4c5e196] GET /agents/timmy/history - 200 - 0.46ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:37314 - "GET /agents/timmy/history HTTP/1.1" 200 OK
+17:15:45 INFO     timmy.requests — [73abbf08] GET /swarm/events - 200 - 1.77ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:40850 - "GET /swarm/events HTTP/1.1" 200 OK
+17:15:45 INFO     timmy.requests — [a7d343cd] GET /lightning/ledger - 200 - 1.28ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:40858 - "GET /lightning/ledger HTTP/1.1" 200 OK
+17:15:45 INFO     timmy.requests — [18addf2d] GET /memory - 200 - 2.17ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:40874 - "GET /memory HTTP/1.1" 200 OK
+17:15:45 INFO     timmy.requests — [b8d3e02d] GET /router/status - 200 - 0.99ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:40890 - "GET /router/status HTTP/1.1" 200 OK
+17:15:45 INFO     timmy.requests — [5de755a8] GET /self-modify/queue - 200 - 0.66ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:40894 - "GET /self-modify/queue HTTP/1.1" 200 OK
+17:15:45 INFO     timmy.requests — [02f8a704] GET /swarm/live - 200 - 4.35ms - 127.0.0.1 - python-httpx/0.28.1
+INFO:     127.0.0.1:40896 - "GET /swarm/live HTTP/1.1" 200 OK
+17:15:45 INFO     timmy.requests — [74efb0a9] GET /swarm/events - 200 - 1.46ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:37314 - "GET /swarm/events HTTP/1.1" 200 OK
+17:15:46 INFO     timmy.requests — [51406280] GET /lightning/ledger - 200 - 1.25ms - 127.0.0.1 - Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36
+INFO:     127.0.0.1:37314 - "GET /lightning/ledger HTTP/1.1" 200 OK

@@ -16,19 +16,41 @@ DB_PATH = Path("data/swarm.db")
 
 # Simple embedding function using sentence-transformers if available,
 # otherwise fall back to keyword-based "pseudo-embeddings"
-try:
-    from sentence_transformers import SentenceTransformer
-    _model = SentenceTransformer('all-MiniLM-L6-v2')
-    _has_embeddings = True
-except ImportError:
-    _has_embeddings = False
-    _model = None
+_model = None
+_has_embeddings = None
+
+
+def _get_model():
+    """Lazy-load the embedding model."""
+    global _model, _has_embeddings
+    if _has_embeddings is False:
+        return None
+    
+    if _model is not None:
+        return _model
+    
+    try:
+        from sentence_transformers import SentenceTransformer
+        import os
+        # In test mode or low-memory environments, we might want to skip this
+        if os.environ.get("TIMMY_SKIP_EMBEDDINGS") == "1":
+            _has_embeddings = False
+            return None
+            
+        _model = SentenceTransformer('all-MiniLM-L6-v2')
+        _has_embeddings = True
+        return _model
+    except (ImportError, RuntimeError, Exception):
+        # Gracefully fall back if anything goes wrong (e.g. OOM, Bus error)
+        _has_embeddings = False
+        return None
 
 
 def _get_embedding_dimension() -> int:
     """Get the dimension of embeddings."""
-    if _has_embeddings and _model:
-        return _model.get_sentence_embedding_dimension()
+    model = _get_model()
+    if model:
+        return model.get_sentence_embedding_dimension()
     return 384  # Default for all-MiniLM-L6-v2
 
 
@@ -38,8 +60,12 @@ def _compute_embedding(text: str) -> list[float]:
     Uses sentence-transformers if available, otherwise returns
     a simple hash-based vector for basic similarity.
     """
-    if _has_embeddings and _model:
-        return _model.encode(text).tolist()
+    model = _get_model()
+    if model:
+        try:
+            return model.encode(text).tolist()
+        except Exception:
+            pass
     
     # Fallback: simple character n-gram hash embedding
     # Not as good but allows the system to work without heavy deps

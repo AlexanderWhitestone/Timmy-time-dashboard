@@ -60,14 +60,15 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         """
         directives = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",  # HTMX needs inline
-            "style-src 'self' 'unsafe-inline'",  # Bootstrap needs inline
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' cdn.jsdelivr.net",  # HTMX needs inline
+            "style-src 'self' 'unsafe-inline' fonts.googleapis.com cdn.jsdelivr.net",  # Bootstrap needs inline
             "img-src 'self' data: blob:",
-            "font-src 'self'",
+            "font-src 'self' fonts.gstatic.com",
             "connect-src 'self' ws: wss:",  # WebSocket support
             "media-src 'self'",
             "object-src 'none'",
             "frame-src 'none'",
+            "frame-ancestors 'self'",
             "base-uri 'self'",
             "form-action 'self'",
         ]
@@ -83,7 +84,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         
         # Prevent clickjacking
-        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
         
         # Enable XSS protection (legacy browsers)
         response.headers["X-XSS-Protection"] = "1; mode=block"
