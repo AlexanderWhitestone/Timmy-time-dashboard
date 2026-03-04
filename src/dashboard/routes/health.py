@@ -237,9 +237,10 @@ async def health_status_panel(request: Request):
     
     status_text = "UP" if ollama_ok else "DOWN"
     status_color = "#10b981" if ollama_ok else "#ef4444"
-    model = settings.ollama_model  # Include model for test compatibility
+    import html
+    model = html.escape(settings.ollama_model)  # Include model for test compatibility
     
-    html = f"""
+    html_content = f"""
     <!DOCTYPE html>
     <html>
     <head><title>Health Status</title></head>
@@ -251,7 +252,7 @@ async def health_status_panel(request: Request):
     </body>
     </html>
     """
-    return HTMLResponse(content=html)
+    return HTMLResponse(content=html_content)
 
 
 @router.get("/health/sovereignty", response_model=SovereigntyReport)
