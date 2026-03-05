@@ -106,6 +106,8 @@ class UnifiedMemory:
     def _get_embedder(self):
         """Lazy-load the embedding model."""
         if self._embedder is None:
+            if os.environ.get("TIMMY_SKIP_EMBEDDINGS") == "1":
+                return None
             try:
                 from brain.embeddings import LocalEmbedder
                 self._embedder = LocalEmbedder()

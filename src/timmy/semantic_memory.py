@@ -37,6 +37,10 @@ def _get_embedding_model():
     """Lazy-load embedding model."""
     global EMBEDDING_MODEL
     if EMBEDDING_MODEL is None:
+        import os
+        if os.environ.get("TIMMY_SKIP_EMBEDDINGS") == "1":
+            EMBEDDING_MODEL = False
+            return EMBEDDING_MODEL
         try:
             from sentence_transformers import SentenceTransformer
             EMBEDDING_MODEL = SentenceTransformer('all-MiniLM-L6-v2')

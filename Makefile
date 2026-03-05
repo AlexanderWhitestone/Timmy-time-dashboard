@@ -92,10 +92,10 @@ test-integration:
 	$(PYTEST) tests -m "integration" --tb=short -v
 
 test-functional:
-	$(PYTEST) tests -m "functional and not slow and not selenium" --tb=short -v
+	$(PYTEST) tests -m "functional and not slow and not selenium" --tb=short -v -n0
 
 test-e2e:
-	$(PYTEST) tests -m "e2e" --tb=short -v
+	$(PYTEST) tests -m "e2e" --tb=short -v -n0
 
 test-fast:
 	$(PYTEST) tests -m "unit or integration" --tb=short -v
