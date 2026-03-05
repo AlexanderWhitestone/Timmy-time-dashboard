@@ -1,11 +1,9 @@
 """Memory (vector store) routes for browsing and searching memories."""
 
-from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 
 from timmy.memory.vector_store import (
     store_memory,
@@ -17,9 +15,9 @@ from timmy.memory.vector_store import (
     update_personal_fact,
     delete_memory,
 )
+from dashboard.templating import templates
 
 router = APIRouter(prefix="/memory", tags=["memory"])
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 
 @router.get("", response_class=HTMLResponse)

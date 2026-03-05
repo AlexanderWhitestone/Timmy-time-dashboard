@@ -35,6 +35,9 @@ for _mod in [
     "celery",
     "celery.app",
     "celery.result",
+    "pyttsx3",
+    "sentence_transformers",
+    "redis",
 ]:
     sys.modules.setdefault(_mod, MagicMock())
 
@@ -190,87 +193,3 @@ def mock_timmy_agent():
     return agent
 
 
-@pytest.fixture
-def mock_memory_system():
-    """Provide a mock memory system."""
-    memory = MagicMock()
-    memory.get_system_context = MagicMock(return_value="Test memory context")
-    memory.add_memory = MagicMock()
-    memory.search = MagicMock(return_value=[])
-    return memory
-
-
-@pytest.fixture
-def mock_event_log():
-    """Provide a mock event logger."""
-    logger = MagicMock()
-    logger.log_event = MagicMock()
-    logger.get_events = MagicMock(return_value=[])
-    return logger
-
-
-@pytest.fixture
-def mock_ws_manager():
-    """Provide a mock WebSocket manager."""
-    manager = MagicMock()
-    manager.broadcast = MagicMock()
-    manager.broadcast_json = MagicMock()
-    manager.send = MagicMock()
-    return manager
-
-
-@pytest.fixture
-def mock_settings():
-    """Provide mock settings."""
-    settings = MagicMock()
-    settings.ollama_url = "http://localhost:11434"
-    settings.ollama_model = "llama3.2"
-    settings.thinking_enabled = True
-    settings.thinking_interval_seconds = 300
-    settings.error_log_enabled = False
-    settings.repo_root = str(Path(__file__).parent.parent)
-    return settings
-
-
-@pytest.fixture
-def sample_interview_data():
-    """Provide sample interview data for testing."""
-    return {
-        "questions": [
-            {
-                "category": "Identity",
-                "question": "Who are you?",
-                "expected_keywords": ["Timmy", "agent"],
-            },
-            {
-                "category": "Capabilities",
-                "question": "What can you do?",
-                "expected_keywords": ["agent", "brain"],
-            },
-        ],
-        "expected_response_format": "string",
-    }
-
-
-@pytest.fixture
-def sample_task_data():
-    """Provide sample task data for testing."""
-    return {
-        "id": "task-1",
-        "title": "Test Task",
-        "description": "This is a test task",
-        "assigned_to": "timmy",
-        "status": "pending",
-        "priority": "normal",
-    }
-
-
-@pytest.fixture
-def sample_agent_data():
-    """Provide sample agent data for testing."""
-    return {
-        "id": "agent-1",
-        "name": "Test Agent",
-        "capabilities": ["chat", "reasoning"],
-        "status": "active",
-    }

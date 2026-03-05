@@ -22,9 +22,10 @@ def test_ws_manager_initial_state():
 
 @pytest.mark.asyncio
 async def test_ws_manager_event_history_limit():
-    """History is trimmed to max_history after broadcasts."""
+    """History is trimmed to maxlen after broadcasts."""
+    import collections
     mgr = WebSocketManager()
-    mgr._max_history = 5
+    mgr._event_history = collections.deque(maxlen=5)
     for i in range(10):
         await mgr.broadcast(f"e{i}", {})
     assert len(mgr.event_history) == 5

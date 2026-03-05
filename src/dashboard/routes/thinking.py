@@ -6,18 +6,16 @@ GET  /thinking/api/{id}/chain — follow a thought chain
 """
 
 import logging
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 
 from timmy.thinking import thinking_engine
+from dashboard.templating import templates
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/thinking", tags=["thinking"])
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 
 @router.get("", response_class=HTMLResponse)

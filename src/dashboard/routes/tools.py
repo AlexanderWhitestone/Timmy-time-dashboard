@@ -3,16 +3,13 @@
 Shows available tools and usage statistics.
 """
 
-from pathlib import Path
-
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 
 from timmy.tools import get_all_available_tools
+from dashboard.templating import templates
 
 router = APIRouter(tags=["tools"])
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 
 @router.get("/tools", response_class=HTMLResponse)

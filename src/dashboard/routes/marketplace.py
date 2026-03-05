@@ -4,16 +4,13 @@ DEPRECATED: Personas replaced by brain task queue.
 This module is kept for UI compatibility.
 """
 
-from pathlib import Path
-
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 
 from brain.client import BrainClient
+from dashboard.templating import templates
 
 router = APIRouter(tags=["marketplace"])
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 # Orchestrator only — personas deprecated
 AGENT_CATALOG = [

@@ -1,16 +1,15 @@
 """System-level dashboard routes (ledger, upgrades, etc.)."""
 
 import logging
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+
+from dashboard.templating import templates
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["system"])
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 
 @router.get("/lightning/ledger", response_class=HTMLResponse)

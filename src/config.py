@@ -215,6 +215,7 @@ OLLAMA_MODEL_FALLBACK: str = "qwen2.5:14b"
 def check_ollama_model_available(model_name: str) -> bool:
     """Check if a specific Ollama model is available locally."""
     try:
+        import json
         import urllib.request
 
         url = settings.ollama_url.replace("localhost", "127.0.0.1")
@@ -224,12 +225,12 @@ def check_ollama_model_available(model_name: str) -> bool:
             headers={"Accept": "application/json"},
         )
         with urllib.request.urlopen(req, timeout=5) as response:
-            import json
-
             data = json.loads(response.read().decode())
-            models = [m.get("name", "").split(":")[0] for m in data.get("models", [])]
-            # Check for exact match or model name without tag
-            return any(model_name in m or m in model_name for m in models)
+            models = [m.get("name", "") for m in data.get("models", [])]
+            return any(
+                model_name == m or model_name == m.split(":")[0] or m.startswith(model_name)
+                for m in models
+            )
     except Exception:
         return False
 

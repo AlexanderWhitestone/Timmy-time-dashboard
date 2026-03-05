@@ -9,18 +9,16 @@ GET  /grok/stats      — Usage statistics (JSON)
 """
 
 import logging
-from pathlib import Path
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 
 from config import settings
+from dashboard.templating import templates
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/grok", tags=["grok"])
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 # In-memory toggle state (persists per process lifetime)
 _grok_mode_active: bool = False

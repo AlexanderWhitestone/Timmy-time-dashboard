@@ -7,6 +7,7 @@ system events.
 """
 
 import asyncio
+import collections
 import json
 import logging
 from dataclasses import asdict, dataclass
@@ -34,8 +35,7 @@ class WebSocketManager:
 
     def __init__(self) -> None:
         self._connections: list[WebSocket] = []
-        self._event_history: list[WSEvent] = []
-        self._max_history = 100
+        self._event_history: collections.deque[WSEvent] = collections.deque(maxlen=100)
 
     async def connect(self, websocket: WebSocket) -> None:
         """Accept a new WebSocket connection."""
@@ -46,7 +46,7 @@ class WebSocketManager:
             len(self._connections),
         )
         # Send recent history to the new client
-        for event in self._event_history[-20:]:
+        for event in list(self._event_history)[-20:]:
             try:
                 await websocket.send_text(event.to_json())
             except Exception:
@@ -69,8 +69,6 @@ class WebSocketManager:
             timestamp=datetime.now(timezone.utc).isoformat(),
         )
         self._event_history.append(ws_event)
-        if len(self._event_history) > self._max_history:
-            self._event_history = self._event_history[-self._max_history:]
 
         message = ws_event.to_json()
         disconnected = []
@@ -78,7 +76,10 @@ class WebSocketManager:
         for ws in self._connections:
             try:
                 await ws.send_text(message)
+            except ConnectionError:
+                disconnected.append(ws)
             except Exception:
+                logger.warning("Unexpected WebSocket send error", exc_info=True)
                 disconnected.append(ws)
 
         # Clean up dead connections
@@ -128,8 +129,6 @@ class WebSocketManager:
         Returns:
             Number of clients notified
         """
-        import json
-        
         message = json.dumps(data)
         disconnected = []
         count = 0

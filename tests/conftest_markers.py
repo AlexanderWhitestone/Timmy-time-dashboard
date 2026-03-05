@@ -37,7 +37,7 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.slow)
         elif "functional" in test_path:
             item.add_marker(pytest.mark.functional)
-        elif "integration" in test_path:
+        elif "infrastructure" in test_path or "integration" in test_path:
             item.add_marker(pytest.mark.integration)
         else:
             item.add_marker(pytest.mark.unit)

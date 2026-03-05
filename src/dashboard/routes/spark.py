@@ -9,18 +9,16 @@ GET  /spark/predictions — HTMX partial: EIDOS predictions
 
 import json
 import logging
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 
 from spark.engine import spark_engine
+from dashboard.templating import templates
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/spark", tags=["spark"])
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 
 @router.get("/ui", response_class=HTMLResponse)

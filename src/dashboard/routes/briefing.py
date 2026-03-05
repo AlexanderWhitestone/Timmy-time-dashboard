@@ -7,19 +7,17 @@ POST /briefing/approvals/{id}/reject   — reject an item (HTMX)
 """
 
 import logging
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 
 from timmy.briefing import engine as briefing_engine
 from timmy import approvals as approval_store
+from dashboard.templating import templates
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/briefing", tags=["briefing"])
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 
 @router.get("", response_class=HTMLResponse)

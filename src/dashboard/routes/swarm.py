@@ -2,19 +2,17 @@
 
 import json
 import logging
-from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 
 from spark.engine import spark_engine
+from dashboard.templating import templates
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/swarm", tags=["swarm"])
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 
 @router.get("/events", response_class=HTMLResponse)

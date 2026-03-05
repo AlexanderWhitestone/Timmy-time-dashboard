@@ -10,7 +10,6 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from config import settings
@@ -21,12 +20,12 @@ from infrastructure.models.registry import (
     ModelRole,
     model_registry,
 )
+from dashboard.templating import templates
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/models", tags=["models"])
 api_router = APIRouter(prefix="/api/v1/models", tags=["models-api"])
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 
 # ── Pydantic schemas ──────────────────────────────────────────────────────────
