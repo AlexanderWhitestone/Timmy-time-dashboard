@@ -41,6 +41,7 @@ sentence-transformers = ">=2.0.0"  # Local embeddings for brain
 numpy = ">=1.24.0"
 # Optional extras
 redis = { version = ">=5.0.0", optional = true }
+celery = { version = ">=5.3.0", extras = ["redis"], optional = true }
 python-telegram-bot = { version = ">=21.0", optional = true }
 "discord.py" = { version = ">=2.3.0", optional = true }
 airllm = { version = ">=2.9.0", optional = true }
@@ -58,6 +59,7 @@ telegram = ["python-telegram-bot"]
 discord = ["discord.py"]
 bigbrain = ["airllm"]
 voice = ["pyttsx3"]
+celery = ["celery"]
 dev = ["pytest", "pytest-asyncio", "pytest-cov", "pytest-timeout", "pytest-randomly", "pytest-xdist", "selenium"]
 
 [tool.poetry.group.dev.dependencies]

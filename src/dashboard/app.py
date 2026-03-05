@@ -41,6 +41,7 @@ from dashboard.routes.thinking import router as thinking_router
 from dashboard.routes.calm import router as calm_router
 from dashboard.routes.swarm import router as swarm_router
 from dashboard.routes.system import router as system_router
+from dashboard.routes.tasks_celery import router as celery_router
 from infrastructure.router.api import router as cascade_router
 
 # Import dedicated middleware
@@ -306,6 +307,7 @@ app.include_router(thinking_router)
 app.include_router(calm_router)
 app.include_router(swarm_router)
 app.include_router(system_router)
+app.include_router(celery_router)
 app.include_router(cascade_router)
 
 
