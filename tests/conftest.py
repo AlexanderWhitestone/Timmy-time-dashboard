@@ -13,7 +13,6 @@ try:
     from . import conftest_markers  # noqa: F401
 except ImportError:
     import conftest_markers  # noqa: F401
-from fastapi.testclient import TestClient
 
 # ── Stub heavy optional dependencies so tests run without them installed ──────
 # Uses setdefault: real module is used if already installed, mock otherwise.
@@ -134,6 +133,7 @@ def cleanup_event_loops():
 @pytest.fixture
 def client():
     """FastAPI test client with fresh app instance."""
+    from fastapi.testclient import TestClient
     from dashboard.app import app
     with TestClient(app) as c:
         yield c

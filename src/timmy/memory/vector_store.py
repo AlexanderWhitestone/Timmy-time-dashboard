@@ -29,14 +29,14 @@ def _get_model():
     if _model is not None:
         return _model
     
+    import os
+    # In test mode or low-memory environments, skip embedding model load
+    if os.environ.get("TIMMY_SKIP_EMBEDDINGS") == "1":
+        _has_embeddings = False
+        return None
+
     try:
         from sentence_transformers import SentenceTransformer
-        import os
-        # In test mode or low-memory environments, we might want to skip this
-        if os.environ.get("TIMMY_SKIP_EMBEDDINGS") == "1":
-            _has_embeddings = False
-            return None
-            
         _model = SentenceTransformer('all-MiniLM-L6-v2')
         _has_embeddings = True
         return _model

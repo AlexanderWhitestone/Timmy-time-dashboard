@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import json
 import logging
-import numpy as np
 from typing import List, Union
 
 logger = logging.getLogger(__name__)
@@ -47,7 +46,7 @@ class LocalEmbedder:
             logger.error("sentence-transformers not installed. Run: pip install sentence-transformers")
             raise
     
-    def encode(self, text: Union[str, List[str]]) -> np.ndarray:
+    def encode(self, text: Union[str, List[str]]):
         """Encode text to embedding vector(s).
         
         Args:
@@ -64,20 +63,22 @@ class LocalEmbedder:
     
     def encode_single(self, text: str) -> bytes:
         """Encode single text to bytes for SQLite storage.
-        
+
         Returns:
             Float32 bytes
         """
+        import numpy as np
         embedding = self.encode(text)
         if len(embedding.shape) > 1:
             embedding = embedding[0]
         return embedding.astype(np.float32).tobytes()
     
-    def similarity(self, a: np.ndarray, b: np.ndarray) -> float:
+    def similarity(self, a, b) -> float:
         """Compute cosine similarity between two vectors.
-        
+
         Vectors should already be normalized from encode().
         """
+        import numpy as np
         return float(np.dot(a, b))
 
 
