@@ -33,6 +33,9 @@ for _mod in [
     "pyzbar",
     "pyzbar.pyzbar",
     "requests",
+    "celery",
+    "celery.app",
+    "celery.result",
 ]:
     sys.modules.setdefault(_mod, MagicMock())
 

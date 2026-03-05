@@ -45,6 +45,8 @@ services:
       GROK_ENABLED: "${GROK_ENABLED:-false}"
       XAI_API_KEY: "${XAI_API_KEY:-}"
       GROK_DEFAULT_MODEL: "${GROK_DEFAULT_MODEL:-grok-3-fast}"
+      # Celery/Redis — background task queue
+      REDIS_URL: "redis://redis:6379/0"
       # Taskosaur API — dashboard can reach it on the internal network
       TASKOSAUR_API_URL: "http://taskosaur:3000/api"
     extra_hosts:
@@ -130,6 +132,30 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+
+  # ── Celery Worker — background task processing ──────────────────────────
+  celery-worker:
+    build: .
+    image: timmy-time:latest
+    container_name: timmy-celery-worker
+    user: "0:0"
+    command: ["celery", "-A", "infrastructure.celery.app", "worker", "--loglevel=info", "--concurrency=2"]
+    volumes:
+      - timmy-data:/app/data
+      - ./src:/app/src
+    environment:
+      REDIS_URL: "redis://redis:6379/0"
+      OLLAMA_URL: "${OLLAMA_URL:-http://host.docker.internal:11434}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - timmy-net
+    restart: unless-stopped
+    profiles:
+      - celery
 
   # ── OpenFang — vendored agent runtime sidecar ────────────────────────────
   openfang:
