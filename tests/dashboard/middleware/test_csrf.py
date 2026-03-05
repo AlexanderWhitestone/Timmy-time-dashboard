@@ -147,3 +147,71 @@ class TestCSRFMiddleware:
         response = client.get("/test")
         assert response.status_code == 200
         assert "csrf_token" in response.cookies or "set-cookie" in str(response.headers).lower()
+
+    def test_csrf_middleware_allows_with_form_field(self):
+        """POST with valid CSRF token in form field should succeed."""
+        from dashboard.middleware.csrf import CSRFMiddleware, generate_csrf_token
+        
+        app = FastAPI()
+        app.add_middleware(CSRFMiddleware)
+        
+        @app.post("/test-form")
+        async def test_endpoint(request: Request):
+            return {"message": "success"}
+        
+        client = TestClient(app)
+        token = generate_csrf_token()
+        
+        # POST with valid CSRF token in form field
+        response = client.post(
+            "/test-form",
+            data={"csrf_token": token, "other": "data"},
+            cookies={"csrf_token": token}
+        )
+        assert response.status_code == 200
+        assert response.json() == {"message": "success"}
+
+    def test_csrf_middleware_blocks_mismatched_token(self):
+        """POST with mismatched token should fail."""
+        from dashboard.middleware.csrf import CSRFMiddleware, generate_csrf_token
+        
+        app = FastAPI()
+        app.add_middleware(CSRFMiddleware)
+        
+        @app.post("/test")
+        async def test_endpoint():
+            return {"message": "success"}
+        
+        client = TestClient(app)
+        token1 = generate_csrf_token()
+        token2 = generate_csrf_token()
+        
+        # POST with token from one session and cookie from another
+        response = client.post(
+            "/test",
+            headers={"X-CSRF-Token": token1},
+            cookies={"csrf_token": token2}
+        )
+        assert response.status_code == 403
+        assert "CSRF" in response.json().get("error", "")
+
+    def test_csrf_middleware_blocks_missing_cookie(self):
+        """POST with header token but missing cookie should fail."""
+        from dashboard.middleware.csrf import CSRFMiddleware, generate_csrf_token
+        
+        app = FastAPI()
+        app.add_middleware(CSRFMiddleware)
+        
+        @app.post("/test")
+        async def test_endpoint():
+            return {"message": "success"}
+        
+        client = TestClient(app)
+        token = generate_csrf_token()
+        
+        # POST with header token but no cookie
+        response = client.post(
+            "/test",
+            headers={"X-CSRF-Token": token}
+        )
+        assert response.status_code == 403

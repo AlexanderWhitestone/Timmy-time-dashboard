@@ -154,7 +154,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         # since FastAPI routes are resolved after middleware
         
         # Try to validate token early
-        if not self._validate_request(request, csrf_cookie):
+        if not await self._validate_request(request, csrf_cookie):
             # Check if this might be an exempt route by checking path patterns
             # that are commonly exempt (like webhooks)
             path = request.url.path
@@ -164,7 +164,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                     content={
                         "error": "CSRF validation failed",
                         "code": "CSRF_INVALID",
-                        "message": "Missing or invalid CSRF token. Include the token from the csrf_token cookie in the X-CSRF-Token header."
+                        "message": "Missing or invalid CSRF token. Include the token from the csrf_token cookie in the X-CSRF-Token header or as a form field."
                     }
                 )
         
@@ -189,7 +189,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         ]
         return any(pattern in path for pattern in exempt_patterns)
     
-    def _validate_request(self, request: Request, csrf_cookie: Optional[str]) -> bool:
+    async def _validate_request(self, request: Request, csrf_cookie: Optional[str]) -> bool:
         """Validate the CSRF token in the request.
         
         Checks for token in:
@@ -203,19 +203,26 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         Returns:
             True if the token is valid, False otherwise.
         """
+        # Validate against cookie
+        if not csrf_cookie:
+            return False
+
         # Get token from header
         header_token = request.headers.get(self.header_name)
+        if header_token and validate_csrf_token(header_token, csrf_cookie):
+            return True
         
         # If no header token, try form data (for non-JSON POSTs)
-        form_token = None
-        if not header_token:
-            # Note: Reading form data requires async, handled separately
-            pass
+        # Check Content-Type to avoid hanging on non-form requests
+        content_type = request.headers.get("Content-Type", "")
+        if "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+            try:
+                form_data = await request.form()
+                form_token = form_data.get(self.form_field)
+                if form_token and validate_csrf_token(str(form_token), csrf_cookie):
+                    return True
+            except Exception:
+                # Error parsing form data, treat as invalid
+                pass
         
-        token = header_token or form_token
-        
-        # Validate against cookie
-        if not token or not csrf_cookie:
-            return False
-        
-        return validate_csrf_token(token, csrf_cookie)
+        return False
