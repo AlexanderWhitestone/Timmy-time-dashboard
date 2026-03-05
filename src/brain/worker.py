@@ -77,9 +77,9 @@ class DistributedWorker:
             )
             if result.returncode == 0:
                 return True
-        except:
+        except (OSError, subprocess.SubprocessError):
             pass
-        
+
         # Check for ROCm
         if os.path.exists("/opt/rocm"):
             return True
@@ -93,11 +93,11 @@ class DistributedWorker:
                 )
                 if "Metal" in result.stdout:
                     return True
-            except:
+            except (OSError, subprocess.SubprocessError):
                 pass
-        
+
         return False
-    
+
     def _has_internet(self) -> bool:
         """Check if we have internet connectivity."""
         try:
@@ -106,9 +106,9 @@ class DistributedWorker:
                 capture_output=True, timeout=5
             )
             return result.returncode == 0
-        except:
+        except (OSError, subprocess.SubprocessError):
             return False
-    
+
     def _get_memory_gb(self) -> float:
         """Get total system memory in GB."""
         try:
@@ -125,7 +125,7 @@ class DistributedWorker:
                         if line.startswith("MemTotal:"):
                             kb = int(line.split()[1])
                             return kb / (1024**2)
-        except:
+        except (OSError, ValueError):
             pass
         return 8.0  # Assume 8GB if we can't detect
     
@@ -136,9 +136,9 @@ class DistributedWorker:
                 ["which", cmd], capture_output=True, timeout=5
             )
             return result.returncode == 0
-        except:
+        except (OSError, subprocess.SubprocessError):
             return False
-    
+
     def _register_default_handlers(self):
         """Register built-in task handlers."""
         self._handlers = {

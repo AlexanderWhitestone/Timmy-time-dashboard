@@ -5,21 +5,15 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from dashboard.models.calm import JournalEntry, Task, TaskCertainty, TaskState
 from dashboard.models.database import SessionLocal, engine, get_db
-
-# Create database tables (if not already created by Alembic)
-# This is typically handled by Alembic migrations in a production environment
-# from dashboard.models.database import Base
-# Base.metadata.create_all(bind=engine)
+from dashboard.templating import templates
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["calm"])
-templates = Jinja2Templates(directory="src/dashboard/templates")
 
 
 # Helper functions for state machine logic

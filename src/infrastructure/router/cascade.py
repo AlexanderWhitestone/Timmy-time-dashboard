@@ -18,8 +18,6 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Optional
 
-from pathlib import Path
-
 try:
     import yaml
 except ImportError:

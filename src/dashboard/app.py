@@ -18,8 +18,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-
 from config import settings
 from dashboard.routes.agents import router as agents_router
 from dashboard.routes.health import router as health_router
@@ -282,8 +280,8 @@ static_dir = PROJECT_ROOT / "static"
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
-# Global templates instance
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+# Shared templates instance
+from dashboard.templating import templates  # noqa: E402
 
 
 # Include routers

@@ -5,7 +5,6 @@ No OpenAI dependency. Runs 100% locally on CPU.
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import List, Union
 

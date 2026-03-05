@@ -8,16 +8,15 @@ POST /celery/api/{id}/revoke — cancel a running task
 """
 
 import logging
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
+
+from dashboard.templating import templates
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/celery", tags=["celery"])
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 # In-memory record of submitted task IDs for the dashboard display.
 # In production this would use the Celery result backend directly,

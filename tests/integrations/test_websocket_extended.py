@@ -67,8 +67,9 @@ class TestWebSocketManagerBroadcast:
 
     @pytest.mark.asyncio
     async def test_broadcast_trims_history(self):
+        import collections
         mgr = WebSocketManager()
-        mgr._max_history = 3
+        mgr._event_history = collections.deque(maxlen=3)
         for i in range(5):
             await mgr.broadcast(f"e{i}", {})
         assert len(mgr.event_history) == 3

@@ -20,7 +20,7 @@ from agno.agent import Agent
 from agno.db.sqlite import SqliteDb
 from agno.models.ollama import Ollama
 
-from config import settings
+from config import check_ollama_model_available, settings
 from timmy.prompts import get_system_prompt
 from timmy.tools import create_full_toolkit
 
@@ -64,27 +64,7 @@ _SMALL_MODEL_PATTERNS = (
 
 def _check_model_available(model_name: str) -> bool:
     """Check if an Ollama model is available locally."""
-    try:
-        import urllib.request
-        import json
-        
-        url = settings.ollama_url.replace("localhost", "127.0.0.1")
-        req = urllib.request.Request(
-            f"{url}/api/tags",
-            method="GET",
-            headers={"Accept": "application/json"},
-        )
-        with urllib.request.urlopen(req, timeout=5) as response:
-            data = json.loads(response.read().decode())
-            models = [m.get("name", "") for m in data.get("models", [])]
-            # Check for exact match or model name without tag
-            return any(
-                model_name == m or model_name == m.split(":")[0] or m.startswith(model_name)
-                for m in models
-            )
-    except Exception as exc:
-        logger.debug("Could not check model availability: %s", exc)
-        return False
+    return check_ollama_model_available(model_name)
 
 
 def _pull_model(model_name: str) -> bool:

@@ -8,16 +8,13 @@ The /mobile/local endpoint loads a small LLM directly into the
 browser via WebLLM so Timmy can run on an iPhone with no server.
 """
 
-from pathlib import Path
-
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 
 from config import settings
+from dashboard.templating import templates
 
 router = APIRouter(tags=["mobile"])
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 
 @router.get("/mobile", response_class=HTMLResponse)

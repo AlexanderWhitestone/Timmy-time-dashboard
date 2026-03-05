@@ -1,15 +1,12 @@
 """Cascade Router status routes."""
 
-from pathlib import Path
-
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 
 from timmy.cascade_adapter import get_cascade_adapter
+from dashboard.templating import templates
 
 router = APIRouter(prefix="/router", tags=["router"])
-templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 
 @router.get("/status", response_class=HTMLResponse)

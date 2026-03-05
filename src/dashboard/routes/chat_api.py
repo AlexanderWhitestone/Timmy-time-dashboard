@@ -15,7 +15,7 @@ import os
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, File, Request, UploadFile
+from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 
 from config import settings
@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat-api"])
 
 _UPLOAD_DIR = os.path.join("data", "chat-uploads")
+_MAX_UPLOAD_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
 # ── POST /api/chat ────────────────────────────────────────────────────────────
@@ -112,11 +113,13 @@ async def api_upload(file: UploadFile = File(...)):
     os.makedirs(_UPLOAD_DIR, exist_ok=True)
 
     suffix = uuid.uuid4().hex[:12]
-    safe_name = (file.filename or "upload").replace("/", "_").replace("\\", "_")
+    safe_name = os.path.basename(file.filename or "upload")
     stored_name = f"{suffix}-{safe_name}"
     file_path = os.path.join(_UPLOAD_DIR, stored_name)
 
     contents = await file.read()
+    if len(contents) > _MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=413, detail="File too large (max 50 MB)")
     with open(file_path, "wb") as f:
         f.write(contents)
 

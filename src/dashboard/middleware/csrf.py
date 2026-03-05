@@ -187,7 +187,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             "/lightning/webhook",
             "/_internal/",
         ]
-        return any(pattern in path for pattern in exempt_patterns)
+        return any(path.startswith(pattern) for pattern in exempt_patterns)
     
     async def _validate_request(self, request: Request, csrf_cookie: Optional[str]) -> bool:
         """Validate the CSRF token in the request.
