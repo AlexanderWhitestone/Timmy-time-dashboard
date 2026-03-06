@@ -149,6 +149,23 @@ class Settings(BaseSettings):
     thinking_enabled: bool = True
     thinking_interval_seconds: int = 300  # 5 minutes between thoughts
 
+    # ── Paperclip AI — orchestration bridge ────────────────────────────
+    # URL where the Paperclip server listens.
+    # For VPS deployment behind nginx, use the public domain.
+    paperclip_url: str = "http://localhost:3100"
+    # Enable/disable the Paperclip integration.
+    paperclip_enabled: bool = False
+    # API key or auth-gate cookie for authenticating with Paperclip.
+    paperclip_api_key: str = ""
+    # Timmy's agent ID in the Paperclip org chart.
+    paperclip_agent_id: str = ""
+    # Company ID in Paperclip — required for most API calls.
+    paperclip_company_id: str = ""
+    # Timeout in seconds for Paperclip HTTP calls.
+    paperclip_timeout: int = 30
+    # How often (seconds) Timmy polls Paperclip for work (0 = disabled).
+    paperclip_poll_interval: int = 0
+
     # ── OpenFang — vendored agent runtime ─────────────────────────────
     # URL where the OpenFang sidecar listens.  Set to the Docker service
     # name when running in compose, or localhost for bare-metal dev.
