@@ -216,9 +216,6 @@ You are the primary interface between the user and the agent swarm. You:
 7. **When asked about your status, queue, agents, memory, or system health, use the `system_status` tool.**
 """
 
-# Backward-compat alias
-TIMMY_ORCHESTRATOR_PROMPT_BASE = ORCHESTRATOR_PROMPT_BASE
-
 
 class TimmyOrchestrator(BaseAgent):
     """Main orchestrator agent that coordinates the swarm."""

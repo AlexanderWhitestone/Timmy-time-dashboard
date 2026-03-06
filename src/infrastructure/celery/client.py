@@ -17,7 +17,7 @@ def _get_app():
 
 def submit_chat_task(
     prompt: str,
-    agent_id: str = "timmy",
+    agent_id: str = "default",
     session_id: str = "celery",
 ) -> str | None:
     """Submit a chat task to the Celery queue.
@@ -43,7 +43,7 @@ def submit_chat_task(
 def submit_tool_task(
     tool_name: str,
     kwargs: dict | None = None,
-    agent_id: str = "timmy",
+    agent_id: str = "default",
 ) -> str | None:
     """Submit a tool execution task to the Celery queue.
 

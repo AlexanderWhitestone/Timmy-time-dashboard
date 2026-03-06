@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Self-Coding — Timmy Time{% endblock %}
+{% block title %}Self-Coding{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
@@ -8,7 +8,7 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
       <h1 class="h3 mb-0">Self-Coding</h1>
-      <p class="text-muted small mb-0">Timmy's ability to modify its own source code</p>
+      <p class="text-muted small mb-0">Self-modification of source code</p>
     </div>
     <div class="d-flex gap-2">
       <button class="btn btn-sm btn-outline-info" hx-get="/self-coding/stats" hx-target="#stats-container" hx-indicator="#stats-loading">

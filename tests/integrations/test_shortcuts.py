@@ -6,7 +6,6 @@ from integrations.shortcuts.siri import get_setup_guide, SHORTCUT_ACTIONS
 def test_setup_guide_has_title():
     guide = get_setup_guide()
     assert "title" in guide
-    assert "Timmy" in guide["title"]
 
 
 def test_setup_guide_has_instructions():
@@ -33,11 +32,11 @@ def test_setup_guide_actions_have_required_fields():
 def test_shortcut_actions_catalog():
     assert len(SHORTCUT_ACTIONS) >= 4
     names = [a.name for a in SHORTCUT_ACTIONS]
-    assert "Chat with Timmy" in names
+    assert "Chat with Agent" in names
     assert "Check Status" in names
 
 
 def test_chat_shortcut_is_post():
-    chat = next(a for a in SHORTCUT_ACTIONS if a.name == "Chat with Timmy")
+    chat = next(a for a in SHORTCUT_ACTIONS if a.name == "Chat with Agent")
     assert chat.method == "POST"
     assert "/shortcuts/chat" in chat.endpoint

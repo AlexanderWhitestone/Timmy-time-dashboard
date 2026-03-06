@@ -9,11 +9,11 @@ def client():
 def test_agents_chat_empty_message_validation(client):
     """Verify that empty messages are rejected."""
     # First get a CSRF token
-    get_resp = client.get("/agents/timmy/panel")
+    get_resp = client.get("/agents/default/panel")
     csrf_token = get_resp.cookies.get("csrf_token")
     
     response = client.post(
-        "/agents/timmy/chat",
+        "/agents/default/chat",
         data={"message": ""},
         headers={"X-CSRF-Token": csrf_token} if csrf_token else {}
     )
@@ -24,13 +24,13 @@ def test_agents_chat_empty_message_validation(client):
 def test_agents_chat_oversized_message_validation(client):
     """Verify that oversized messages are rejected."""
     # First get a CSRF token
-    get_resp = client.get("/agents/timmy/panel")
+    get_resp = client.get("/agents/default/panel")
     csrf_token = get_resp.cookies.get("csrf_token")
     
     # Create a message that's too large (e.g., 100KB)
     large_message = "x" * (100 * 1024)
     response = client.post(
-        "/agents/timmy/chat",
+        "/agents/default/chat",
         data={"message": large_message},
         headers={"X-CSRF-Token": csrf_token} if csrf_token else {}
     )

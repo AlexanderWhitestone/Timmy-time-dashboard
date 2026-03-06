@@ -20,7 +20,7 @@ from fastapi.responses import JSONResponse
 
 from config import settings
 from dashboard.store import message_log
-from timmy.session import chat as timmy_chat
+from timmy.session import chat as agent_chat
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ async def api_chat(request: Request):
             f"{now.strftime('%A, %B %d, %Y at %I:%M %p')}]\n"
             f"[System: Mobile client]\n\n"
         )
-        response_text = timmy_chat(
+        response_text = agent_chat(
             context_prefix + last_user_msg,
             session_id="mobile",
         )

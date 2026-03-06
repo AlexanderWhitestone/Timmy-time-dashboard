@@ -1,5 +1,5 @@
 /**
- * Browser Push Notifications for Timmy Time Dashboard
+ * Browser Push Notifications for Agent Dashboard
  * 
  * Handles browser Notification API integration for:
  * - Briefing ready notifications
@@ -49,7 +49,7 @@
     const defaultOptions = {
       icon: '/static/favicon.ico',
       badge: '/static/favicon.ico',
-      tag: 'timmy-notification',
+      tag: 'agent-notification',
       requireInteraction: false,
     };
 
@@ -208,7 +208,7 @@
   }
 
   // Expose public API
-  window.TimmyNotifications = {
+  window.AgentNotifications = {
     requestPermission: requestNotificationPermission,
     show: showNotification,
     notifyBriefingReady,

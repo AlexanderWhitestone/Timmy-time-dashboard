@@ -73,8 +73,8 @@ class LocalLLM {
     this.onError = opts.onError || (() => {});
     this.systemPrompt =
       opts.systemPrompt ||
-      "You are Timmy, a sovereign AI assistant. You are helpful, concise, and loyal. " +
-      "Address the user as 'Sir' when appropriate. Keep responses brief on mobile.";
+      "You are a local AI assistant running in the browser. You are helpful and concise. " +
+      "Keep responses brief on mobile.";
 
     this.engine = null;
     this.ready = false;

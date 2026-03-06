@@ -65,7 +65,7 @@ class UnifiedMemory:
     def __init__(
         self,
         db_path: Optional[Path] = None,
-        source: str = "timmy",
+        source: str = "default",
         use_rqlite: Optional[bool] = None,
     ):
         self.db_path = db_path or _get_db_path()

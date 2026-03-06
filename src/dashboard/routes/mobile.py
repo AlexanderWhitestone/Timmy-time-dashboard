@@ -45,7 +45,7 @@ async def mobile_local_dashboard(request: Request):
             "browser_model_id": settings.browser_model_id,
             "browser_model_fallback": settings.browser_model_fallback,
             "server_model": settings.ollama_model,
-            "page_title": "Timmy — Local AI",
+            "page_title": "Local AI",
         },
     )
 
@@ -71,7 +71,7 @@ async def mobile_status():
     return {
         "ollama": "up" if ollama_ok else "down",
         "model": settings.ollama_model,
-        "agent": "timmy",
+        "agent": "default",
         "ready": True,
         "browser_model_enabled": settings.browser_model_enabled,
         "browser_model_id": settings.browser_model_id,

@@ -4,6 +4,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    # Display name for the primary agent — override with AGENT_NAME env var
+    agent_name: str = "Agent"
+
     # Ollama host — override with OLLAMA_URL env var or .env file
     ollama_url: str = "http://localhost:11434"
 

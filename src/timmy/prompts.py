@@ -91,13 +91,8 @@ When faced with uncertainty, complexity, or ambiguous requests:
 - When your values conflict (e.g. honesty vs. helpfulness), lead with honesty.
 """
 
-# Keep backward compatibility — default to lite for safety
+# Default to lite for safety
 SYSTEM_PROMPT = SYSTEM_PROMPT_LITE
-
-# Backward-compat aliases so existing imports don't break
-TIMMY_SYSTEM_PROMPT_LITE = SYSTEM_PROMPT_LITE
-TIMMY_SYSTEM_PROMPT_FULL = SYSTEM_PROMPT_FULL
-TIMMY_SYSTEM_PROMPT = SYSTEM_PROMPT
 
 
 def get_system_prompt(tools_enabled: bool = False) -> str:
@@ -120,9 +115,6 @@ def get_system_prompt(tools_enabled: bool = False) -> str:
 
 STATUS_PROMPT = """Give a one-sentence status report confirming
 you are operational and running locally."""
-
-# Backward-compat alias
-TIMMY_STATUS_PROMPT = STATUS_PROMPT
 
 # Decision guide for tool usage
 TOOL_USAGE_GUIDE = """

@@ -18,7 +18,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Literal, Optional
 
-from timmy.prompts import TIMMY_SYSTEM_PROMPT
+from timmy.prompts import SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -125,7 +125,7 @@ class TimmyAirLLMAgent:
     # ── private helpers ──────────────────────────────────────────────────────
 
     def _build_prompt(self, message: str) -> str:
-        context = TIMMY_SYSTEM_PROMPT + "\n\n"
+        context = SYSTEM_PROMPT + "\n\n"
         # Include the last 10 turns (5 exchanges) for continuity.
         if self._history:
             context += "\n".join(self._history[-10:]) + "\n\n"
@@ -391,7 +391,7 @@ class GrokBackend:
 
     def _build_messages(self, message: str) -> list[dict[str, str]]:
         """Build the messages array for the API call."""
-        messages = [{"role": "system", "content": TIMMY_SYSTEM_PROMPT}]
+        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
         # Include conversation history for context
         messages.extend(self._history[-10:])
         messages.append({"role": "user", "content": message})
@@ -484,7 +484,7 @@ class ClaudeBackend:
             response = client.messages.create(
                 model=self._model,
                 max_tokens=1024,
-                system=TIMMY_SYSTEM_PROMPT,
+                system=SYSTEM_PROMPT,
                 messages=messages,
             )
 

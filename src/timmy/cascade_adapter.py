@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 from infrastructure.router.cascade import CascadeRouter
-from timmy.prompts import TIMMY_SYSTEM_PROMPT
+from timmy.prompts import SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,7 @@ class TimmyCascadeAdapter:
         try:
             result = await self.router.complete(
                 messages=messages,
-                system_prompt=TIMMY_SYSTEM_PROMPT,
+                system_prompt=SYSTEM_PROMPT,
             )
             
             latency = (time.time() - start) * 1000

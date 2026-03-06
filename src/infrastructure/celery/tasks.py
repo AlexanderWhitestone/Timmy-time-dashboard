@@ -23,7 +23,7 @@ _app = _get_app()
 if _app is not None:
 
     @_app.task(bind=True, name="infrastructure.celery.tasks.run_agent_chat")
-    def run_agent_chat(self, prompt, agent_id="timmy", session_id="celery"):
+    def run_agent_chat(self, prompt, agent_id="default", session_id="celery"):
         """Execute a chat prompt against Timmy's agent session.
 
         Args:
@@ -57,7 +57,7 @@ if _app is not None:
             }
 
     @_app.task(bind=True, name="infrastructure.celery.tasks.execute_tool")
-    def execute_tool(self, tool_name, kwargs=None, agent_id="timmy"):
+    def execute_tool(self, tool_name, kwargs=None, agent_id="default"):
         """Run a specific tool function asynchronously.
 
         Args:

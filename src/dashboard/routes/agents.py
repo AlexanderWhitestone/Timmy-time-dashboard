@@ -4,7 +4,7 @@ from datetime import datetime
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse
 
-from timmy.session import chat as timmy_chat
+from timmy.session import chat as agent_chat
 from dashboard.store import message_log
 from dashboard.templating import templates
 
@@ -21,8 +21,8 @@ async def list_agents():
     return {
         "agents": [
             {
-                "id": "orchestrator",
-                "name": "Orchestrator",
+                "id": "default",
+                "name": settings.agent_name,
                 "status": "idle",
                 "capabilities": "chat,reasoning,research,planning",
                 "type": "local",
@@ -34,15 +34,15 @@ async def list_agents():
     }
 
 
-@router.get("/timmy/panel", response_class=HTMLResponse)
-async def timmy_panel(request: Request):
+@router.get("/default/panel", response_class=HTMLResponse)
+async def agent_panel(request: Request):
     """Chat panel — for HTMX main-panel swaps."""
     return templates.TemplateResponse(
-        request, "partials/timmy_panel.html", {"agent": None}
+        request, "partials/agent_panel_chat.html", {"agent": None}
     )
 
 
-@router.get("/timmy/history", response_class=HTMLResponse)
+@router.get("/default/history", response_class=HTMLResponse)
 async def get_history(request: Request):
     return templates.TemplateResponse(
         request,
@@ -51,7 +51,7 @@ async def get_history(request: Request):
     )
 
 
-@router.delete("/timmy/history", response_class=HTMLResponse)
+@router.delete("/default/history", response_class=HTMLResponse)
 async def clear_history(request: Request):
     message_log.clear()
     return templates.TemplateResponse(
@@ -61,15 +61,15 @@ async def clear_history(request: Request):
     )
 
 
-@router.post("/timmy/chat", response_class=HTMLResponse)
-async def chat_timmy(request: Request, message: str = Form(...)):
+@router.post("/default/chat", response_class=HTMLResponse)
+async def chat_agent(request: Request, message: str = Form(...)):
     """Chat — synchronous response."""
     timestamp = datetime.now().strftime("%H:%M:%S")
     response_text = None
     error_text = None
 
     try:
-        response_text = timmy_chat(message)
+        response_text = agent_chat(message)
     except Exception as exc:
         logger.error("Chat error: %s", exc)
         error_text = f"Chat error: {exc}"

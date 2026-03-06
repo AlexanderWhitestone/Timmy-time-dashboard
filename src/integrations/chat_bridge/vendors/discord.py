@@ -363,7 +363,8 @@ class DiscordVendor(ChatPlatform):
                 return None
 
             # Create a thread from this message
-            thread_name = f"Timmy | {message.author.display_name}"
+            from config import settings
+            thread_name = f"{settings.agent_name} | {message.author.display_name}"
             thread = await message.create_thread(
                 name=thread_name[:100],
                 auto_archive_duration=1440,

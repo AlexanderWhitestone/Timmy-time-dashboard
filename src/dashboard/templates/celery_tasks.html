@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Timmy Time — Background Tasks{% endblock %}
+{% block title %}Background Tasks{% endblock %}
 
 {% block extra_styles %}
 <style>
@@ -143,7 +143,7 @@
   <div class="celery-header mb-4">
     <div class="celery-title">Background Tasks</div>
     <div class="celery-subtitle">
-      Tasks processed by Celery workers &mdash; submit work for Timmy to handle in the background.
+      Tasks processed by Celery workers &mdash; submit work to handle in the background.
     </div>
   </div>
 
@@ -156,7 +156,7 @@
   <!-- Submit form -->
   <form class="celery-submit-form" id="celery-form" onsubmit="return submitCeleryTask(event)">
     <input type="text" id="celery-prompt"
-           placeholder="Describe a task for Timmy to work on in the background..." autocomplete="off">
+           placeholder="Describe a task to work on in the background..." autocomplete="off">
     <button type="submit">Submit Task</button>
   </form>
 
@@ -176,7 +176,7 @@
           <div class="celery-meta">
             <span class="cstate-badge cstate-{{ task.state | default('UNKNOWN') }}">{{ task.state | default('UNKNOWN') }}</span>
             <span class="celery-id">{{ task.task_id[:12] }}...</span>
-            <span class="celery-id">{{ task.agent_id | default('timmy') }}</span>
+            <span class="celery-id">{{ task.agent_id | default('default') }}</span>
           </div>
           <div class="celery-prompt">{{ task.prompt | default('') | e }}</div>
           {% if task.result %}
@@ -189,7 +189,7 @@
         {% endfor %}
       {% else %}
         <div class="celery-empty">
-          No background tasks yet. Submit one above or ask Timmy to work on something.
+          No background tasks yet. Submit one above or submit one above.
         </div>
       {% endif %}
 

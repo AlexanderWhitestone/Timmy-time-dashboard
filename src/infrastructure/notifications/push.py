@@ -76,7 +76,7 @@ class PushNotifier:
         try:
             script = (
                 f'display notification "{message}" '
-                f'with title "Timmy Time" subtitle "{title}"'
+                f'with title "Agent Dashboard" subtitle "{title}"'
             )
             subprocess.Popen(
                 ["osascript", "-e", script],

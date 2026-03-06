@@ -101,7 +101,7 @@ async def process_voice_input(
 
     try:
         if intent.name == "status":
-            response_text = "Timmy is operational and running locally. All systems sovereign."
+            response_text = "Agent is operational and running locally. All systems nominal."
 
         elif intent.name == "help":
             response_text = (

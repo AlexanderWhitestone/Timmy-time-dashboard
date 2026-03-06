@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 
 def test_api_chat_success(client):
-    with patch("dashboard.routes.chat_api.timmy_chat", return_value="Hello from Timmy."):
+    with patch("dashboard.routes.chat_api.agent_chat", return_value="Hello."):
         response = client.post(
             "/api/chat",
             json={"messages": [{"role": "user", "content": "hello"}]},
@@ -16,13 +16,13 @@ def test_api_chat_success(client):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["reply"] == "Hello from Timmy."
+    assert data["reply"] == "Hello."
     assert "timestamp" in data
 
 
 def test_api_chat_multimodal_content(client):
     """Multimodal content arrays should extract text parts."""
-    with patch("dashboard.routes.chat_api.timmy_chat", return_value="I see an image."):
+    with patch("dashboard.routes.chat_api.agent_chat", return_value="I see an image."):
         response = client.post(
             "/api/chat",
             json={
@@ -65,7 +65,7 @@ def test_api_chat_no_user_message(client):
 
 def test_api_chat_ollama_offline(client):
     with patch(
-        "dashboard.routes.chat_api.timmy_chat",
+        "dashboard.routes.chat_api.agent_chat",
         side_effect=ConnectionError("Ollama unreachable"),
     ):
         response = client.post(
@@ -81,7 +81,7 @@ def test_api_chat_ollama_offline(client):
 def test_api_chat_logs_to_message_log(client):
     from dashboard.store import message_log
 
-    with patch("dashboard.routes.chat_api.timmy_chat", return_value="Reply."):
+    with patch("dashboard.routes.chat_api.agent_chat", return_value="Reply."):
         client.post(
             "/api/chat",
             json={"messages": [{"role": "user", "content": "test msg"}]},
@@ -149,7 +149,7 @@ def test_api_chat_history_empty(client):
 
 
 def test_api_chat_history_after_chat(client):
-    with patch("dashboard.routes.chat_api.timmy_chat", return_value="Hi!"):
+    with patch("dashboard.routes.chat_api.agent_chat", return_value="Hi!"):
         client.post(
             "/api/chat",
             json={"messages": [{"role": "user", "content": "hello"}]},

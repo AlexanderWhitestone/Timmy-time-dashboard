@@ -9,7 +9,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-def submit_background_task(task_description: str, agent_id: str = "timmy") -> dict[str, Any]:
+def submit_background_task(task_description: str, agent_id: str = "default") -> dict[str, Any]:
     """Submit a task to run in the background via Celery.
 
     Use this tool when a user asks you to work on something that might

@@ -115,7 +115,7 @@ async def join_from_image(
         result["oauth2_url"] = oauth_url
         result["message"] = (
             "Invite validated. Share this OAuth2 URL with the server admin "
-            "to add Timmy to the server."
+            "to add the agent to the server."
         )
     else:
         result["message"] = (

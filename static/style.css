@@ -484,11 +484,11 @@ a:hover { color: var(--orange); }
 .chat-message.agent     .msg-body { border-left: 3px solid var(--purple); }
 .chat-message.error-msg .msg-body { border-left: 3px solid var(--red); color: var(--red); }
 
-/* ── Markdown rendering in Timmy chat ─────────────────── */
-.timmy-md { white-space: normal; }
-.timmy-md p { margin: 0 0 0.5em; }
-.timmy-md p:last-child { margin-bottom: 0; }
-.timmy-md pre {
+/* ── Markdown rendering in agent chat ─────────────────── */
+.agent-md { white-space: normal; }
+.agent-md p { margin: 0 0 0.5em; }
+.agent-md p:last-child { margin-bottom: 0; }
+.agent-md pre {
   background: #0d0620;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -497,30 +497,30 @@ a:hover { color: var(--orange); }
   margin: 0.5em 0;
   white-space: pre;
 }
-.timmy-md code {
+.agent-md code {
   font-family: var(--font);
   font-size: 0.9em;
 }
-.timmy-md :not(pre) > code {
+.agent-md :not(pre) > code {
   background: rgba(168, 85, 247, 0.15);
   padding: 2px 5px;
   border-radius: 3px;
   color: var(--text-bright);
 }
-.timmy-md ul, .timmy-md ol { padding-left: 1.5em; margin: 0.4em 0; }
-.timmy-md blockquote {
+.agent-md ul, .agent-md ol { padding-left: 1.5em; margin: 0.4em 0; }
+.agent-md blockquote {
   border-left: 3px solid var(--purple);
   padding-left: 10px;
   color: var(--text-dim);
   margin: 0.5em 0;
 }
-.timmy-md h1, .timmy-md h2, .timmy-md h3 {
+.agent-md h1, .agent-md h2, .agent-md h3 {
   color: var(--text-bright);
   margin: 0.6em 0 0.3em;
   font-size: 1em;
   font-weight: 700;
 }
-.timmy-md a { color: var(--purple); }
+.agent-md a { color: var(--purple); }
 
 /* Mobile chat classes (used by mobile.html) */
 .chat-container {
@@ -535,8 +535,8 @@ a:hover { color: var(--orange); }
   margin-bottom: 4px;
 }
 .chat-message.user .chat-meta { color: var(--orange); }
-.chat-message.timmy .chat-meta { color: var(--purple); }
-.chat-message.timmy > div:last-child {
+.chat-message.agent .chat-meta { color: var(--purple); }
+.chat-message.agent > div:last-child {
   color: var(--text);
   line-height: 1.6;
 }
