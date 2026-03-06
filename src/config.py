@@ -176,6 +176,18 @@ class Settings(BaseSettings):
     # Timeout in seconds for OpenFang hand execution (some hands are slow).
     openfang_timeout: int = 120
 
+    # ── Local Hands (Shell + Git) ──────────────────────────────────────
+    # Enable local shell/git execution hands.
+    hands_shell_enabled: bool = True
+    # Default timeout in seconds for shell commands.
+    hands_shell_timeout: int = 60
+    # Comma-separated additional command prefixes to allow.
+    hands_shell_extra_allowed: str = ""
+    # Enable the git hand for version-control operations.
+    hands_git_enabled: bool = True
+    # Default timeout for git operations.
+    hands_git_timeout: int = 60
+
     # ── Error Logging ─────────────────────────────────────────────────
     error_log_enabled: bool = True
     error_log_dir: str = "logs"
