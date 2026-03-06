@@ -51,12 +51,13 @@ repos:
         exclude: ^tests/
         stages: [manual]
 
-  # Fast unit tests only (not E2E, not slow tests)
+  # Full test suite with 30-second wall-clock limit.
+  # Current baseline: ~18s. If tests get slow, this blocks the commit.
   - repo: local
     hooks:
-      - id: pytest-unit
-        name: pytest-unit
-        entry: pytest
+      - id: pytest-fast
+        name: pytest (30s limit)
+        entry: timeout 30 poetry run pytest
         language: system
         types: [python]
         stages: [commit]
@@ -64,8 +65,7 @@ repos:
         always_run: true
         args:
           - tests
-          - -m
-          - "unit"
-          - --tb=short
           - -q
+          - --tb=short
+          - --timeout=10
         verbose: true
