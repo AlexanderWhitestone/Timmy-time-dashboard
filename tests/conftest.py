@@ -32,12 +32,8 @@ for _mod in [
     "pyzbar",
     "pyzbar.pyzbar",
     "requests",
-    "celery",
-    "celery.app",
-    "celery.result",
     "pyttsx3",
     "sentence_transformers",
-    "redis",
 ]:
     sys.modules.setdefault(_mod, MagicMock())
 

@@ -1,10 +1,13 @@
-"""Base agent class for all sub-agents.
+"""Base agent class and configurable SubAgent.
 
-All sub-agents inherit from BaseAgent and get:
+BaseAgent provides:
 - MCP tool registry access
 - Event bus integration
 - Memory integration
 - Structured logging
+
+SubAgent is the concrete implementation used for all persona-based agents
+(replacing the individual Helm/Echo/Seer/Forge/Quill classes).
 """
 
 import logging
@@ -131,4 +134,38 @@ class BaseAgent(ABC):
             "role": self.role,
             "status": "ready",
             "tools": self.tools,
+        }
+
+
+class SubAgent(BaseAgent):
+    """Concrete agent configured by persona data (prompt + tools).
+
+    Replaces the individual agent classes (Helm, Echo, Seer, Forge, Quill)
+    which all shared the same structure and differed only by config.
+    """
+
+    def __init__(
+        self,
+        agent_id: str,
+        name: str,
+        role: str,
+        system_prompt: str,
+        tools: list[str] | None = None,
+    ) -> None:
+        super().__init__(
+            agent_id=agent_id,
+            name=name,
+            role=role,
+            system_prompt=system_prompt,
+            tools=tools,
+        )
+
+    async def execute_task(self, task_id: str, description: str, context: dict) -> Any:
+        """Execute a task by running the agent with the description."""
+        result = await self.run(description)
+        return {
+            "task_id": task_id,
+            "agent": self.agent_id,
+            "result": result,
+            "status": "completed",
         }

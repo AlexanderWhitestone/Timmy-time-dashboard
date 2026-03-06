@@ -79,7 +79,6 @@ async def toggle_grok_mode(request: Request):
     # Log to Spark
     try:
         from spark.engine import spark_engine
-        import json
 
         spark_engine.on_tool_executed(
             agent_id="default",
@@ -95,79 +94,64 @@ async def toggle_grok_mode(request: Request):
     )
 
 
-@router.post("/chat", response_class=HTMLResponse)
-async def grok_chat(request: Request, message: str = Form(...)):
-    """Send a message directly to Grok and return HTMX chat partial."""
-    from timmy.backends import grok_available, get_grok_backend
-    from dashboard.store import message_log
-    from datetime import datetime
+def _run_grok_query(message: str) -> dict:
+    """Run a Grok query and return result dict.
 
-    timestamp = datetime.now().strftime("%H:%M:%S")
+    Returns:
+        {"response": str | None, "error": str | None}
+    """
+    from timmy.backends import grok_available, get_grok_backend
 
     if not grok_available():
-        error = "Grok is not available. Set GROK_ENABLED=true and XAI_API_KEY."
-        message_log.append(role="user", content=f"[Grok] {message}", timestamp=timestamp, source="browser")
-        message_log.append(role="error", content=error, timestamp=timestamp, source="browser")
-        return templates.TemplateResponse(
-            request,
-            "partials/chat_message.html",
-            {
-                "user_message": f"[Grok] {message}",
-                "response": None,
-                "error": error,
-                "timestamp": timestamp,
-            },
-        )
+        return {"response": None, "error": "Grok is not available. Set GROK_ENABLED=true and XAI_API_KEY."}
 
     backend = get_grok_backend()
 
-    # Generate invoice if monetization is active
     invoice_note = ""
     if not settings.grok_free:
         try:
             from lightning.factory import get_backend as get_ln_backend
-
             ln = get_ln_backend()
             sats = min(settings.grok_max_sats_per_query, 100)
-            inv = ln.create_invoice(sats, f"Grok: {message[:50]}")
+            ln.create_invoice(sats, f"Grok: {message[:50]}")
             invoice_note = f" | {sats} sats"
         except Exception:
             pass
 
     try:
         result = backend.run(message)
-        response_text = f"**[Grok]{invoice_note}:** {result.content}"
+        return {"response": f"**[Grok]{invoice_note}:** {result.content}", "error": None}
     except Exception as exc:
-        response_text = None
-        error = f"Grok error: {exc}"
+        return {"response": None, "error": f"Grok error: {exc}"}
 
-    message_log.append(
-        role="user", content=f"[Ask Grok] {message}", timestamp=timestamp, source="browser"
-    )
-    if response_text:
-        message_log.append(role="agent", content=response_text, timestamp=timestamp, source="browser")
-        return templates.TemplateResponse(
-            request,
-            "partials/chat_message.html",
-            {
-                "user_message": f"[Ask Grok] {message}",
-                "response": response_text,
-                "error": None,
-                "timestamp": timestamp,
-            },
-        )
+
+@router.post("/chat", response_class=HTMLResponse)
+async def grok_chat(request: Request, message: str = Form(...)):
+    """Send a message directly to Grok and return HTMX chat partial."""
+    from dashboard.store import message_log
+    from datetime import datetime
+
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    result = _run_grok_query(message)
+
+    user_msg = f"[Ask Grok] {message}"
+    message_log.append(role="user", content=user_msg, timestamp=timestamp, source="browser")
+
+    if result["response"]:
+        message_log.append(role="agent", content=result["response"], timestamp=timestamp, source="browser")
     else:
-        message_log.append(role="error", content=error, timestamp=timestamp, source="browser")
-        return templates.TemplateResponse(
-            request,
-            "partials/chat_message.html",
-            {
-                "user_message": f"[Ask Grok] {message}",
-                "response": None,
-                "error": error,
-                "timestamp": timestamp,
-            },
-        )
+        message_log.append(role="error", content=result["error"], timestamp=timestamp, source="browser")
+
+    return templates.TemplateResponse(
+        request,
+        "partials/chat_message.html",
+        {
+            "user_message": user_msg,
+            "response": result["response"],
+            "error": result["error"],
+            "timestamp": timestamp,
+        },
+    )
 
 
 @router.get("/stats")
