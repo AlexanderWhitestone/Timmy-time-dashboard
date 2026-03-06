@@ -108,11 +108,11 @@ async def test_system_prompt_selection():
     
     assert prompt_with_tools is not None, "Prompt with tools should not be None"
     assert prompt_without_tools is not None, "Prompt without tools should not be None"
-    
-    # Both should mention Timmy
-    assert "Timmy" in prompt_with_tools, "Prompt should mention Timmy"
-    assert "Timmy" in prompt_without_tools, "Prompt should mention Timmy"
-    
+
+    # Both should identify as a local AI assistant
+    assert "local AI assistant" in prompt_with_tools, "Prompt should mention local AI assistant"
+    assert "local AI assistant" in prompt_without_tools, "Prompt should mention local AI assistant"
+
     # Full prompt should mention tools
     assert "tool" in prompt_with_tools.lower(), "Full prompt should mention tools"
 
