@@ -174,6 +174,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         """Check if a path is likely to be CSRF exempt.
         
         Common patterns like webhooks, API endpoints, etc.
+        Uses path normalization to prevent traversal bypasses.
         
         Args:
             path: The request path.
@@ -181,13 +182,21 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         Returns:
             True if the path is likely exempt.
         """
+        import os
+        # Normalize path to prevent /webhook/../ bypasses
+        normalized_path = os.path.normpath(path)
+        
+        # Ensure it starts with / for comparison
+        if not normalized_path.startswith("/"):
+            normalized_path = "/" + normalized_path
+
         exempt_patterns = [
             "/webhook",
             "/api/v1/",
             "/lightning/webhook",
             "/_internal/",
         ]
-        return any(path.startswith(pattern) for pattern in exempt_patterns)
+        return any(normalized_path.startswith(pattern) for pattern in exempt_patterns)
     
     async def _validate_request(self, request: Request, csrf_cookie: Optional[str]) -> bool:
         """Validate the CSRF token in the request.
