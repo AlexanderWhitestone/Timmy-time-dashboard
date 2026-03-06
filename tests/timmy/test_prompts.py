@@ -1,13 +1,13 @@
-from timmy.prompts import TIMMY_SYSTEM_PROMPT, TIMMY_STATUS_PROMPT, get_system_prompt
+from timmy.prompts import SYSTEM_PROMPT, STATUS_PROMPT, get_system_prompt
 
 
 def test_system_prompt_not_empty():
-    assert TIMMY_SYSTEM_PROMPT.strip()
+    assert SYSTEM_PROMPT.strip()
 
 
 def test_system_prompt_no_persona_identity():
     """System prompt should NOT contain persona identity references."""
-    prompt = TIMMY_SYSTEM_PROMPT.lower()
+    prompt = SYSTEM_PROMPT.lower()
     assert "sovereign" not in prompt
     assert "sir, affirmative" not in prompt
     assert "christian" not in prompt
@@ -15,24 +15,24 @@ def test_system_prompt_no_persona_identity():
 
 
 def test_system_prompt_references_local():
-    assert "local" in TIMMY_SYSTEM_PROMPT.lower()
+    assert "local" in SYSTEM_PROMPT.lower()
 
 
 def test_system_prompt_is_multiline():
-    assert "\n" in TIMMY_SYSTEM_PROMPT
+    assert "\n" in SYSTEM_PROMPT
 
 
 def test_status_prompt_not_empty():
-    assert TIMMY_STATUS_PROMPT.strip()
+    assert STATUS_PROMPT.strip()
 
 
 def test_status_prompt_no_persona():
     """Status prompt should not reference a persona."""
-    assert "Timmy" not in TIMMY_STATUS_PROMPT
+    assert "Timmy" not in STATUS_PROMPT
 
 
 def test_prompts_are_distinct():
-    assert TIMMY_SYSTEM_PROMPT != TIMMY_STATUS_PROMPT
+    assert SYSTEM_PROMPT != STATUS_PROMPT
 
 
 def test_get_system_prompt_injects_model_name():

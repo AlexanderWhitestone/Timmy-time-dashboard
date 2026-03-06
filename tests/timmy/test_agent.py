@@ -55,7 +55,7 @@ def test_create_timmy_custom_db_file():
 
 
 def test_create_timmy_embeds_system_prompt():
-    from timmy.prompts import TIMMY_SYSTEM_PROMPT
+    from timmy.prompts import SYSTEM_PROMPT
 
     with patch("timmy.agent.Agent") as MockAgent, \
          patch("timmy.agent.Ollama"), \

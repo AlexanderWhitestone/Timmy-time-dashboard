@@ -41,7 +41,7 @@ class EventBus:
         # Publish events
         await bus.publish(Event(
             type="agent.task.assigned",
-            source="timmy",
+            source="default",
             data={"task_id": "123", "agent": "forge"}
         ))
     """

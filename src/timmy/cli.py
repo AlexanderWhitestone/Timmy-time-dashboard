@@ -4,7 +4,7 @@ from typing import Optional
 import typer
 
 from timmy.agent import create_timmy
-from timmy.prompts import TIMMY_STATUS_PROMPT
+from timmy.prompts import STATUS_PROMPT
 
 app = typer.Typer(help="Timmy — sovereign AI agent")
 
@@ -52,7 +52,7 @@ def status(
 ):
     """Print Timmy's operational status."""
     timmy = create_timmy(backend=backend, model_size=model_size)
-    timmy.print_response(TIMMY_STATUS_PROMPT, stream=False)
+    timmy.print_response(STATUS_PROMPT, stream=False)
 
 
 @app.command()

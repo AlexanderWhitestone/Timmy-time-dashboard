@@ -211,7 +211,7 @@ async def health_check():
     # Legacy format for test compatibility
     ollama_ok = await check_ollama()
     
-    timmy_status = "idle" if ollama_ok else "offline"
+    agent_status = "idle" if ollama_ok else "offline"
 
     return {
         "status": "ok" if ollama_ok else "degraded",
@@ -219,7 +219,7 @@ async def health_check():
             "ollama": "up" if ollama_ok else "down",
         },
         "agents": {
-            "timmy": {"status": timmy_status},
+            "agent": {"status": agent_status},
         },
         # Extended fields for Mission Control
         "timestamp": datetime.now(timezone.utc).isoformat(),

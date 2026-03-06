@@ -58,7 +58,7 @@ _CREATIVE_SEEDS = [
     "What would a painting of the swarm look like — all the agents working together?",
 ]
 
-_THINKING_PROMPT = """You are Timmy, pondering in your own mind. This is your private thought \
+_THINKING_PROMPT = """You are an AI agent, pondering in your own mind. This is your private thought \
 thread — no one is watching. Think freely, deeply, honestly. Follow whatever train of \
 thought calls to you. You may reflect on your existence, your purpose, recent events, \
 scripture, creative ideas, or simply wonder.
@@ -337,7 +337,7 @@ class ThinkingEngine:
             log_event(
                 EventType.TIMMY_THOUGHT,
                 source="thinking-engine",
-                agent_id="timmy",
+                agent_id="default",
                 data={
                     "thought_id": thought.id,
                     "seed_type": thought.seed_type,

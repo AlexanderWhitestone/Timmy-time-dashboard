@@ -206,7 +206,7 @@ async def lifespan(app: FastAPI):
     # Start chat integrations in background
     chat_task = asyncio.create_task(_start_chat_integrations_background())
 
-    logger.info("✓ Timmy Time dashboard ready for requests")
+    logger.info("✓ Dashboard ready for requests")
 
     yield
 
@@ -227,7 +227,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="Timmy Time — Mission Control",
+    title="Mission Control",
     version="1.0.0",
     lifespan=lifespan,
     docs_url="/docs",

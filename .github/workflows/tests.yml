@@ -29,8 +29,8 @@ jobs:
 
       - name: Run tests
         run: |
+          mkdir -p reports
           pytest \
-            --tb=short \
             --cov=src \
             --cov-report=term-missing \
             --cov-report=xml:reports/coverage.xml \

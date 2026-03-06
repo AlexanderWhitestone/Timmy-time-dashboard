@@ -7,12 +7,12 @@
           <span class="status-dot {{ 'green' if agent.status == 'idle' else 'amber' }}"></span>
         {% endif %}
         // AGENT INTERFACE
-        <span id="timmy-status" class="ms-2" style="font-size: 0.75rem; color: #888;">
+        <span id="agent-status" class="ms-2" style="font-size: 0.75rem; color: #888;">
           <span class="htmx-indicator">checking...</span>
         </span>
       </span>
       <button class="mc-btn-clear"
-              hx-delete="/agents/timmy/history"
+              hx-delete="/agents/default/history"
               hx-target="#chat-log"
               hx-swap="innerHTML"
               hx-confirm="Clear conversation history?">CLEAR</button>
@@ -24,13 +24,13 @@
     </div>
 
     <div class="chat-log flex-grow-1 overflow-auto p-3" id="chat-log"
-         hx-get="/agents/timmy/history"
+         hx-get="/agents/default/history"
          hx-trigger="load"
          hx-swap="innerHTML"
          hx-on::after-settle="scrollChat()"></div>
 
     <div class="card-footer mc-chat-footer">
-      <form hx-post="/agents/timmy/chat"
+      <form hx-post="/agents/default/chat"
             hx-target="#chat-log"
             hx-swap="beforeend"
             hx-indicator="#send-indicator"
@@ -39,7 +39,7 @@
             hx-on::after-settle="scrollChat()"
             hx-on::after-request="if(event.detail.successful){this.querySelector('[name=message]').value='';}"
             class="d-flex gap-2"
-            id="timmy-chat-form">
+            id="agent-chat-form">
         <input type="text"
                name="message"
                class="form-control mc-input"
@@ -50,7 +50,7 @@
                spellcheck="false"
                enterkeyhint="send"
                required
-               id="timmy-chat-input" />
+               id="agent-chat-input" />
         <button type="submit" class="btn mc-btn-send">
           SEND
           <span id="send-indicator" class="htmx-indicator">&#x25FC;</span>
@@ -73,9 +73,9 @@
   scrollChat();
 
   function askGrok() {
-    var input = document.getElementById('timmy-chat-input');
+    var input = document.getElementById('agent-chat-input');
     if (!input || !input.value.trim()) return;
-    var form = document.getElementById('timmy-chat-form');
+    var form = document.getElementById('agent-chat-form');
     // Temporarily redirect form to Grok endpoint
     var originalAction = form.getAttribute('hx-post');
     form.setAttribute('hx-post', '/grok/chat');
@@ -90,7 +90,7 @@
 
   // Poll for queue status (fallback) + WebSocket for real-time
 (function() {
-  var statusEl = document.getElementById('timmy-status');
+  var statusEl = document.getElementById('agent-status');
   var banner = document.getElementById('current-task-banner');
   var taskTitle = document.getElementById('current-task-title');
   var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -112,7 +112,7 @@
   }
 
   function fetchStatus() {
-    fetch('/api/queue/status?assigned_to=timmy')
+    fetch('/api/queue/status?assigned_to=default')
       .then(r => r.json())
       .then(updateFromData)
       .catch(() => {});
@@ -127,7 +127,7 @@
         var body = placeholder.querySelector('.msg-body');
         if (body) {
           body.textContent = content;
-          body.className = 'msg-body timmy-md';
+          body.className = 'msg-body agent-md';
           if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
             body.innerHTML = DOMPurify.sanitize(marked.parse(body.textContent));
             if (typeof hljs !== 'undefined') {
@@ -149,7 +149,7 @@
     meta.className = 'msg-meta';
     meta.textContent = (role === 'user' ? 'YOU' : 'AGENT') + ' // ' + timestamp;
     var body = document.createElement('div');
-    body.className = 'msg-body timmy-md';
+    body.className = 'msg-body agent-md';
     body.textContent = content;
     div.appendChild(meta);
     div.appendChild(body);

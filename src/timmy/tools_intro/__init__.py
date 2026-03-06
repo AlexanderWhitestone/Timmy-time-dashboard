@@ -221,7 +221,7 @@ def get_task_queue_status() -> dict[str, Any]:
         )
 
         counts = get_counts_by_status()
-        current = get_current_task_for_agent("timmy")
+        current = get_current_task_for_agent("default")
 
         result: dict[str, Any] = {
             "counts": counts,

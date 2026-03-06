@@ -180,7 +180,7 @@ def capture_error(
         task = create_task(
             title=title,
             description="\n".join(description_parts),
-            assigned_to="timmy",
+            assigned_to="default",
             created_by="system",
             priority="normal",
             requires_approval=False,

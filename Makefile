@@ -1,4 +1,4 @@
-.PHONY: install install-bigbrain dev nuke fresh test test-cov test-cov-html watch lint clean help \
+.PHONY: install install-bigbrain install-hooks dev nuke fresh test test-cov test-cov-html watch lint clean help \
         up down logs \
         docker-build docker-up docker-down docker-agent docker-logs docker-shell \
         test-docker test-docker-cov test-docker-functional test-docker-build test-docker-down \
@@ -15,6 +15,11 @@ PYTHON      := poetry run python
 install:
 	poetry install --with dev
 	@echo "✓ Ready. Run 'make dev' to start the dashboard."
+
+install-hooks:
+	cp scripts/pre-commit-hook.sh .git/hooks/pre-commit
+	chmod +x .git/hooks/pre-commit
+	@echo "✓ Pre-commit hook installed (30s test time limit)."
 
 install-bigbrain:
 	poetry install --with dev --extras bigbrain

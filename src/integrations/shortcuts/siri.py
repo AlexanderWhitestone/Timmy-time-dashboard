@@ -32,7 +32,7 @@ class ShortcutAction:
 # Available shortcut actions
 SHORTCUT_ACTIONS = [
     ShortcutAction(
-        name="Chat with Timmy",
+        name="Chat with Agent",
         endpoint="/shortcuts/chat",
         method="POST",
         description="Send a message to Timmy and get a response",

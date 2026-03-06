@@ -33,7 +33,7 @@ def _index_html(client) -> str:
 
 def _timmy_panel_html(client) -> str:
     """Fetch the Timmy chat panel (loaded dynamically from index via HTMX)."""
-    return client.get("/agents/timmy/panel").text
+    return client.get("/agents/default/panel").text
 
 
 # ── M1xx — Viewport & meta tags ───────────────────────────────────────────────

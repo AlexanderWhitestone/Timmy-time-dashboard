@@ -49,7 +49,7 @@ async def tasks_api():
 async def submit_task_api(request: Request):
     """Submit a new background task.
 
-    Body: {"prompt": "...", "agent_id": "timmy"}
+    Body: {"prompt": "...", "agent_id": "default"}
     """
     from infrastructure.celery.client import submit_chat_task
 
@@ -62,7 +62,7 @@ async def submit_task_api(request: Request):
     if not prompt:
         return JSONResponse({"error": "prompt is required"}, status_code=400)
 
-    agent_id = body.get("agent_id", "timmy")
+    agent_id = body.get("agent_id", "default")
     task_id = submit_chat_task(prompt=prompt, agent_id=agent_id)
 
     if task_id is None:

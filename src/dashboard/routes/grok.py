@@ -82,7 +82,7 @@ async def toggle_grok_mode(request: Request):
         import json
 
         spark_engine.on_tool_executed(
-            agent_id="timmy",
+            agent_id="default",
             tool_name="grok_mode_toggle",
             success=True,
         )

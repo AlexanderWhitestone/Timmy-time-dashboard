@@ -369,7 +369,7 @@ def consult_grok(query: str) -> str:
         from spark.engine import spark_engine
 
         spark_engine.on_tool_executed(
-            agent_id="timmy",
+            agent_id="default",
             tool_name="consult_grok",
             success=True,
         )

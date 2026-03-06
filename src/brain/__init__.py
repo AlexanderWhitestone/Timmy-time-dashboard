@@ -14,7 +14,6 @@ from brain.client import BrainClient
 from brain.worker import DistributedWorker
 from brain.embeddings import LocalEmbedder
 from brain.memory import UnifiedMemory, get_memory
-from brain.identity import get_canonical_identity, get_identity_for_prompt
 
 __all__ = [
     "BrainClient",
@@ -22,6 +21,4 @@ __all__ = [
     "LocalEmbedder",
     "UnifiedMemory",
     "get_memory",
-    "get_canonical_identity",
-    "get_identity_for_prompt",
 ]

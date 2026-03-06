@@ -36,7 +36,7 @@ class BrainClient:
         """Detect what component is using the brain."""
         # Could be 'timmy', 'zeroclaw', 'worker', etc.
         # For now, infer from context or env
-        return os.environ.get("BRAIN_SOURCE", "timmy")
+        return os.environ.get("BRAIN_SOURCE", "default")
     
     # ──────────────────────────────────────────────────────────────────────────
     # Memory Operations

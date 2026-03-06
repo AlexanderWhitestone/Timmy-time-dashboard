@@ -240,7 +240,7 @@ class BriefingEngine:
         task_info = _gather_task_queue_summary()
 
         prompt = (
-            "You are Timmy, a sovereign local AI companion.\n"
+            "You are a sovereign local AI companion.\n"
             "Here is what happened since the last briefing:\n\n"
             f"SWARM ACTIVITY:\n{swarm_info}\n\n"
             f"TASK QUEUE:\n{task_info}\n\n"
