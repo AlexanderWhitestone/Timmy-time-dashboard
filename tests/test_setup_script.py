@@ -9,6 +9,11 @@ TEST_PROJECT_DIR = Path("/home/ubuntu/test-sovereign-stack")
 TEST_VAULT_DIR = TEST_PROJECT_DIR / "TimmyVault"
 SETUP_SCRIPT_PATH = Path("/home/ubuntu/setup_timmy.sh")
 
+pytestmark = pytest.mark.skipif(
+    not SETUP_SCRIPT_PATH.exists(),
+    reason=f"Setup script not found at {SETUP_SCRIPT_PATH}",
+)
+
 @pytest.fixture(scope="module", autouse=True)
 def cleanup_test_env():
     """Ensure a clean environment before and after tests."""

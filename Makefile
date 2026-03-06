@@ -88,13 +88,13 @@ watch:
 # ── Testing ───────────────────────────────────────────────────────────────────
 
 test:
-	$(PYTEST) tests/ -q --tb=short
+	$(PYTEST) tests/ -q --tb=short -n auto --dist worksteal
 
 test-unit:
-	$(PYTEST) tests -m "unit" --tb=short -v
+	$(PYTEST) tests -m "unit" --tb=short -v -n auto --dist worksteal
 
 test-integration:
-	$(PYTEST) tests -m "integration" --tb=short -v
+	$(PYTEST) tests -m "integration" --tb=short -v -n auto --dist worksteal
 
 test-functional:
 	$(PYTEST) tests -m "functional and not slow and not selenium" --tb=short -v -n0
@@ -103,16 +103,16 @@ test-e2e:
 	$(PYTEST) tests -m "e2e" --tb=short -v -n0
 
 test-fast:
-	$(PYTEST) tests -m "unit or integration" --tb=short -v
+	$(PYTEST) tests -m "unit or integration" --tb=short -v -n auto --dist worksteal
 
 test-ci:
-	$(PYTEST) tests -m "not skip_ci" --tb=short --cov=src --cov-report=term-missing
+	$(PYTEST) tests -m "not skip_ci" --tb=short --cov=src --cov-report=term-missing --cov-fail-under=73 -p no:xdist
 
 test-cov:
-	$(PYTEST) tests/ --cov=src --cov-report=term-missing --cov-report=xml -q
+	$(PYTEST) tests/ --cov=src --cov-report=term-missing --cov-report=xml --cov-fail-under=73 -q -p no:xdist
 
 test-cov-html:
-	$(PYTEST) tests/ --cov=src --cov-report=term-missing --cov-report=html -q
+	$(PYTEST) tests/ --cov=src --cov-report=term-missing --cov-report=html --cov-fail-under=73 -q -p no:xdist
 	@echo "✓ HTML coverage report: open htmlcov/index.html"
 
 # Full-stack functional test: spins up Ollama (CPU, qwen2.5:0.5b) + dashboard
