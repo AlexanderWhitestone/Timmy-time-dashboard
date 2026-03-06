@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # =============================================================================
-# Sovereign Agent Stack — VPS Deployment Script (Final Remote-Ready)
+# Sovereign Agent Stack — VPS Deployment Script (Remote-Ready Version v5)
 #
 # A single file to bootstrap Paperclip + OpenFang + Obsidian on a VPS.
 #
@@ -136,10 +136,16 @@ start_services() {
     else
         step "Starting Paperclip (binding to 0.0.0.0)..."
         cd "$PAPERCLIP_DIR"
+        
+        # --- Remote Access Configuration ---
+        PUBLIC_IP=$(curl -s ifconfig.me)
         export DATABASE_URL="$DATABASE_URL"
         export BETTER_AUTH_SECRET="sovereign-$(openssl rand -hex 16)"
         export PAPERCLIP_AGENT_JWT_SECRET="agent-$(openssl rand -hex 16)"
-        export BETTER_AUTH_URL="http://$(curl -s ifconfig.me):3100"
+        export BETTER_AUTH_URL="http://$PUBLIC_IP:3100"
+        
+        # Security: Allow the public IP hostname
+        export PAPERCLIP_ALLOWED_HOSTNAMES="$PUBLIC_IP,localhost,127.0.0.1"
         
         nohup pnpm dev --authenticated-private > "$LOG_DIR/paperclip.log" 2>&1 &
         echo $! > "$PID_DIR/paperclip.pid"
