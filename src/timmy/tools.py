@@ -476,14 +476,6 @@ def create_full_toolkit(base_dir: str | Path | None = None):
     except Exception:
         logger.debug("Delegation tools not available")
 
-    # Background task submission via Celery
-    try:
-        from timmy.tools_celery import submit_background_task
-
-        toolkit.register(submit_background_task, name="submit_background_task")
-    except Exception:
-        logger.debug("Background task tool not available")
-
     return toolkit
 
 
@@ -603,11 +595,6 @@ def get_all_available_tools() -> dict[str, dict]:
             "name": "Aider AI Assistant",
             "description": "Local AI coding assistant using Ollama (qwen2.5:14b or deepseek-coder)",
             "available_in": ["forge", "orchestrator"],
-        },
-        "submit_background_task": {
-            "name": "Background Task",
-            "description": "Submit a task to the Celery background queue for async processing",
-            "available_in": ["orchestrator"],
         },
     }
 

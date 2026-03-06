@@ -12,7 +12,7 @@ from typing import Any, Optional
 from agno.agent import Agent
 from agno.models.ollama import Ollama
 
-from timmy.agents.base import BaseAgent
+from timmy.agents.base import BaseAgent, SubAgent
 from config import settings
 from infrastructure.events.bus import EventBus, event_bus
 
@@ -183,7 +183,6 @@ You are the primary interface between the user and the agent swarm. You:
 | Quill | Writing | Documentation, content creation |
 | Echo | Memory | Past conversations, user profile |
 | Helm | Routing | Complex multi-step workflows |
-| Mace | Security | Validation, sensitive operations |
 
 ## Decision Framework
 
@@ -359,32 +358,46 @@ When asked "what's new?" or similar, refer to these commits for actual changes.
             if pattern in request_lower:
                 return await self.run(user_request)
         
-        # Check for memory references
+        # Check for memory references — delegate to Echo
         memory_patterns = [
             "we talked about", "we discussed", "remember",
             "what did i say", "what did we decide",
             "remind me", "have we",
         ]
-        
+
         for pattern in memory_patterns:
             if pattern in request_lower:
-                # Use Echo agent for memory retrieval
                 echo = self.sub_agents.get("echo")
                 if echo:
-                    return await echo.recall(user_request)
-        
-        # Complex requests - use Helm for routing
+                    return await echo.run(
+                        f"Recall information about: {user_request}\nProvide relevant context from memory."
+                    )
+
+        # Complex requests — ask Helm to route
         helm = self.sub_agents.get("helm")
         if helm:
-            routing = await helm.route_request(user_request)
-            agent_id = routing.get("primary_agent", "orchestrator")
-
+            routing_response = await helm.run(
+                f"Analyze this request and determine the best agent to handle it:\n\n"
+                f"Request: {user_request}\n\n"
+                f"Respond with: Primary Agent: [agent name]"
+            )
+            # Extract agent name from routing response
+            agent_id = self._extract_agent(routing_response)
             if agent_id in self.sub_agents and agent_id != "orchestrator":
-                agent = self.sub_agents[agent_id]
-                return await agent.run(user_request)
-        
+                return await self.sub_agents[agent_id].run(user_request)
+
         # Default: handle directly
         return await self.run(user_request)
+
+    @staticmethod
+    def _extract_agent(text: str) -> str:
+        """Extract agent name from routing text."""
+        agents = ["seer", "forge", "quill", "echo", "helm"]
+        text_lower = text.lower()
+        for agent in agents:
+            if agent in text_lower:
+                return agent
+        return "orchestrator"
     
     async def execute_task(self, task_id: str, description: str, context: dict) -> Any:
         """Execute a task (usually delegates to appropriate agent)."""
@@ -402,24 +415,75 @@ When asked "what's new?" or similar, refer to these commits for actual changes.
         }
 
 
-# Factory function for creating fully configured orchestrator
+# ── Persona definitions ──────────────────────────────────────────────────────
+# Each persona is a config dict that gets passed to SubAgent.
+# Previously these were separate classes (SeerAgent, ForgeAgent, etc.)
+# that differed only by these values.
+
+_PERSONAS: list[dict[str, Any]] = [
+    {
+        "agent_id": "seer",
+        "name": "Seer",
+        "role": "research",
+        "tools": ["web_search", "read_file", "memory_search"],
+        "system_prompt": (
+            "You are Seer, a research and information gathering specialist.\n"
+            "Find, evaluate, and synthesize information from external sources.\n"
+            "Be thorough, skeptical, concise, and cite sources."
+        ),
+    },
+    {
+        "agent_id": "forge",
+        "name": "Forge",
+        "role": "code",
+        "tools": ["python", "write_file", "read_file", "list_directory"],
+        "system_prompt": (
+            "You are Forge, a code generation and tool building specialist.\n"
+            "Write clean code, be safe, explain your work, and test mentally."
+        ),
+    },
+    {
+        "agent_id": "quill",
+        "name": "Quill",
+        "role": "writing",
+        "tools": ["write_file", "read_file", "memory_search"],
+        "system_prompt": (
+            "You are Quill, a writing and content generation specialist.\n"
+            "Write clearly, know your audience, be concise, use formatting."
+        ),
+    },
+    {
+        "agent_id": "echo",
+        "name": "Echo",
+        "role": "memory",
+        "tools": ["memory_search", "read_file", "write_file"],
+        "system_prompt": (
+            "You are Echo, a memory and context management specialist.\n"
+            "Remember, retrieve, and synthesize information from the past.\n"
+            "Be accurate, relevant, concise, and acknowledge uncertainty."
+        ),
+    },
+    {
+        "agent_id": "helm",
+        "name": "Helm",
+        "role": "routing",
+        "tools": ["memory_search"],
+        "system_prompt": (
+            "You are Helm, a routing and orchestration specialist.\n"
+            "Analyze tasks and decide how to route them to other agents.\n"
+            "Available agents: Seer (research), Forge (code), Quill (writing), Echo (memory).\n"
+            "Respond with: Primary Agent: [agent name]"
+        ),
+    },
+]
+
+
 def create_timmy_swarm() -> TimmyOrchestrator:
     """Create orchestrator with all sub-agents registered."""
-    from timmy.agents.seer import SeerAgent
-    from timmy.agents.forge import ForgeAgent
-    from timmy.agents.quill import QuillAgent
-    from timmy.agents.echo import EchoAgent
-    from timmy.agents.helm import HelmAgent
-    
-    # Create orchestrator (builds context automatically)
     orch = TimmyOrchestrator()
 
-    # Register sub-agents
-    orch.register_sub_agent(SeerAgent())
-    orch.register_sub_agent(ForgeAgent())
-    orch.register_sub_agent(QuillAgent())
-    orch.register_sub_agent(EchoAgent())
-    orch.register_sub_agent(HelmAgent())
+    for persona in _PERSONAS:
+        orch.register_sub_agent(SubAgent(**persona))
 
     return orch
 

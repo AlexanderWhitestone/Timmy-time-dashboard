@@ -6,7 +6,6 @@ for the Mission Control dashboard.
 
 import asyncio
 import logging
-import os
 from datetime import datetime, timezone
 from typing import Any
 
@@ -19,31 +18,6 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["health"])
-
-
-# Legacy health check for backward compatibility
-def _check_ollama_sync() -> bool:
-    """Synchronous Ollama check — run via asyncio.to_thread()."""
-    try:
-        import urllib.request
-        url = settings.ollama_url.replace("localhost", "127.0.0.1")
-        req = urllib.request.Request(
-            f"{url}/api/tags",
-            method="GET",
-            headers={"Accept": "application/json"},
-        )
-        with urllib.request.urlopen(req, timeout=2) as response:
-            return response.status == 200
-    except Exception:
-        return False
-
-
-async def check_ollama() -> bool:
-    """Check Ollama status without blocking the event loop."""
-    try:
-        return await asyncio.to_thread(_check_ollama_sync)
-    except Exception:
-        return False
 
 
 class DependencyStatus(BaseModel):
@@ -74,8 +48,8 @@ class HealthStatus(BaseModel):
 _START_TIME = datetime.now(timezone.utc)
 
 
-def _check_ollama_status_sync() -> DependencyStatus:
-    """Synchronous Ollama status check — run via asyncio.to_thread()."""
+def _check_ollama_sync() -> DependencyStatus:
+    """Synchronous Ollama check — run via asyncio.to_thread()."""
     try:
         import urllib.request
         url = settings.ollama_url.replace("localhost", "127.0.0.1")
@@ -84,17 +58,14 @@ def _check_ollama_status_sync() -> DependencyStatus:
             method="GET",
             headers={"Accept": "application/json"},
         )
-        try:
-            with urllib.request.urlopen(req, timeout=2) as response:
-                if response.status == 200:
-                    return DependencyStatus(
-                        name="Ollama AI",
-                        status="healthy",
-                        sovereignty_score=10,
-                        details={"url": settings.ollama_url, "model": settings.ollama_model},
-                    )
-        except Exception:
-            pass
+        with urllib.request.urlopen(req, timeout=2) as response:
+            if response.status == 200:
+                return DependencyStatus(
+                    name="Ollama AI",
+                    status="healthy",
+                    sovereignty_score=10,
+                    details={"url": settings.ollama_url, "model": settings.ollama_model},
+                )
     except Exception:
         pass
 
@@ -109,7 +80,7 @@ def _check_ollama_status_sync() -> DependencyStatus:
 async def _check_ollama() -> DependencyStatus:
     """Check Ollama AI backend status without blocking the event loop."""
     try:
-        return await asyncio.to_thread(_check_ollama_status_sync)
+        return await asyncio.to_thread(_check_ollama_sync)
     except Exception:
         return DependencyStatus(
             name="Ollama AI",
@@ -119,18 +90,10 @@ async def _check_ollama() -> DependencyStatus:
         )
 
 
-def _check_redis() -> DependencyStatus:
-    """Check Redis cache status.
-    
-    Coordinator removed — Redis is not currently in use.
-    Returns degraded/fallback status.
-    """
-    return DependencyStatus(
-        name="Redis Cache",
-        status="degraded",
-        sovereignty_score=10,
-        details={"mode": "fallback", "fallback": True, "note": "Using in-memory (coordinator removed)"},
-    )
+async def check_ollama() -> bool:
+    """Legacy bool check — used by health_check endpoint."""
+    dep = await _check_ollama()
+    return dep.status == "healthy"
 
 
 def _check_lightning() -> DependencyStatus:
@@ -187,10 +150,6 @@ def _generate_recommendations(deps: list[DependencyStatus]) -> list[str]:
             if dep.name == "Lightning Payments" and dep.details.get("backend") == "mock":
                 recommendations.append(
                     "Switch to real Lightning: set LIGHTNING_BACKEND=lnd and configure LND"
-                )
-            elif dep.name == "Redis Cache":
-                recommendations.append(
-                    "Redis is in fallback mode - system works but without persistence"
                 )
     
     if not recommendations:
@@ -264,7 +223,6 @@ async def sovereignty_check():
     """
     dependencies = [
         await _check_ollama(),
-        _check_redis(),
         _check_lightning(),
         _check_sqlite(),
     ]

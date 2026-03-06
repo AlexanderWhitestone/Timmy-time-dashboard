@@ -26,10 +26,6 @@ class Settings(BaseSettings):
     # Discord bot token — set via DISCORD_TOKEN env var or the /discord/setup endpoint
     discord_token: str = ""
 
-    # ── Celery / Redis ──────────────────────────────────────────────────────
-    redis_url: str = "redis://localhost:6379/0"
-    celery_enabled: bool = True
-
     # ── AirLLM / backend selection ───────────────────────────────────────────
     # "ollama"  — always use Ollama (default, safe everywhere)
     # "airllm"  — always use AirLLM (requires pip install ".[bigbrain]")
