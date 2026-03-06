@@ -10,6 +10,11 @@ PROD_PROJECT_DIR = Path("/home/ubuntu/prod-sovereign-stack")
 PROD_VAULT_DIR = PROD_PROJECT_DIR / "TimmyVault"
 SETUP_SCRIPT_PATH = Path("/home/ubuntu/setup_timmy.sh")
 
+pytestmark = pytest.mark.skipif(
+    not SETUP_SCRIPT_PATH.exists(),
+    reason=f"Setup script not found at {SETUP_SCRIPT_PATH}",
+)
+
 @pytest.fixture(scope="module", autouse=True)
 def setup_prod_env():
     """Ensure a clean environment and run the full installation."""

@@ -25,16 +25,21 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: |
+          pip install poetry
+          poetry install --with dev
 
       - name: Run tests
         run: |
           mkdir -p reports
-          pytest \
+          poetry run pytest \
             --cov=src \
             --cov-report=term-missing \
             --cov-report=xml:reports/coverage.xml \
-            --junitxml=reports/junit.xml
+            --cov-fail-under=73 \
+            --junitxml=reports/junit.xml \
+            -p no:xdist \
+            -m "not ollama and not docker and not selenium and not external_api"
 
       # Posts a check annotation + PR comment showing pass/fail counts.
       # Visible in the GitHub mobile app under Checks and in PR conversations.
