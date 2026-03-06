@@ -1,12 +1,22 @@
 """Integration tests for the Paperclip task runner — full green-path workflow.
 
-Tests the complete autonomous cycle:
-  1. Timmy grabs the first task in queue
-  2. Timmy processes the task (muses about automation, writes recursive task)
-  3. Timmy completes the task and submits a response
-  4. Confirm Timmy creates a follow-up task for himself
+Tests the complete autonomous cycle with a StubOrchestrator that exercises
+the real pipe (TaskRunner → orchestrator.execute_task → bridge → client)
+while stubbing only the LLM intelligence layer.
 
-Also tests: external task injection via Paperclip API → Timmy processes → marked done.
+Green path:
+  1. Timmy grabs first task in queue
+  2. Orchestrator.execute_task processes it (stub returns input-aware response)
+  3. Timmy posts completion comment and marks issue done
+  4. Timmy creates a recursive follow-up task for himself
+
+The stub is deliberately input-aware — it echoes back task metadata so
+assertions can prove data actually flowed through the pipe, not just that
+methods were called.
+
+Live-LLM tests (``@pytest.mark.ollama``) are at the bottom; they hit a real
+tiny model via Ollama and are skipped when Ollama is not running.
+Run them with: ``tox -e ollama`` or ``pytest -m ollama``
 """
 
 from __future__ import annotations
@@ -18,18 +28,63 @@ import pytest
 from integrations.paperclip.bridge import PaperclipBridge
 from integrations.paperclip.client import PaperclipClient
 from integrations.paperclip.models import (
-    CreateIssueRequest,
-    PaperclipComment,
     PaperclipIssue,
-    UpdateIssueRequest,
 )
 from integrations.paperclip.task_runner import TaskRunner
 
 
-# ── Fixtures ──────────────────────────────────────────────────────────────────
+# ── Constants ─────────────────────────────────────────────────────────────────
 
 TIMMY_AGENT_ID = "agent-timmy"
 COMPANY_ID = "comp-1"
+
+
+# ── StubOrchestrator: exercises the pipe, stubs the intelligence ──────────────
+
+
+class StubOrchestrator:
+    """Deterministic orchestrator that proves data flows through the pipe.
+
+    Returns responses that reference input metadata — so tests can assert
+    the pipe actually connected (task_id, title, priority all appear in output).
+    Tracks every call for post-hoc inspection.
+    """
+
+    def __init__(self) -> None:
+        self.calls: list[dict] = []
+
+    async def execute_task(
+        self, task_id: str, description: str, context: dict
+    ) -> dict:
+        call_record = {
+            "task_id": task_id,
+            "description": description,
+            "context": dict(context),
+        }
+        self.calls.append(call_record)
+
+        title = context.get("title", description[:50])
+        priority = context.get("priority", "normal")
+
+        return {
+            "task_id": task_id,
+            "agent": "orchestrator",
+            "result": (
+                f"[Orchestrator] Processed '{title}'. "
+                f"Task {task_id} handled with priority {priority}. "
+                "Self-reflection: my task automation loop is functioning. "
+                "I should create a follow-up to review this pattern."
+            ),
+            "status": "completed",
+        }
+
+
+# ── Fixtures ──────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def stub_orchestrator():
+    return StubOrchestrator()
 
 
 @pytest.fixture
@@ -77,6 +132,9 @@ def settings_patch():
         yield ts
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+
 def _make_issue(
     id: str = "issue-1",
     title: str = "Muse about task automation",
@@ -97,15 +155,105 @@ def _make_issue(
     )
 
 
-def _make_follow_up_issue(original_id: str = "issue-1") -> PaperclipIssue:
+def _make_done(id: str = "issue-1", title: str = "Done") -> PaperclipIssue:
+    return PaperclipIssue(id=id, title=title, status="done")
+
+
+def _make_follow_up(id: str = "issue-2") -> PaperclipIssue:
     return PaperclipIssue(
-        id="issue-2",
-        title=f"Follow-up: Muse about task automation",
-        description=f"Automated follow-up from completed task",
+        id=id,
+        title="Follow-up: Muse about task automation",
+        description="Automated follow-up from completed task",
         status="open",
         assignee_id=TIMMY_AGENT_ID,
         priority="normal",
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PIPE WIRING: verify orchestrator is actually connected
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+class TestOrchestratorWiring:
+    """Verify the orchestrator parameter actually connects to the pipe."""
+
+    async def test_orchestrator_execute_task_is_called(
+        self, mock_client, bridge, stub_orchestrator, settings_patch,
+    ):
+        """When orchestrator is wired, process_task calls execute_task."""
+        issue = _make_issue()
+
+        runner = TaskRunner(bridge=bridge, orchestrator=stub_orchestrator)
+        result = await runner.process_task(issue)
+
+        assert len(stub_orchestrator.calls) == 1
+        call = stub_orchestrator.calls[0]
+        assert call["task_id"] == "issue-1"
+        assert call["context"]["title"] == "Muse about task automation"
+
+    async def test_orchestrator_receives_full_context(
+        self, mock_client, bridge, stub_orchestrator, settings_patch,
+    ):
+        """Context dict passed to execute_task includes all issue metadata."""
+        issue = _make_issue(
+            id="ctx-test",
+            title="Context verification",
+            priority="high",
+            labels=["automation", "meta"],
+        )
+
+        runner = TaskRunner(bridge=bridge, orchestrator=stub_orchestrator)
+        await runner.process_task(issue)
+
+        ctx = stub_orchestrator.calls[0]["context"]
+        assert ctx["issue_id"] == "ctx-test"
+        assert ctx["title"] == "Context verification"
+        assert ctx["priority"] == "high"
+        assert ctx["labels"] == ["automation", "meta"]
+
+    async def test_orchestrator_dict_result_unwrapped(
+        self, mock_client, bridge, stub_orchestrator, settings_patch,
+    ):
+        """When execute_task returns a dict, the 'result' key is extracted."""
+        issue = _make_issue()
+
+        runner = TaskRunner(bridge=bridge, orchestrator=stub_orchestrator)
+        result = await runner.process_task(issue)
+
+        # StubOrchestrator returns dict with "result" key
+        assert "[Orchestrator]" in result
+        assert "issue-1" in result
+
+    async def test_orchestrator_string_result_passthrough(
+        self, mock_client, bridge, settings_patch,
+    ):
+        """When execute_task returns a plain string, it passes through."""
+
+        class StringOrchestrator:
+            async def execute_task(self, task_id, description, context):
+                return f"Plain string result for {task_id}"
+
+        runner = TaskRunner(bridge=bridge, orchestrator=StringOrchestrator())
+        result = await runner.process_task(_make_issue())
+
+        assert result == "Plain string result for issue-1"
+
+    async def test_process_fn_overrides_orchestrator(
+        self, mock_client, bridge, stub_orchestrator, settings_patch,
+    ):
+        """Explicit process_fn takes priority over orchestrator."""
+
+        async def override(task_id, desc, ctx):
+            return "override wins"
+
+        runner = TaskRunner(
+            bridge=bridge, orchestrator=stub_orchestrator, process_fn=override,
+        )
+        result = await runner.process_task(_make_issue())
+
+        assert result == "override wins"
+        assert len(stub_orchestrator.calls) == 0  # orchestrator NOT called
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -117,7 +265,6 @@ class TestGrabNextTask:
     """Verify Timmy picks the first open issue assigned to him."""
 
     async def test_grabs_first_assigned_issue(self, mock_client, bridge, settings_patch):
-        """Timmy should grab the first open issue where assignee_id matches his agent ID."""
         issue = _make_issue()
         mock_client.list_issues.return_value = [issue]
 
@@ -130,470 +277,572 @@ class TestGrabNextTask:
         mock_client.list_issues.assert_awaited_once_with(status="open")
 
     async def test_skips_issues_not_assigned_to_timmy(self, mock_client, bridge, settings_patch):
-        """Issues assigned to other agents should be skipped."""
-        other_issue = _make_issue(id="other-1", assignee_id="agent-codex")
-        timmy_issue = _make_issue(id="timmy-1")
-        mock_client.list_issues.return_value = [other_issue, timmy_issue]
+        other = _make_issue(id="other-1", assignee_id="agent-codex")
+        mine = _make_issue(id="timmy-1")
+        mock_client.list_issues.return_value = [other, mine]
 
         runner = TaskRunner(bridge=bridge)
         grabbed = await runner.grab_next_task()
 
-        assert grabbed is not None
         assert grabbed.id == "timmy-1"
 
     async def test_returns_none_when_queue_empty(self, mock_client, bridge, settings_patch):
-        """No issues in queue → return None."""
         mock_client.list_issues.return_value = []
-
         runner = TaskRunner(bridge=bridge)
-        grabbed = await runner.grab_next_task()
-
-        assert grabbed is None
+        assert await runner.grab_next_task() is None
 
     async def test_returns_none_when_no_agent_id(self, mock_client, bridge, settings_patch):
-        """If agent ID is not configured, cannot grab tasks."""
         settings_patch.paperclip_agent_id = ""
-
         runner = TaskRunner(bridge=bridge)
-        grabbed = await runner.grab_next_task()
-
-        assert grabbed is None
+        assert await runner.grab_next_task() is None
         mock_client.list_issues.assert_not_awaited()
 
-    async def test_grabs_first_of_multiple_assigned(self, mock_client, bridge, settings_patch):
-        """When multiple issues are assigned to Timmy, grab the first one."""
-        issues = [
-            _make_issue(id="first", title="First task"),
-            _make_issue(id="second", title="Second task"),
-            _make_issue(id="third", title="Third task"),
-        ]
+    async def test_grabs_first_of_multiple(self, mock_client, bridge, settings_patch):
+        issues = [_make_issue(id=f"t-{i}", title=f"Task {i}") for i in range(3)]
         mock_client.list_issues.return_value = issues
 
         runner = TaskRunner(bridge=bridge)
-        grabbed = await runner.grab_next_task()
-
-        assert grabbed.id == "first"
+        assert (await runner.grab_next_task()).id == "t-0"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# STEP 2: Timmy processes the task
+# STEP 2: Timmy processes the task through the orchestrator
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
 class TestProcessTask:
-    """Verify Timmy checks out the issue and processes it."""
+    """Verify checkout + orchestrator invocation + result flow."""
 
-    async def test_checks_out_issue_before_processing(self, mock_client, bridge, settings_patch):
-        """Issue must be checked out before processing begins."""
+    async def test_checkout_before_orchestrator(
+        self, mock_client, bridge, stub_orchestrator, settings_patch,
+    ):
+        """Issue must be checked out before orchestrator runs."""
         issue = _make_issue()
+        checkout_happened = {"before_execute": False}
 
-        async def fake_processor(task_id, desc, ctx):
-            # By the time we're called, checkout should have happened
-            mock_client.checkout_issue.assert_awaited_once_with("issue-1")
-            return "Mused about automation deeply"
+        original_execute = stub_orchestrator.execute_task
 
-        runner = TaskRunner(bridge=bridge, process_fn=fake_processor)
-        result = await runner.process_task(issue)
+        async def tracking_execute(task_id, desc, ctx):
+            checkout_happened["before_execute"] = (
+                mock_client.checkout_issue.await_count > 0
+            )
+            return await original_execute(task_id, desc, ctx)
 
-        assert result == "Mused about automation deeply"
+        stub_orchestrator.execute_task = tracking_execute
 
-    async def test_passes_context_to_processor(self, mock_client, bridge, settings_patch):
-        """The processor receives issue metadata as context."""
-        issue = _make_issue(priority="high", labels=["automation", "meta"])
-        captured_ctx = {}
-
-        async def capture_processor(task_id, desc, ctx):
-            captured_ctx.update(ctx)
-            return "done"
-
-        runner = TaskRunner(bridge=bridge, process_fn=capture_processor)
+        runner = TaskRunner(bridge=bridge, orchestrator=stub_orchestrator)
         await runner.process_task(issue)
 
-        assert captured_ctx["issue_id"] == "issue-1"
-        assert captured_ctx["title"] == "Muse about task automation"
-        assert captured_ctx["priority"] == "high"
-        assert "automation" in captured_ctx["labels"]
+        assert checkout_happened["before_execute"], "checkout must happen before execute_task"
 
-    async def test_default_processor_returns_message(self, mock_client, bridge, settings_patch):
-        """Without a custom process_fn, a default result is returned."""
-        issue = _make_issue()
+    async def test_orchestrator_output_flows_to_result(
+        self, mock_client, bridge, stub_orchestrator, settings_patch,
+    ):
+        """The string returned by process_task comes from the orchestrator."""
+        issue = _make_issue(id="flow-1", title="Flow verification", priority="high")
 
-        runner = TaskRunner(bridge=bridge)  # No process_fn
+        runner = TaskRunner(bridge=bridge, orchestrator=stub_orchestrator)
         result = await runner.process_task(issue)
 
-        assert "Muse about task automation" in result
+        # Verify orchestrator's output arrived — it references the input
+        assert "Flow verification" in result
+        assert "flow-1" in result
+        assert "high" in result
+
+    async def test_default_fallback_without_orchestrator(
+        self, mock_client, bridge, settings_patch,
+    ):
+        """Without orchestrator or process_fn, a default message is returned."""
+        issue = _make_issue(title="Fallback test")
+        runner = TaskRunner(bridge=bridge)  # no orchestrator
+        result = await runner.process_task(issue)
+        assert "Fallback test" in result
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# STEP 3: Timmy completes the task and submits response
+# STEP 3: Timmy completes the task — comment + close
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
 class TestCompleteTask:
-    """Verify Timmy posts a completion comment and marks the issue done."""
+    """Verify orchestrator output flows into the completion comment."""
 
-    async def test_posts_completion_comment(self, mock_client, bridge, settings_patch):
-        """A [Timmy] comment should be posted with the result."""
+    async def test_orchestrator_output_in_comment(
+        self, mock_client, bridge, stub_orchestrator, settings_patch,
+    ):
+        """The comment posted to Paperclip contains the orchestrator's output."""
+        issue = _make_issue(id="cmt-1", title="Comment pipe test")
+        mock_client.update_issue.return_value = _make_done("cmt-1")
+
+        runner = TaskRunner(bridge=bridge, orchestrator=stub_orchestrator)
+        # Process to get orchestrator output
+        result = await runner.process_task(issue)
+        # Complete to post it as comment
+        await runner.complete_task(issue, result)
+
+        comment_content = mock_client.add_comment.call_args[0][1]
+        assert "[Timmy]" in comment_content
+        assert "[Orchestrator]" in comment_content
+        assert "Comment pipe test" in comment_content
+
+    async def test_marks_issue_done(
+        self, mock_client, bridge, settings_patch,
+    ):
         issue = _make_issue()
-        mock_client.update_issue.return_value = PaperclipIssue(
-            id="issue-1", title="Done", status="done"
-        )
+        mock_client.update_issue.return_value = _make_done()
 
         runner = TaskRunner(bridge=bridge)
-        ok = await runner.complete_task(issue, "I reflected on automation patterns")
+        ok = await runner.complete_task(issue, "any result")
 
         assert ok is True
-        # Verify comment was posted
-        mock_client.add_comment.assert_awaited_once()
-        comment_args = mock_client.add_comment.call_args
-        assert comment_args[0][0] == "issue-1"
-        assert "[Timmy]" in comment_args[0][1]
-        assert "I reflected on automation patterns" in comment_args[0][1]
+        update_req = mock_client.update_issue.call_args[0][1]
+        assert update_req.status == "done"
 
-    async def test_marks_issue_done(self, mock_client, bridge, settings_patch):
-        """Issue status should be updated to 'done'."""
-        issue = _make_issue()
-        mock_client.update_issue.return_value = PaperclipIssue(
-            id="issue-1", title="Done", status="done"
-        )
-
+    async def test_returns_false_on_close_failure(
+        self, mock_client, bridge, settings_patch,
+    ):
+        mock_client.update_issue.return_value = None
         runner = TaskRunner(bridge=bridge)
-        ok = await runner.complete_task(issue, "Result")
-
-        assert ok is True
-        mock_client.update_issue.assert_awaited_once()
-        update_call = mock_client.update_issue.call_args
-        assert update_call[0][0] == "issue-1"
-        assert update_call[0][1].status == "done"
-
-    async def test_returns_false_on_close_failure(self, mock_client, bridge, settings_patch):
-        """If closing the issue fails, return False."""
-        issue = _make_issue()
-        mock_client.update_issue.return_value = None  # Failure
-
-        runner = TaskRunner(bridge=bridge)
-        ok = await runner.complete_task(issue, "Result")
-
-        assert ok is False
+        assert await runner.complete_task(_make_issue(), "result") is False
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# STEP 4: Timmy creates a follow-up task for himself
+# STEP 4: Follow-up creation with orchestrator output embedded
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
 class TestCreateFollowUp:
-    """Verify Timmy creates a recursive follow-up task assigned to himself."""
+    """Verify orchestrator output flows into the follow-up description."""
 
-    async def test_creates_follow_up_assigned_to_self(self, mock_client, bridge, settings_patch):
-        """Follow-up issue should be assigned to Timmy."""
-        original = _make_issue()
-        follow_up = _make_follow_up_issue()
-        mock_client.create_issue.return_value = follow_up
+    async def test_follow_up_contains_orchestrator_output(
+        self, mock_client, bridge, stub_orchestrator, settings_patch,
+    ):
+        """The follow-up description includes the orchestrator's result text."""
+        issue = _make_issue(id="fu-1", title="Follow-up pipe test")
+        mock_client.create_issue.return_value = _make_follow_up()
 
+        runner = TaskRunner(bridge=bridge, orchestrator=stub_orchestrator)
+        result = await runner.process_task(issue)
+        await runner.create_follow_up(issue, result)
+
+        create_req = mock_client.create_issue.call_args[0][0]
+        # Orchestrator output should be embedded in description
+        assert "[Orchestrator]" in create_req.description
+        assert "fu-1" in create_req.description
+
+    async def test_follow_up_assigned_to_self(
+        self, mock_client, bridge, settings_patch,
+    ):
+        mock_client.create_issue.return_value = _make_follow_up()
         runner = TaskRunner(bridge=bridge)
-        result = await runner.create_follow_up(original, "Automation musings complete")
+        await runner.create_follow_up(_make_issue(), "result")
 
-        assert result is not None
-        assert result.id == "issue-2"
-        # Verify create_issue was called with correct params
-        create_call = mock_client.create_issue.call_args
-        req = create_call[0][0]
-        assert "Follow-up" in req.title
-        assert TIMMY_AGENT_ID == req.assignee_id
+        req = mock_client.create_issue.call_args[0][0]
+        assert req.assignee_id == TIMMY_AGENT_ID
 
-    async def test_follow_up_references_original(self, mock_client, bridge, settings_patch):
-        """Follow-up description should reference the original task."""
-        original = _make_issue(id="orig-99", title="Reflect on automation")
-        mock_client.create_issue.return_value = _make_follow_up_issue("orig-99")
-
+    async def test_follow_up_preserves_priority(
+        self, mock_client, bridge, settings_patch,
+    ):
+        mock_client.create_issue.return_value = _make_follow_up()
         runner = TaskRunner(bridge=bridge)
-        await runner.create_follow_up(original, "Deep thoughts on recursion")
+        await runner.create_follow_up(_make_issue(priority="high"), "result")
 
-        create_call = mock_client.create_issue.call_args
-        req = create_call[0][0]
-        assert "orig-99" in req.description
-        assert "Reflect on automation" in req.description
-        assert "Deep thoughts on recursion" in req.description
-
-    async def test_follow_up_preserves_priority(self, mock_client, bridge, settings_patch):
-        """Follow-up should inherit the original task's priority."""
-        original = _make_issue(priority="high")
-        mock_client.create_issue.return_value = _make_follow_up_issue()
-
-        runner = TaskRunner(bridge=bridge)
-        await runner.create_follow_up(original, "result")
-
-        create_call = mock_client.create_issue.call_args
-        req = create_call[0][0]
+        req = mock_client.create_issue.call_args[0][0]
         assert req.priority == "high"
 
-    async def test_follow_up_not_woken_immediately(self, mock_client, bridge, settings_patch):
-        """Follow-up should NOT wake the agent — the next poll picks it up."""
-        original = _make_issue()
-        mock_client.create_issue.return_value = _make_follow_up_issue()
-
+    async def test_follow_up_not_woken(self, mock_client, bridge, settings_patch):
+        mock_client.create_issue.return_value = _make_follow_up()
         runner = TaskRunner(bridge=bridge)
-        await runner.create_follow_up(original, "result")
-
-        # wake_agent should NOT have been called for the follow-up
+        await runner.create_follow_up(_make_issue(), "result")
         mock_client.wake_agent.assert_not_awaited()
 
-    async def test_returns_none_on_create_failure(self, mock_client, bridge, settings_patch):
-        """If Paperclip fails to create the follow-up, return None."""
-        original = _make_issue()
+    async def test_returns_none_on_failure(self, mock_client, bridge, settings_patch):
         mock_client.create_issue.return_value = None
-
         runner = TaskRunner(bridge=bridge)
-        result = await runner.create_follow_up(original, "result")
-
-        assert result is None
+        assert await runner.create_follow_up(_make_issue(), "r") is None
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# FULL GREEN PATH: run_once end-to-end
+# FULL GREEN PATH: orchestrator wired end-to-end
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-class TestRunOnceGreenPath:
-    """Full integration test: grab → process → complete → follow-up."""
+class TestGreenPathWithOrchestrator:
+    """Full pipe: TaskRunner → StubOrchestrator → bridge → mock_client.
 
-    async def test_full_cycle_happy_path(self, mock_client, bridge, settings_patch):
-        """Complete green-path: task grabbed, processed, completed, follow-up created."""
+    Proves orchestrator output propagates to every downstream artefact:
+    the comment, the follow-up description, and the summary dict.
+    """
+
+    async def test_full_cycle_orchestrator_output_everywhere(
+        self, mock_client, bridge, stub_orchestrator, settings_patch,
+    ):
+        """Orchestrator result appears in comment, follow-up, and summary."""
         original = _make_issue(
+            id="green-1",
             title="Muse about task automation and write a recursive task",
-            description="Reflect on your task processing. Create a follow-up for yourself.",
+            description="Reflect on your task processing. Create a follow-up.",
+            priority="high",
         )
-        follow_up = _make_follow_up_issue()
-
-        # Wire up mock responses
         mock_client.list_issues.return_value = [original]
-        mock_client.update_issue.return_value = PaperclipIssue(
-            id="issue-1", title="Done", status="done"
-        )
-        mock_client.create_issue.return_value = follow_up
+        mock_client.update_issue.return_value = _make_done("green-1")
+        mock_client.create_issue.return_value = _make_follow_up("green-fu")
 
-        async def musing_processor(task_id, desc, ctx):
-            return (
-                "I've reflected on my task automation patterns. "
-                "The recursive loop of grab-process-complete-followup "
-                "ensures continuous self-improvement."
-            )
-
-        runner = TaskRunner(bridge=bridge, process_fn=musing_processor)
+        runner = TaskRunner(bridge=bridge, orchestrator=stub_orchestrator)
         summary = await runner.run_once()
 
-        # Verify full cycle completed
-        assert summary is not None
-        assert summary["original_issue_id"] == "issue-1"
-        assert summary["completed"] is True
-        assert summary["follow_up_issue_id"] == "issue-2"
-        assert "self-improvement" in summary["result"]
+        # ── Orchestrator was called with correct data
+        assert len(stub_orchestrator.calls) == 1
+        call = stub_orchestrator.calls[0]
+        assert call["task_id"] == "green-1"
+        assert call["context"]["priority"] == "high"
+        assert "Reflect on your task processing" in call["description"]
 
-        # Verify ordering: list → checkout → comment → close → create follow-up
+        # ── Summary contains orchestrator output
+        assert summary is not None
+        assert summary["original_issue_id"] == "green-1"
+        assert summary["completed"] is True
+        assert summary["follow_up_issue_id"] == "green-fu"
+        assert "[Orchestrator]" in summary["result"]
+        assert "green-1" in summary["result"]
+
+        # ── Comment posted contains orchestrator output
+        comment_content = mock_client.add_comment.call_args[0][1]
+        assert "[Timmy]" in comment_content
+        assert "[Orchestrator]" in comment_content
+        assert "high" in comment_content  # priority flowed through
+
+        # ── Follow-up description contains orchestrator output
+        follow_up_req = mock_client.create_issue.call_args[0][0]
+        assert "[Orchestrator]" in follow_up_req.description
+        assert "green-1" in follow_up_req.description
+        assert follow_up_req.priority == "high"
+        assert follow_up_req.assignee_id == TIMMY_AGENT_ID
+
+        # ── Correct ordering of API calls
         mock_client.list_issues.assert_awaited_once()
-        mock_client.checkout_issue.assert_awaited_once_with("issue-1")
+        mock_client.checkout_issue.assert_awaited_once_with("green-1")
         mock_client.add_comment.assert_awaited_once()
         mock_client.update_issue.assert_awaited_once()
         assert mock_client.create_issue.await_count == 1
 
-    async def test_full_cycle_no_tasks(self, mock_client, bridge, settings_patch):
-        """When no tasks in queue, run_once returns None gracefully."""
+    async def test_no_tasks_returns_none(
+        self, mock_client, bridge, stub_orchestrator, settings_patch,
+    ):
         mock_client.list_issues.return_value = []
+        runner = TaskRunner(bridge=bridge, orchestrator=stub_orchestrator)
+        assert await runner.run_once() is None
+        assert len(stub_orchestrator.calls) == 0
 
-        runner = TaskRunner(bridge=bridge)
+    async def test_close_failure_still_creates_follow_up(
+        self, mock_client, bridge, stub_orchestrator, settings_patch,
+    ):
+        mock_client.list_issues.return_value = [_make_issue()]
+        mock_client.update_issue.return_value = None  # close fails
+        mock_client.create_issue.return_value = _make_follow_up()
+
+        runner = TaskRunner(bridge=bridge, orchestrator=stub_orchestrator)
         summary = await runner.run_once()
 
-        assert summary is None
-        mock_client.checkout_issue.assert_not_awaited()
-
-    async def test_full_cycle_with_close_failure(self, mock_client, bridge, settings_patch):
-        """If closing fails, summary reflects it but follow-up still created."""
-        original = _make_issue()
-        follow_up = _make_follow_up_issue()
-
-        mock_client.list_issues.return_value = [original]
-        mock_client.update_issue.return_value = None  # Close fails
-        mock_client.create_issue.return_value = follow_up
-
-        runner = TaskRunner(bridge=bridge)
-        summary = await runner.run_once()
-
-        assert summary is not None
         assert summary["completed"] is False
         assert summary["follow_up_issue_id"] == "issue-2"
+        assert len(stub_orchestrator.calls) == 1
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# EXTERNAL INJECTION: Task added via Paperclip API, Timmy picks it up
+# EXTERNAL INJECTION: task from Paperclip API → orchestrator processes it
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
 class TestExternalTaskInjection:
-    """Simulate: someone adds a task via Paperclip API → Timmy processes it."""
+    """External system creates a task → Timmy's orchestrator processes it."""
 
-    async def test_externally_created_task_picked_up(self, mock_client, bridge, settings_patch):
-        """A task created outside Timmy (via API) with Timmy's agent ID
-        should be picked up and completed on the next run_once cycle."""
-        # External system creates a task assigned to Timmy
-        external_task = _make_issue(
-            id="ext-task-1",
+    async def test_external_task_flows_through_orchestrator(
+        self, mock_client, bridge, stub_orchestrator, settings_patch,
+    ):
+        external = _make_issue(
+            id="ext-1",
             title="Review quarterly metrics",
             description="Analyze Q1 metrics and prepare summary.",
-            assignee_id=TIMMY_AGENT_ID,
         )
-        follow_up = PaperclipIssue(
-            id="ext-follow-1",
-            title="Follow-up: Review quarterly metrics",
-            status="open",
-            assignee_id=TIMMY_AGENT_ID,
-        )
+        mock_client.list_issues.return_value = [external]
+        mock_client.update_issue.return_value = _make_done("ext-1")
+        mock_client.create_issue.return_value = _make_follow_up("ext-fu")
 
-        mock_client.list_issues.return_value = [external_task]
-        mock_client.update_issue.return_value = PaperclipIssue(
-            id="ext-task-1", title="Review quarterly metrics", status="done"
-        )
-        mock_client.create_issue.return_value = follow_up
-
-        async def review_processor(task_id, desc, ctx):
-            return "Q1 metrics reviewed. Revenue up 12%, user growth steady."
-
-        runner = TaskRunner(bridge=bridge, process_fn=review_processor)
+        runner = TaskRunner(bridge=bridge, orchestrator=stub_orchestrator)
         summary = await runner.run_once()
 
-        # External task was processed
-        assert summary is not None
-        assert summary["original_issue_id"] == "ext-task-1"
-        assert summary["completed"] is True
-        assert "Revenue up 12%" in summary["result"]
+        # Orchestrator received the external task
+        assert stub_orchestrator.calls[0]["task_id"] == "ext-1"
+        assert "Analyze Q1 metrics" in stub_orchestrator.calls[0]["description"]
 
-        # Follow-up was created
-        assert summary["follow_up_issue_id"] == "ext-follow-1"
+        # Its output flowed to Paperclip
+        assert "[Orchestrator]" in summary["result"]
+        assert "Review quarterly metrics" in summary["result"]
 
-    async def test_external_task_among_others(self, mock_client, bridge, settings_patch):
-        """Timmy ignores tasks assigned to others, grabs only his own."""
-        other_task = _make_issue(id="other-1", assignee_id="agent-codex", title="Codex work")
-        timmy_task = _make_issue(id="timmy-ext", title="Timmy's external task")
+    async def test_skips_tasks_for_other_agents(
+        self, mock_client, bridge, stub_orchestrator, settings_patch,
+    ):
+        other = _make_issue(id="other-1", assignee_id="agent-codex")
+        mine = _make_issue(id="mine-1", title="My task")
+        mock_client.list_issues.return_value = [other, mine]
+        mock_client.update_issue.return_value = _make_done("mine-1")
+        mock_client.create_issue.return_value = _make_follow_up()
 
-        mock_client.list_issues.return_value = [other_task, timmy_task]
-        mock_client.update_issue.return_value = PaperclipIssue(
-            id="timmy-ext", title="Done", status="done"
-        )
-        mock_client.create_issue.return_value = _make_follow_up_issue()
-
-        runner = TaskRunner(bridge=bridge)
+        runner = TaskRunner(bridge=bridge, orchestrator=stub_orchestrator)
         summary = await runner.run_once()
 
-        assert summary["original_issue_id"] == "timmy-ext"
-        mock_client.checkout_issue.assert_awaited_once_with("timmy-ext")
+        assert summary["original_issue_id"] == "mine-1"
+        mock_client.checkout_issue.assert_awaited_once_with("mine-1")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# RECURSIVE CHAIN: follow-up picked up on subsequent cycle
+# RECURSIVE CHAIN: follow-up → grabbed → orchestrator → follow-up → ...
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-class TestRecursiveTaskChain:
-    """Verify the follow-up from cycle 1 is picked up in cycle 2."""
+class TestRecursiveChain:
+    """Multi-cycle chains where each follow-up becomes the next task."""
 
-    async def test_follow_up_becomes_next_task(self, mock_client, bridge, settings_patch):
-        """Cycle 1 creates follow-up → Cycle 2 grabs that follow-up."""
-        # Cycle 1: original task
-        original = _make_issue(id="task-A", title="Initial musing")
-        follow_up_1 = PaperclipIssue(
-            id="task-B",
-            title="Follow-up: Initial musing",
-            description="Continue the work",
-            status="open",
-            assignee_id=TIMMY_AGENT_ID,
-            priority="normal",
+    async def test_two_cycle_chain(
+        self, mock_client, bridge, stub_orchestrator, settings_patch,
+    ):
+        task_a = _make_issue(id="A", title="Initial musing")
+        fu_b = PaperclipIssue(
+            id="B", title="Follow-up: Initial musing",
+            description="Continue", status="open",
+            assignee_id=TIMMY_AGENT_ID, priority="normal",
         )
-        follow_up_2 = PaperclipIssue(
-            id="task-C",
-            title="Follow-up: Follow-up: Initial musing",
-            status="open",
-            assignee_id=TIMMY_AGENT_ID,
+        fu_c = PaperclipIssue(
+            id="C", title="Follow-up: Follow-up",
+            status="open", assignee_id=TIMMY_AGENT_ID,
         )
 
-        # Cycle 1 setup
-        mock_client.list_issues.return_value = [original]
-        mock_client.update_issue.return_value = PaperclipIssue(
-            id="task-A", title="Done", status="done"
-        )
-        mock_client.create_issue.return_value = follow_up_1
+        # Cycle 1
+        mock_client.list_issues.return_value = [task_a]
+        mock_client.update_issue.return_value = _make_done("A")
+        mock_client.create_issue.return_value = fu_b
 
-        runner = TaskRunner(bridge=bridge)
-        summary_1 = await runner.run_once()
+        runner = TaskRunner(bridge=bridge, orchestrator=stub_orchestrator)
+        s1 = await runner.run_once()
+        assert s1["original_issue_id"] == "A"
+        assert s1["follow_up_issue_id"] == "B"
 
-        assert summary_1["original_issue_id"] == "task-A"
-        assert summary_1["follow_up_issue_id"] == "task-B"
+        # Cycle 2: follow-up B is now the task
+        mock_client.list_issues.return_value = [fu_b]
+        mock_client.update_issue.return_value = _make_done("B")
+        mock_client.create_issue.return_value = fu_c
 
-        # Cycle 2: follow-up is now the next task
-        mock_client.list_issues.return_value = [follow_up_1]
-        mock_client.update_issue.return_value = PaperclipIssue(
-            id="task-B", title="Done", status="done"
-        )
-        mock_client.create_issue.return_value = follow_up_2
+        s2 = await runner.run_once()
+        assert s2["original_issue_id"] == "B"
+        assert s2["follow_up_issue_id"] == "C"
 
-        summary_2 = await runner.run_once()
+        # Orchestrator was called twice — once per cycle
+        assert len(stub_orchestrator.calls) == 2
+        assert stub_orchestrator.calls[0]["task_id"] == "A"
+        assert stub_orchestrator.calls[1]["task_id"] == "B"
 
-        assert summary_2["original_issue_id"] == "task-B"
-        assert summary_2["follow_up_issue_id"] == "task-C"
-
-    async def test_three_cycle_chain(self, mock_client, bridge, settings_patch):
-        """Three consecutive cycles form a recursive chain."""
-        tasks = [
-            _make_issue(id=f"chain-{i}", title=f"Chain task {i}")
-            for i in range(3)
-        ]
+    async def test_three_cycle_chain_all_through_orchestrator(
+        self, mock_client, bridge, stub_orchestrator, settings_patch,
+    ):
+        """Three cycles — every task goes through the orchestrator pipe."""
+        tasks = [_make_issue(id=f"c-{i}", title=f"Chain {i}") for i in range(3)]
         follow_ups = [
             PaperclipIssue(
-                id=f"chain-{i + 1}",
-                title=f"Follow-up: Chain task {i}",
-                status="open",
-                assignee_id=TIMMY_AGENT_ID,
+                id=f"c-{i + 1}", title=f"Follow-up: Chain {i}",
+                status="open", assignee_id=TIMMY_AGENT_ID,
             )
             for i in range(3)
         ]
 
-        runner = TaskRunner(bridge=bridge)
-        completed_ids = []
+        runner = TaskRunner(bridge=bridge, orchestrator=stub_orchestrator)
+        ids = []
 
         for i in range(3):
             mock_client.list_issues.return_value = [tasks[i]]
-            mock_client.update_issue.return_value = PaperclipIssue(
-                id=tasks[i].id, title="Done", status="done"
-            )
+            mock_client.update_issue.return_value = _make_done(tasks[i].id)
             mock_client.create_issue.return_value = follow_ups[i]
 
-            summary = await runner.run_once()
-            assert summary is not None
-            completed_ids.append(summary["original_issue_id"])
+            s = await runner.run_once()
+            ids.append(s["original_issue_id"])
 
-        assert completed_ids == ["chain-0", "chain-1", "chain-2"]
+        assert ids == ["c-0", "c-1", "c-2"]
+        assert len(stub_orchestrator.calls) == 3
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# STOP SIGNAL: runner loop respects stop()
+# LIFECYCLE: start/stop
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-class TestRunnerLifecycle:
-    """Verify start/stop behavior."""
+class TestLifecycle:
 
     async def test_stop_halts_loop(self, mock_client, bridge, settings_patch):
-        """Calling stop() should prevent further iterations."""
         runner = TaskRunner(bridge=bridge)
         runner._running = True
         runner.stop()
         assert runner._running is False
 
-    async def test_start_disabled_when_interval_zero(self, mock_client, bridge, settings_patch):
-        """start() returns immediately if poll_interval <= 0."""
+    async def test_start_disabled_when_interval_zero(
+        self, mock_client, bridge, settings_patch,
+    ):
         settings_patch.paperclip_poll_interval = 0
-
         runner = TaskRunner(bridge=bridge)
-        # Should return immediately without entering loop
         await runner.start()
-
         mock_client.list_issues.assert_not_awaited()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LIVE LLM (manual e2e): runs only when Ollama is available
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def _ollama_reachable() -> tuple[bool, list[str]]:
+    """Return (reachable, model_names)."""
+    try:
+        import httpx
+        resp = httpx.get("http://localhost:11434/api/tags", timeout=3)
+        resp.raise_for_status()
+        names = [m["name"] for m in resp.json().get("models", [])]
+        return True, names
+    except Exception:
+        return False, []
+
+
+def _pick_tiny_model(available: list[str]) -> str | None:
+    """Pick the smallest model available for e2e tests."""
+    candidates = ["tinyllama", "phi", "qwen2:0.5b", "llama3.2:1b", "gemma:2b"]
+    for candidate in candidates:
+        for name in available:
+            if candidate in name:
+                return name
+    return None
+
+
+class LiveOllamaOrchestrator:
+    """Thin orchestrator that calls Ollama directly — no Agno dependency."""
+
+    def __init__(self, model_name: str) -> None:
+        self.model_name = model_name
+        self.calls: list[dict] = []
+
+    async def execute_task(
+        self, task_id: str, description: str, context: dict
+    ) -> str:
+        import httpx as hx
+
+        self.calls.append({"task_id": task_id, "description": description})
+
+        async with hx.AsyncClient(timeout=60) as client:
+            resp = await client.post(
+                "http://localhost:11434/api/generate",
+                json={
+                    "model": self.model_name,
+                    "prompt": (
+                        f"You are Timmy, a task automation agent. "
+                        f"Task: {description}\n"
+                        f"Respond in 1-2 sentences about what you did."
+                    ),
+                    "stream": False,
+                    "options": {"num_predict": 64},
+                },
+            )
+            resp.raise_for_status()
+            return resp.json()["response"]
+
+
+@pytest.mark.ollama
+class TestLiveOllamaGreenPath:
+    """Green-path with a real tiny LLM via Ollama.
+
+    Run with: ``tox -e ollama`` or ``pytest -m ollama``
+    Requires: Ollama running with a small model.
+    """
+
+    async def test_live_full_cycle(self, mock_client, bridge, settings_patch):
+        """Wire a real tiny LLM through the full pipe and verify output."""
+        reachable, models = _ollama_reachable()
+        if not reachable:
+            pytest.skip("Ollama not reachable at localhost:11434")
+
+        chosen = _pick_tiny_model(models)
+        if not chosen:
+            pytest.skip(f"No tiny model found (have: {models[:5]})")
+
+        issue = _make_issue(
+            id="live-1",
+            title="Reflect on task automation",
+            description="Muse about how you process tasks and suggest improvements.",
+        )
+        mock_client.list_issues.return_value = [issue]
+        mock_client.update_issue.return_value = _make_done("live-1")
+        mock_client.create_issue.return_value = _make_follow_up("live-fu")
+
+        live_orch = LiveOllamaOrchestrator(chosen)
+        runner = TaskRunner(bridge=bridge, orchestrator=live_orch)
+        summary = await runner.run_once()
+
+        # The LLM produced *something* non-empty
+        assert summary is not None
+        assert len(summary["result"]) > 0
+        assert summary["completed"] is True
+        assert summary["follow_up_issue_id"] == "live-fu"
+
+        # Orchestrator was actually called
+        assert len(live_orch.calls) == 1
+        assert live_orch.calls[0]["task_id"] == "live-1"
+
+        # LLM output flowed into the Paperclip comment
+        comment = mock_client.add_comment.call_args[0][1]
+        assert "[Timmy]" in comment
+        assert len(comment) > len("[Timmy] Task completed.\n\n")
+
+        # LLM output flowed into the follow-up description
+        fu_req = mock_client.create_issue.call_args[0][0]
+        assert len(fu_req.description) > 0
+        assert fu_req.assignee_id == TIMMY_AGENT_ID
+
+    async def test_live_recursive_chain(self, mock_client, bridge, settings_patch):
+        """Two-cycle chain with a real LLM — each cycle produces real output."""
+        reachable, models = _ollama_reachable()
+        if not reachable:
+            pytest.skip("Ollama not reachable")
+
+        chosen = _pick_tiny_model(models)
+        if not chosen:
+            pytest.skip("No tiny model found")
+
+        task_a = _make_issue(id="live-A", title="Initial reflection")
+        fu_b = PaperclipIssue(
+            id="live-B", title="Follow-up: Initial reflection",
+            description="Continue reflecting", status="open",
+            assignee_id=TIMMY_AGENT_ID, priority="normal",
+        )
+        fu_c = PaperclipIssue(
+            id="live-C", title="Follow-up: Follow-up",
+            status="open", assignee_id=TIMMY_AGENT_ID,
+        )
+
+        live_orch = LiveOllamaOrchestrator(chosen)
+        runner = TaskRunner(bridge=bridge, orchestrator=live_orch)
+
+        # Cycle 1
+        mock_client.list_issues.return_value = [task_a]
+        mock_client.update_issue.return_value = _make_done("live-A")
+        mock_client.create_issue.return_value = fu_b
+
+        s1 = await runner.run_once()
+        assert s1 is not None
+        assert len(s1["result"]) > 0
+
+        # Cycle 2
+        mock_client.list_issues.return_value = [fu_b]
+        mock_client.update_issue.return_value = _make_done("live-B")
+        mock_client.create_issue.return_value = fu_c
+
+        s2 = await runner.run_once()
+        assert s2 is not None
+        assert len(s2["result"]) > 0
+
+        # Both cycles went through the LLM
+        assert len(live_orch.calls) == 2

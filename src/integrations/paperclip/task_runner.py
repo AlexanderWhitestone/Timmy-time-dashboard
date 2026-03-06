@@ -7,7 +7,7 @@ follow-up task for himself.
 Green-path workflow:
 1. Poll Paperclip for open issues assigned to Timmy
 2. Check out the first issue in queue
-3. Process it (delegate to orchestrator)
+3. Process it (delegate to orchestrator via execute_task)
 4. Post completion comment with the result
 5. Mark the issue done
 6. Create a follow-up task for himself (recursive musing)
@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Callable, Coroutine, Dict, List, Optional
+from typing import Any, Callable, Coroutine, Dict, List, Optional, Protocol, runtime_checkable
 
 from config import settings
 from integrations.paperclip.bridge import PaperclipBridge, bridge as default_bridge
@@ -26,8 +26,34 @@ from integrations.paperclip.models import PaperclipIssue
 logger = logging.getLogger(__name__)
 
 
+@runtime_checkable
+class Orchestrator(Protocol):
+    """Anything with an ``execute_task`` matching Timmy's orchestrator."""
+
+    async def execute_task(
+        self, task_id: str, description: str, context: dict
+    ) -> Any: ...
+
+
+def _wrap_orchestrator(orch: Orchestrator) -> Callable:
+    """Adapt an orchestrator's execute_task to the process_fn signature."""
+
+    async def _process(task_id: str, description: str, context: Dict) -> str:
+        raw = await orch.execute_task(task_id, description, context)
+        # execute_task may return str or dict — normalise to str
+        if isinstance(raw, dict):
+            return raw.get("result", str(raw))
+        return str(raw)
+
+    return _process
+
+
 class TaskRunner:
     """Autonomous task loop: grab → process → complete → follow-up.
+
+    Wire an *orchestrator* (anything with ``execute_task``) and the runner
+    pushes issues through the real agent pipe.  Falls back to a plain
+    ``process_fn`` callable or a no-op default.
 
     The runner operates on a single cycle via ``run_once`` (testable) or
     continuously via ``start`` with ``paperclip_poll_interval``.
@@ -36,11 +62,20 @@ class TaskRunner:
     def __init__(
         self,
         bridge: Optional[PaperclipBridge] = None,
+        orchestrator: Optional[Orchestrator] = None,
         process_fn: Optional[Callable[[str, str, Dict], Coroutine[Any, Any, str]]] = None,
     ):
         self.bridge = bridge or default_bridge
-        # process_fn(task_id, description, context) -> result string
-        self._process_fn = process_fn
+        self.orchestrator = orchestrator
+
+        # Priority: explicit process_fn > orchestrator wrapper > default
+        if process_fn:
+            self._process_fn = process_fn
+        elif orchestrator:
+            self._process_fn = _wrap_orchestrator(orchestrator)
+        else:
+            self._process_fn = None
+
         self._running = False
 
     # ── single cycle ──────────────────────────────────────────────────
@@ -61,7 +96,7 @@ class TaskRunner:
         return None
 
     async def process_task(self, issue: PaperclipIssue) -> str:
-        """Process an issue: check out, run through the processor, return result."""
+        """Process an issue: check out, run through the orchestrator, return result."""
         # Check out the issue so others know we're working on it
         await self.bridge.client.checkout_issue(issue.id)
 
