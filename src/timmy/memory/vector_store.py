@@ -29,9 +29,9 @@ def _get_model():
     if _model is not None:
         return _model
     
-    import os
+    from config import settings
     # In test mode or low-memory environments, skip embedding model load
-    if os.environ.get("TIMMY_SKIP_EMBEDDINGS") == "1":
+    if settings.timmy_skip_embeddings:
         _has_embeddings = False
         return None
 

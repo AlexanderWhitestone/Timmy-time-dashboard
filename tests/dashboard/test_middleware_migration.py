@@ -22,21 +22,18 @@ def test_request_logging_middleware_is_used(client):
 
 def test_csrf_middleware_is_used(client):
     """Verify that CSRFMiddleware is used."""
-    import os
-    old_val = os.environ.get("TIMMY_DISABLE_CSRF")
-    os.environ["TIMMY_DISABLE_CSRF"] = "0"
+    from config import settings
+    original = settings.timmy_disable_csrf
+    settings.timmy_disable_csrf = False
     try:
         # GET request should set a csrf_token cookie if not present
         response = client.get("/")
         assert "csrf_token" in response.cookies
-        
+
         # POST request without token should be blocked (403)
         # Use a path that isn't likely to be exempt
         response = client.post("/agents/create")
         assert response.status_code == 403
         assert response.json()["code"] == "CSRF_INVALID"
     finally:
-        if old_val is not None:
-            os.environ["TIMMY_DISABLE_CSRF"] = old_val
-        else:
-            del os.environ["TIMMY_DISABLE_CSRF"]
+        settings.timmy_disable_csrf = original

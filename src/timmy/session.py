@@ -96,8 +96,8 @@ def reset_session(session_id: Optional[str] = None) -> None:
     try:
         from timmy.conversation import conversation_manager
         conversation_manager.clear_context(sid)
-    except Exception:
-        pass  # Graceful degradation
+    except Exception as exc:
+        logger.debug("Session: context clear failed for %s: %s", sid, exc)
 
 
 def _extract_facts(message: str) -> None:
@@ -114,8 +114,8 @@ def _extract_facts(message: str) -> None:
                 from timmy.memory_system import memory_system
                 memory_system.update_user_fact("Name", name)
                 logger.info("Session: Learned user name: %s", name)
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Session: fact persist failed: %s", exc)
     except Exception as exc:
         logger.debug("Session: Fact extraction skipped: %s", exc)
 

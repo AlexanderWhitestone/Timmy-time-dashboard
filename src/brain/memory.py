@@ -29,7 +29,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -48,9 +47,9 @@ _SCHEMA_VERSION = 1
 
 def _get_db_path() -> Path:
     """Get the brain database path from env or default."""
-    env_path = os.environ.get("BRAIN_DB_PATH")
-    if env_path:
-        return Path(env_path)
+    from config import settings
+    if settings.brain_db_path:
+        return Path(settings.brain_db_path)
     return _DEFAULT_DB_PATH
 
 
@@ -75,7 +74,8 @@ class UnifiedMemory:
 
         # Auto-detect: use rqlite if RQLITE_URL is set, otherwise local SQLite
         if use_rqlite is None:
-            use_rqlite = bool(os.environ.get("RQLITE_URL"))
+            from config import settings as _settings
+            use_rqlite = bool(_settings.rqlite_url)
         self._use_rqlite = use_rqlite
 
         if not self._use_rqlite:
@@ -106,7 +106,8 @@ class UnifiedMemory:
     def _get_embedder(self):
         """Lazy-load the embedding model."""
         if self._embedder is None:
-            if os.environ.get("TIMMY_SKIP_EMBEDDINGS") == "1":
+            from config import settings as _settings
+            if _settings.timmy_skip_embeddings:
                 return None
             try:
                 from brain.embeddings import LocalEmbedder
