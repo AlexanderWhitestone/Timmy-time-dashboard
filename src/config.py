@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     # specifically fine-tuned for reliable tool/function calling.
     # llama3.2 (3B) hallucinated tool output consistently in testing.
     # Fallback: qwen2.5:14b if llama3.1:8b-instruct not available.
-    ollama_model: str = "llama3.1:8b-instruct"
+    ollama_model: str = "qwen2.5:14b"
 
     # Set DEBUG=true to enable /docs and /redoc (disabled by default)
     debug: bool = False
@@ -236,8 +236,8 @@ if not settings.repo_root:
 # ── Model fallback configuration ────────────────────────────────────────────
 # Primary model for reliable tool calling (llama3.1:8b-instruct)
 # Fallback if primary not available: qwen2.5:14b
-OLLAMA_MODEL_PRIMARY: str = "llama3.1:8b-instruct"
-OLLAMA_MODEL_FALLBACK: str = "qwen2.5:14b"
+OLLAMA_MODEL_PRIMARY: str = "qwen2.5:14b"
+OLLAMA_MODEL_FALLBACK: str = "llama3.1:8b-instruct"
 
 
 def check_ollama_model_available(model_name: str) -> bool:
