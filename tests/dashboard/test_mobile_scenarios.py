@@ -298,10 +298,10 @@ def test_M605_health_status_passes_model_to_template(client):
         return_value=True,
     ):
         response = client.get("/health/status")
-    # The default model is llama3.1:8b-instruct — it should appear from settings
+    # The default model is qwen2.5:14b — it should appear from settings
     assert response.status_code == 200
     assert (
-        "llama3.1" in response.text
+        "qwen2.5" in response.text
     )  # rendered via template variable, not hardcoded literal
 
 

@@ -18,16 +18,16 @@ make install              # create venv + install deps
 cp .env.example .env      # configure environment
 
 ollama serve              # separate terminal
-ollama pull llama3.1:8b-instruct  # Required for reliable tool calling
+ollama pull qwen2.5:14b  # Required for reliable tool calling
 
 make dev                  # http://localhost:8000
 make test                 # no Ollama needed
 ```
 
-**Note:** llama3.1:8b-instruct is used instead of llama3.2 because it is
-specifically fine-tuned for reliable tool/function calling.
+**Note:** qwen2.5:14b is the primary model — better reasoning and tool calling
+than llama3.1:8b-instruct while still running locally on modest hardware.
+Fallback: llama3.1:8b-instruct if qwen2.5:14b is not available.
 llama3.2 (3B) was found to hallucinate tool output consistently in testing.
-Fallback: qwen2.5:14b if llama3.1:8b-instruct is not available.
 
 ---
 

@@ -86,7 +86,7 @@ def test_agents_list_metadata(client):
     response = client.get("/agents")
     agent = next(a for a in response.json()["agents"] if a["id"] == "default")
     assert agent["name"] == "Agent"
-    assert agent["model"] == "llama3.1:8b-instruct"
+    assert agent["model"] == "qwen2.5:14b"
     assert agent["type"] == "local"
 
 
