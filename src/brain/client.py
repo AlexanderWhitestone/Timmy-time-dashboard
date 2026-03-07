@@ -27,7 +27,8 @@ class BrainClient:
     """
     
     def __init__(self, rqlite_url: Optional[str] = None, node_id: Optional[str] = None):
-        self.rqlite_url = rqlite_url or os.environ.get("RQLITE_URL", DEFAULT_RQLITE_URL)
+        from config import settings
+        self.rqlite_url = rqlite_url or settings.rqlite_url or DEFAULT_RQLITE_URL
         self.node_id = node_id or f"{socket.gethostname()}-{os.getpid()}"
         self.source = self._detect_source()
         self._client = httpx.AsyncClient(timeout=30)
@@ -36,7 +37,8 @@ class BrainClient:
         """Detect what component is using the brain."""
         # Could be 'timmy', 'zeroclaw', 'worker', etc.
         # For now, infer from context or env
-        return os.environ.get("BRAIN_SOURCE", "default")
+        from config import settings
+        return settings.brain_source
     
     # ──────────────────────────────────────────────────────────────────────────
     # Memory Operations

@@ -37,8 +37,8 @@ def _get_embedding_model():
     """Lazy-load embedding model."""
     global EMBEDDING_MODEL
     if EMBEDDING_MODEL is None:
-        import os
-        if os.environ.get("TIMMY_SKIP_EMBEDDINGS") == "1":
+        from config import settings
+        if settings.timmy_skip_embeddings:
             EMBEDDING_MODEL = False
             return EMBEDDING_MODEL
         try:

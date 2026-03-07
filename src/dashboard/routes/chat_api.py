@@ -14,6 +14,7 @@ import logging
 import os
 import uuid
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
@@ -42,6 +43,11 @@ async def api_chat(request: Request):
     Response:
         {"reply": "...", "timestamp": "HH:MM:SS"}
     """
+    # Enforce request body size limit
+    content_length = request.headers.get("content-length")
+    if content_length and int(content_length) > settings.chat_api_max_body_bytes:
+        return JSONResponse(status_code=413, content={"error": "Request body too large"})
+
     try:
         body = await request.json()
     except Exception:
@@ -116,6 +122,12 @@ async def api_upload(file: UploadFile = File(...)):
     safe_name = os.path.basename(file.filename or "upload")
     stored_name = f"{suffix}-{safe_name}"
     file_path = os.path.join(_UPLOAD_DIR, stored_name)
+
+    # Defense-in-depth: verify resolved path stays within upload directory
+    resolved = Path(file_path).resolve()
+    upload_root = Path(_UPLOAD_DIR).resolve()
+    if not str(resolved).startswith(str(upload_root)):
+        raise HTTPException(status_code=400, detail="Invalid file name")
 
     contents = await file.read()
     if len(contents) > _MAX_UPLOAD_SIZE:

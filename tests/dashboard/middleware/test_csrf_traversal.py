@@ -11,14 +11,11 @@ class TestCSRFTraversal:
     @pytest.fixture(autouse=True)
     def enable_csrf(self):
         """Re-enable CSRF for these tests."""
-        import os
-        old_val = os.environ.get("TIMMY_DISABLE_CSRF")
-        os.environ["TIMMY_DISABLE_CSRF"] = "0"
+        from config import settings
+        original = settings.timmy_disable_csrf
+        settings.timmy_disable_csrf = False
         yield
-        if old_val is not None:
-            os.environ["TIMMY_DISABLE_CSRF"] = old_val
-        else:
-            del os.environ["TIMMY_DISABLE_CSRF"]
+        settings.timmy_disable_csrf = original
 
     def test_csrf_middleware_path_traversal_bypass(self):
         """Test if path traversal can bypass CSRF exempt patterns."""

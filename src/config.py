@@ -106,6 +106,29 @@ class Settings(BaseSettings):
     # In production, security settings are strictly enforced.
     timmy_env: Literal["development", "production"] = "development"
 
+    # ── Test / Diagnostics ─────────────────────────────────────────────
+    # Skip loading heavy embedding models (for tests / low-memory envs).
+    timmy_skip_embeddings: bool = False
+    # Disable CSRF middleware entirely (for tests).
+    timmy_disable_csrf: bool = False
+    # Mark the process as running in test mode.
+    timmy_test_mode: bool = False
+
+    # ── Brain / rqlite ─────────────────────────────────────────────────
+    # URL of the local rqlite node for distributed memory.
+    # Empty string means rqlite is not configured.
+    rqlite_url: str = ""
+    # Source identifier for brain memory entries.
+    brain_source: str = "default"
+    # Path override for the local brain SQLite database.
+    brain_db_path: str = ""
+
+    # ── Security Tuning ───────────────────────────────────────────────
+    # Set to True in production to mark CSRF cookies as Secure (HTTPS only).
+    csrf_cookie_secure: bool = False
+    # Maximum size in bytes for chat API request bodies.
+    chat_api_max_body_bytes: int = 1_048_576  # 1 MB
+
     # ── Self-Modification ──────────────────────────────────────────────
     # Enable self-modification capabilities. When enabled, the agent can
     # edit its own source code, run tests, and commit changes.

@@ -162,7 +162,8 @@ async def _discord_token_watcher() -> None:
         if discord_bot.state.name == "CONNECTED":
             return  # Already running — stop watching
 
-        # 1. Check live environment variable
+        # 1. Check live environment variable (intentionally uses os.environ,
+        #    not settings, because this polls for runtime hot-reload changes)
         token = os.environ.get("DISCORD_TOKEN", "")
 
         # 2. Re-read .env file for hot-reload

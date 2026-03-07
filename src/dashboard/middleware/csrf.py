@@ -7,7 +7,6 @@ to protect state-changing endpoints from cross-site request attacks.
 import secrets
 import hmac
 import hashlib
-import os
 from typing import Callable, Optional
 from functools import wraps
 
@@ -125,7 +124,8 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         For unsafe methods: Validate the CSRF token.
         """
         # Bypass CSRF if explicitly disabled (e.g. in tests)
-        if os.environ.get("TIMMY_DISABLE_CSRF") == "1":
+        from config import settings
+        if settings.timmy_disable_csrf:
             return await call_next(request)
 
         # Get existing CSRF token from cookie
@@ -142,7 +142,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                     key=self.cookie_name,
                     value=new_token,
                     httponly=False,  # Must be readable by JavaScript
-                    secure=False,    # Set to True in production with HTTPS
+                    secure=settings.csrf_cookie_secure,
                     samesite="Lax",
                     max_age=86400    # 24 hours
                 )
