@@ -7,6 +7,7 @@ to protect state-changing endpoints from cross-site request attacks.
 import secrets
 import hmac
 import hashlib
+import os
 from typing import Callable, Optional
 from functools import wraps
 
@@ -124,7 +125,6 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         For unsafe methods: Validate the CSRF token.
         """
         # Bypass CSRF if explicitly disabled (e.g. in tests)
-        import os
         if os.environ.get("TIMMY_DISABLE_CSRF") == "1":
             return await call_next(request)
 
@@ -174,7 +174,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         """Check if a path is likely to be CSRF exempt.
         
         Common patterns like webhooks, API endpoints, etc.
-        Uses path normalization to prevent traversal bypasses.
+        Uses path normalization and exact/prefix matching to prevent bypasses.
         
         Args:
             path: The request path.
@@ -182,21 +182,42 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         Returns:
             True if the path is likely exempt.
         """
-        import os
-        # Normalize path to prevent /webhook/../ bypasses
-        normalized_path = os.path.normpath(path)
+        # 1. Normalize path to prevent /webhook/../ bypasses
+        # Use posixpath for consistent behavior on all platforms
+        import posixpath
+        normalized_path = posixpath.normpath(path)
         
         # Ensure it starts with / for comparison
         if not normalized_path.startswith("/"):
             normalized_path = "/" + normalized_path
+            
+        # Add back trailing slash if it was present in original path
+        # to ensure prefix matching behaves as expected
+        if path.endswith("/") and not normalized_path.endswith("/"):
+            normalized_path += "/"
 
+        # 2. Define exempt patterns with strict matching
+        # Patterns ending with / are prefix-matched
+        # Patterns NOT ending with / are exact-matched
         exempt_patterns = [
-            "/webhook",
-            "/api/v1/",
-            "/lightning/webhook",
-            "/_internal/",
+            "/webhook/",           # Prefix match (e.g., /webhook/stripe)
+            "/webhook",            # Exact match
+            "/api/v1/",            # Prefix match
+            "/lightning/webhook/", # Prefix match
+            "/lightning/webhook",  # Exact match
+            "/_internal/",         # Prefix match
+            "/_internal",          # Exact match
         ]
-        return any(normalized_path.startswith(pattern) for pattern in exempt_patterns)
+        
+        for pattern in exempt_patterns:
+            if pattern.endswith("/"):
+                if normalized_path.startswith(pattern):
+                    return True
+            else:
+                if normalized_path == pattern:
+                    return True
+                    
+        return False
     
     async def _validate_request(self, request: Request, csrf_cookie: Optional[str]) -> bool:
         """Validate the CSRF token in the request.
