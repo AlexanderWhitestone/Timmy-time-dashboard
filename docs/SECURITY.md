@@ -23,10 +23,10 @@ Timmy Time is built on the principle of **AI Sovereignty**. Security is not just
 
 A manual audit of the codebase identified the following security-sensitive areas:
 
-### 1. Self-Modification Loop (`src/self_coding/self_modify/loop.py`)
-- **Observation:** Uses `subprocess.run` for git and test commands.
+### 1. Self-Modification Loop *(planned, not yet implemented)*
+- **Observation:** When implemented, the self-modify loop will use `subprocess.run` for git and test commands.
 - **Risk:** Potential for command injection if user-provided instructions are improperly handled.
-- **Mitigation:** Input is currently restricted to git operations and pytest. Future versions should further sandbox these executions.
+- **Mitigation:** Input should be restricted to git operations and pytest. Future versions should sandbox these executions.
 
 ### 2. Model Registration (`src/dashboard/routes/models.py`)
 - **Observation:** Allows registering models from arbitrary local paths.

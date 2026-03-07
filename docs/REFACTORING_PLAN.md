@@ -155,27 +155,25 @@ session-scoped context. Either gitignore it or move to `docs/handoff/`.
 **Goal:** Reduce 28 modules to ~12 by merging small, related modules into
 coherent packages. This directly reduces cognitive load and token consumption.
 
-### 2.1 Module structure (implemented)
+### 2.1 Module structure (partially implemented)
+
+**Actual current structure (7 packages + config):**
 
 ```
-src/                           # 14 packages (was 28)
+src/                           # 7 packages (was 28)
   config.py                    # Pydantic settings (foundation)
 
   timmy/                       # Core agent + agents/ + agent_core/ + memory/
-  dashboard/                   # FastAPI web UI (22 route files)
-  swarm/                       # Coordinator + task_queue/ + work_orders/
-  self_coding/                 # Git safety + self_modify/ + self_tdd/ + upgrades/
-  creative/                    # Media generation + tools/
+  dashboard/                   # FastAPI web UI, routes, templates
   infrastructure/              # ws_manager/ + notifications/ + events/ + router/
   integrations/                # chat_bridge/ + telegram_bot/ + shortcuts/ + voice/
-
-  lightning/                   # L402 payment gating (standalone, security-sensitive)
-  mcp/                         # MCP tool registry and discovery
   spark/                       # Event capture and advisory
-  hands/                       # 6 autonomous Hand agents
-  scripture/                   # Biblical text integration
-  timmy_serve/                 # L402-gated API server
+  brain/                       # Identity system, memory interface
+  timmy_serve/                 # API server
 ```
+
+**Planned but never created:** `swarm/`, `self_coding/`, `creative/`,
+`lightning/`, `mcp/`, `hands/`, `scripture/`
 
 ### 2.2 Dashboard route consolidation
 
@@ -437,13 +435,11 @@ patterns (card layouts, form groups, table rows).
 |--------|----------|--------|---------|
 | Root `.md` files | 10 | 3 | 5 |
 | Root markdown size | 87KB | ~20KB | ~28KB |
-| `src/` modules | 28 | ~12-15 | **14** |
+| `src/` modules | 28 | ~12-15 | **7 packages + config** |
 | Dashboard routes | 27 | ~12-15 | 22 |
 | Test organization | flat | mirrored | **mirrored** |
-| Tests passing | 471 | 500+ | **1462** |
-| Wheel modules | 17/28 | all | **all** |
-| Module-level docs | 0 | all key modules | **6** |
-| AI context reduction | — | ~40% | **~50%** (fewer modules to scan) |
+| Wheel modules | 17/28 | all | needs audit |
+| Module-level docs | 0 | all key modules | needs audit |
 
 ---
 
@@ -461,20 +457,15 @@ patterns (card layouts, form groups, table rows).
 - [x] **Phase 2a: Route consolidation** — 27 → 22 route files (merged voice,
   swarm internal/ws, self-modify; deleted mobile_test)
 
-- [x] **Phase 2b: Full module consolidation** — 28 → 14 modules. All merges
-  completed in a single pass with automated import rewriting (66 source files +
-  13 test files updated). Modules consolidated:
-  - `work_orders/` + `task_queue/` → `swarm/`
-  - `self_modify/` + `self_tdd/` + `upgrades/` → `self_coding/`
-  - `tools/` → `creative/tools/`
-  - `chat_bridge/` + `telegram_bot/` + `shortcuts/` + `voice/` → `integrations/` (new)
-  - `ws_manager/` + `notifications/` + `events/` + `router/` → `infrastructure/` (new)
-  - `agents/` + `agent_core/` + `memory/` → `timmy/`
-  - pyproject.toml entry points and wheel includes updated
-  - Module-level CLAUDE.md files added (Phase 6.2)
-  - Zero test regressions: 1462 tests passing
-- [x] **Phase 6.2: Module-level CLAUDE.md** — added to swarm/, self_coding/,
-  infrastructure/, integrations/, creative/, lightning/
+- [ ] **Phase 2b: Full module consolidation** — 28 → 14 modules. Partially
+  completed. Some consolidations were applied:
+  - `chat_bridge/` + `telegram_bot/` + `shortcuts/` + `voice/` → `integrations/` (done)
+  - `ws_manager/` + `notifications/` + `events/` + `router/` → `infrastructure/` (done)
+  - `agents/` + `agent_core/` + `memory/` → `timmy/` (done)
+  - **Not completed:** `swarm/`, `self_coding/`, `creative/`, `lightning/` packages
+    were never created. These modules do not exist in `src/`.
+- [ ] **Phase 6.2: Module-level CLAUDE.md** — not completed. The referenced
+  directories (`swarm/`, `self_coding/`, `creative/`, `lightning/`) do not exist.
 
 ### Remaining
 

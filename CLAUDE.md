@@ -76,7 +76,7 @@ make test-cov           # With coverage (term-missing + XML)
 
 ## Security-Sensitive Areas
 
-- `src/timmy_serve/l402_proxy.py` — Payment gating
+- `src/timmy_serve/` — API server, payment configuration
 - Any file handling secrets or authentication tokens
 
 ---

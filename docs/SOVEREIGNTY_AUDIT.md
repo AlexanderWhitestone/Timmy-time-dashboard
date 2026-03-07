@@ -245,8 +245,7 @@ No single points of failure that would prevent core functionality.
 All external network calls are isolated in:
 
 - `src/timmy/backends.py` — AI model backends (local)
-- `src/lightning/lnd_backend.py` — LND gRPC (configurable)
-- `src/swarm/comms.py` — Redis fallback
+- `src/infrastructure/router/cascade.py` — LLM cascade router
 - `src/timmy/tools.py` — Web search (optional, can disable)
 
 ---
