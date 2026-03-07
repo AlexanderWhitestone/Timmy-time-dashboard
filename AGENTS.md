@@ -90,5 +90,5 @@ make docker-agent       # add a worker
 
 ## Roadmap
 
-**v2.0 Exodus (in progress):** Swarm + L402 + Voice + Marketplace + Hands
+**v2.0 Exodus (in progress):** Voice + Marketplace + Integrations
 **v3.0 Revelation (planned):** Lightning treasury + `.app` bundle + federation

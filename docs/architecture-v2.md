@@ -54,7 +54,7 @@ implementation status:
                                      │
 ┌────────────────────────────────────┼─────────────────────────────────────────────┐
 │                              API LAYER (FastAPI)                                  │
-│  27 route modules registered in src/dashboard/app.py                             │
+│  Route modules registered in src/dashboard/app.py                                │
 └────────────────────────────────────┼─────────────────────────────────────────────┘
                                      │
 ┌────────────────────────────────────┼─────────────────────────────────────────────┐
@@ -104,14 +104,14 @@ PERSISTENCE:
 | Briefing Engine | `src/timmy/briefing.py` | `from timmy.briefing import engine` |
 | Session Logger | `src/timmy/session_logger.py` | `from timmy.session_logger import get_session_logger` |
 | Approvals | `src/timmy/approvals.py` | `from timmy.approvals import GOLDEN_TIMMY` |
-| Task Queue | `src/swarm/task_queue/models.py` | `TaskQueueDB` |
-| Coordinator | `src/swarm/coordinator.py` | `from swarm.coordinator import coordinator` |
+| Task Queue | *(not yet implemented)* | — |
+| Coordinator | *(not yet implemented)* | — |
 | Cascade Router | `src/infrastructure/router/cascade.py` | `from infrastructure.router.cascade import get_router` |
 | Event Bus | `src/infrastructure/events/bus.py` | `from infrastructure.events.bus import event_bus` |
 | WebSocket Mgr | `src/infrastructure/ws_manager/handler.py` | `from infrastructure.ws_manager.handler import ws_manager` |
 | Push Notifier | `src/infrastructure/notifications/push.py` | `from infrastructure.notifications.push import notifier` |
 | Error Capture | `src/infrastructure/error_capture.py` | `from infrastructure.error_capture import capture_error` |
-| Self-Modify | `src/self_coding/self_modify/loop.py` | `SelfModifyLoop` |
+| Self-Modify | *(not yet implemented)* | — |
 
 ---
 
@@ -142,9 +142,9 @@ Server Startup → ThinkingEngine.start_loop()
 | Aspect | File | Notes |
 |--------|------|-------|
 | ThinkingEngine | `src/timmy/thinking.py` | Seed types, continuity context, WS broadcast |
-| Task Queue | `src/swarm/task_queue/models.py` | SQLite-backed, 8 statuses, 4 priority levels |
-| Auto-approve rules | `src/swarm/task_queue/models.py` | Tasks matching rules execute without human gate |
-| Startup drain | `src/swarm/task_queue/models.py` | `get_all_actionable_tasks()` processes queue on boot |
+| Task Queue | *(task queue — not yet implemented)* | SQLite-backed, 8 statuses, 4 priority levels |
+| Auto-approve rules | *(task queue — not yet implemented)* | Tasks matching rules execute without human gate |
+| Startup drain | *(task queue — not yet implemented)* | `get_all_actionable_tasks()` processes queue on boot |
 | Config | `src/config.py` | `thinking_enabled`, `thinking_interval_seconds` (300s default) |
 
 The task queue supports 8 statuses (`PENDING_APPROVAL`, `APPROVED`, `RUNNING`,
@@ -198,11 +198,11 @@ Modification Journal (data/self_modify_reports/)
 
 | Aspect | File | Notes |
 |--------|------|-------|
-| Core loop | `src/self_coding/self_modify/loop.py` | Read-edit-test-commit cycle, 742 lines |
-| Git safety | `src/self_coding/git_safety.py` | Atomic operations with rollback |
-| Modification journal | `src/self_coding/modification_journal.py` | Persistent report log |
-| Reflection | `src/self_coding/reflection.py` | Lessons-learned generator |
-| Upgrade queue | `src/self_coding/upgrades/` | Approval queue for proposed changes |
+| Core loop | *(self-coding — not yet implemented)* | Read-edit-test-commit cycle |
+| Git safety | *(self-coding — not yet implemented)* | Atomic operations with rollback |
+| Modification journal | *(self-coding — not yet implemented)* | Persistent report log |
+| Reflection | *(self-coding — not yet implemented)* | Lessons-learned generator |
+| Upgrade queue | *(self-coding — not yet implemented)* | Approval queue for proposed changes |
 | Error capture | `src/infrastructure/error_capture.py` | Auto-creates bug reports from exceptions |
 | Error dedup | `src/infrastructure/error_capture.py` | Hash-based deduplication (5-min window) |
 
@@ -265,7 +265,7 @@ threshold, making him increasingly discerning about what warrants human attentio
 | Component | File | What It Does |
 |-----------|------|-------------|
 | Push Notifier | `src/infrastructure/notifications/push.py` | In-memory queue (200 max), 6 categories, macOS native support |
-| Risk Scoring | `src/swarm/work_orders/risk.py` | Priority/category weights, sensitive-path detection |
+| Risk Scoring | *(not yet implemented)* | Priority/category weights, sensitive-path detection |
 | Approval Governance | `src/timmy/approvals.py` | `GOLDEN_TIMMY` flag, pending/approved/rejected states, 7-day expiry |
 | Briefing integration | `src/timmy/briefing.py` | Surfaces pending approvals in briefing |
 
@@ -289,7 +289,7 @@ thoughts, the thought queue, a dynamic task list, thought logs, artifacts, and a
 live feed via WebSocket. The owner can interact directly — reorder tasks, inject new
 thoughts, review artifacts, and provide feedback.
 
-The dashboard is built with FastAPI + Jinja2 + HTMX and supports 27 route modules:
+The dashboard is built with FastAPI + Jinja2 + HTMX with route modules including:
 
 | Route | Prefix | Purpose |
 |-------|--------|---------|
@@ -360,7 +360,7 @@ All persistence uses SQLite — no external database dependencies.
 | `memory_entries` | `data/swarm.db` | Semantic memory (with embeddings) | ADR-019 |
 | `upgrades` | `data/swarm.db` | Self-modification queue | ADR-021 |
 | `provider_metrics` | `data/swarm.db` | LLM router metrics | ADR-020 |
-| `task_queue` | `data/swarm.db` | Human-in-the-loop task queue | `swarm/task_queue/` |
+| `task_queue` | `data/swarm.db` | Human-in-the-loop task queue | *(not yet implemented)* |
 | `thoughts` | `data/thoughts.db` | Thought stream | `timmy/thinking.py` |
 | `briefings` | `~/.timmy/briefings.db` | Briefing cache | `timmy/briefing.py` |
 | `approvals` | `~/.timmy/approvals.db` | Governance items | `timmy/approvals.py` |
@@ -474,9 +474,9 @@ Enforcement points: `CLAUDE.md` conventions, `AGENTS.md` non-negotiable rules,
 
 | Source | → | Target | Mechanism |
 |--------|---|--------|-----------|
-| `coordinator.py` | → | Event Log | `log_event()` for all lifecycle events |
-| `payment_handler.py` | → | Ledger | Creates entries on invoice/settlement |
-| `self_modify/loop.py` | → | Upgrade Queue | Stops at proposal, waits for approval |
+| Coordinator | → | Event Log | `log_event()` for all lifecycle events *(planned)* |
+| Payment handler | → | Ledger | Creates entries on invoice/settlement *(planned)* |
+| Self-modify loop | → | Upgrade Queue | Stops at proposal, waits for approval *(planned)* |
 | `timmy/agent.py` | → | Cascade Router | Uses router instead of direct backends |
 | `ws_manager/handler.py` | → | Activity Feed | Broadcasts events to WebSocket clients |
 | Event Log | → | Briefing Engine | `_gather_swarm_summary()` reads events |

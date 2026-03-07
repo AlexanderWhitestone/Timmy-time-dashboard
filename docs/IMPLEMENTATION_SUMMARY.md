@@ -26,50 +26,31 @@ print(f"Provider: {response.provider_used}")
 
 ---
 
-### 2. Self-Upgrade Approval Queue ✅
+### 2. Self-Upgrade Approval Queue *(originally implemented, since refactored)*
 
-**Files Created:**
+> **Note:** The original `src/upgrades/` module was planned for consolidation into
+> `src/self_coding/` but that consolidation was never completed. The module paths
+> below reflect the original implementation and may no longer be accurate.
+
+**Original files:**
 - `src/upgrades/models.py` - Database models for upgrades table
 - `src/upgrades/queue.py` - Queue management logic
 - `src/dashboard/routes/upgrades.py` - Dashboard routes
 - `src/dashboard/templates/upgrade_queue.html` - Queue UI
 
-**Files Modified:**
-- `src/dashboard/app.py` - Registered upgrade routes
-- `src/dashboard/templates/base.html` - Added UPGRADES nav link
-
-**Usage:**
-```python
-from upgrades.queue import UpgradeQueue
-
-# Propose upgrade
-upgrade = UpgradeQueue.propose(
-    branch_name="self-modify/fix-bug",
-    description="Fix bug in task assignment",
-    files_changed=["src/swarm/coordinator.py"],
-    diff_preview="@@ -123,7 +123,7 @@...",
-)
-
-# Approve
-UpgradeQueue.approve(upgrade.id)
-
-# Apply (runs tests, merges to main)
-success, message = UpgradeQueue.apply(upgrade.id)
-```
-
 **Dashboard:** `/self-modify/queue`
 
 ---
 
-### 3. Real-Time Activity Feed ✅
+### 3. Real-Time Activity Feed *(originally implemented, since refactored)*
 
-**Files Created:**
-- `src/events/broadcaster.py` - Bridge event_log → WebSocket
+> **Note:** The original module paths below reflect the pre-refactoring structure.
+> Events are now under `src/infrastructure/events/`, WebSocket manager is now under
+> `src/infrastructure/ws_manager/`.
 
-**Files Modified:**
-- `src/swarm/event_log.py` - Added broadcast call
-- `src/ws_manager/handler.py` - Added `broadcast_json()` method
-- `src/dashboard/templates/swarm_live.html` - Added activity feed panel
+**Original files:**
+- `src/events/broadcaster.py` → now `src/infrastructure/events/broadcaster.py`
+- `src/ws_manager/handler.py` → now `src/infrastructure/ws_manager/handler.py`
 
 **Architecture:**
 ```

@@ -21,16 +21,11 @@ What already works:
 
 | Component | Status | Implementation |
 |-----------|--------|----------------|
-| Lightning/L402 | Mock working, LND stub | `src/lightning/`, `src/timmy_serve/l402_proxy.py` |
 | Voice TTS | pyttsx3 (robotic) | `src/timmy_serve/voice_tts.py` |
 | Voice STT | Browser Web Speech API | `src/dashboard/templates/voice_button.html` |
 | Voice NLU | Regex-based intent detection | `src/integrations/voice/nlu.py` |
-| Semantic memory | SQLite + sentence-transformers | `src/timmy/memory/vector_store.py` |
-| Swarm auctions | First-price lowest-bid | `src/swarm/bidder.py`, `src/swarm/routing.py` |
 | Frontend | HTMX + Bootstrap + marked.js | `src/dashboard/templates/base.html` |
-| Browser LLM | WebLLM (WebGPU/WASM) | `static/local_llm.js` |
 | LLM router | Cascade with circuit breaker | `src/infrastructure/router/cascade.py` |
-| Agent learning | Outcome-based bid adjustment | `src/swarm/learner.py` |
 
 What does NOT exist yet:
 
@@ -246,7 +241,7 @@ Agents build portable reputation through signed event history.
 ### 2.6 Integration with Main Repo
 
 - Add `src/infrastructure/clients/nostr_client.py`
-- Modify `src/swarm/coordinator.py` to publish task/bid/completion events
+- Modify `the swarm coordinator` to publish task/bid/completion events
 - Add Nostr auth option to dashboard login
 - Agent profile pages show npub, NIP-05, reputation score
 
@@ -363,9 +358,9 @@ Add a `/metrics` endpoint to the main dashboard (FastAPI).
 
 **Tasks:**
 - [ ] Add `prometheus_client` to dependencies
-- [ ] Instrument `src/swarm/coordinator.py` (task lifecycle metrics)
+- [ ] Instrument `the swarm coordinator` (task lifecycle metrics)
 - [ ] Instrument `src/infrastructure/router/cascade.py` (LLM metrics)
-- [ ] Instrument `src/lightning/ledger.py` (financial metrics)
+- [ ] Instrument `the Lightning ledger module (when implemented)` (financial metrics)
 - [ ] Add `/metrics` route in `src/dashboard/routes/`
 - [ ] Grafana dashboard JSON in `deploy/grafana/`
 
@@ -414,7 +409,7 @@ Real-time force-directed graph of agent topology.
 ## Phase 5: Lightning Maturation
 
 **Priority:** MEDIUM — extends existing code
-**Repo:** Main repo (`src/lightning/`) + possibly `timmy-lightning` for LND
+**Repo:** Main repo + possibly `timmy-lightning` for LND
 **Depends on:** None (existing foundation is solid)
 
 ### 5.1 LND gRPC (already planned in REVELATION_PLAN)
@@ -457,7 +452,7 @@ Static, reusable payment requests with blinded paths for payer privacy.
 ## Phase 6: Vickrey Auctions & Agent Economics
 
 **Priority:** MEDIUM
-**Repo:** Main repo (`src/swarm/`)
+**Repo:** Main repo
 **Depends on:** Phase 5 (Lightning, for real payments)
 
 ### 6.1 Upgrade to Vickrey (Second-Price) Auction
@@ -479,7 +474,7 @@ payment = sorted_bids[1].bid_sats if len(sorted_bids) > 1 else winner.bid_sats
 - [ ] Implement sealed-bid collection (encrypted commitment phase)
 - [ ] Simultaneous revelation phase
 - [ ] Second-price payment calculation
-- [ ] Update `src/swarm/bidder.py` and `src/swarm/routing.py`
+- [ ] Update `the swarm bidder and routing modules (when implemented)`
 - [ ] ADR: `docs/adr/025-vickrey-auctions.md`
 
 ### 6.2 Incentive-Compatible Truthfulness
@@ -501,7 +496,7 @@ payment = sorted_bids[1].bid_sats if len(sorted_bids) > 1 else winner.bid_sats
 ## Phase 7: State Machine Orchestration
 
 **Priority:** MEDIUM
-**Repo:** Main repo (`src/swarm/`)
+**Repo:** Main repo
 **Depends on:** None
 
 ### 7.1 Evaluate LangGraph vs Custom
@@ -610,7 +605,7 @@ Syscall interception layer as alternative to full VMs.
 ### 9.4 Bubblewrap (Lightweight Alternative)
 
 - [ ] Bubblewrap for single-process sandboxing on Linux
-- [ ] Useful for self-coding module (`src/self_coding/`) safety
+- [ ] Useful for self-coding module safety
 
 ### 9.5 Success Criteria
 

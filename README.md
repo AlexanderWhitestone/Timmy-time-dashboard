@@ -37,13 +37,10 @@ Fallback: qwen2.5:14b if llama3.1:8b-instruct is not available.
 |-----------|-------------|
 | **Timmy Agent** | Agno-powered agent (Ollama default, AirLLM optional for 70B/405B) |
 | **Mission Control** | FastAPI + HTMX dashboard — chat, health, swarm, marketplace |
-| **Swarm** | Multi-agent coordinator — spawn agents, post tasks, Lightning auctions |
-| **L402 / Lightning** | Bitcoin Lightning payment gating for API access |
 | **Spark** | Event capture, predictions, memory consolidation, advisory |
-| **Creative Studio** | Multi-persona pipeline — image, music, video generation |
-| **Hands** | 6 autonomous scheduled agents — Oracle, Sentinel, Scout, Scribe, Ledger, Weaver |
-| **Self-Coding** | Codebase-aware self-modification with git safety |
+| **Infrastructure** | WebSocket manager, notifications, events bus, LLM cascade router |
 | **Integrations** | Telegram bridge, Siri Shortcuts, voice NLU, mobile layout |
+| **Brain** | Identity system, memory interface |
 
 ---
 
@@ -58,7 +55,7 @@ make docker-up      # start via Docker
 make help           # see all commands
 ```
 
-**CLI tools:** `timmy`, `timmy-serve`, `self-tdd`, `self-modify`
+**CLI tools:** `timmy`, `timmy-serve`
 
 ---
 
@@ -105,18 +102,16 @@ Browser / Phone
 └───┬─────────────┬──────────┬────────────┘
     │             │          │
     ▼             ▼          ▼
-Jinja2        Timmy       Swarm
-Templates     Agent       Coordinator
-(HTMX)        │           ├─ Registry (SQLite)
-              ├─ Ollama   ├─ AuctionManager (L402 bids)
-              └─ AirLLM   ├─ SwarmComms (Redis / in-memory)
-                          └─ SwarmManager (subprocess)
+Jinja2        Timmy       Infrastructure
+Templates     Agent       ├─ LLM Router (cascade)
+(HTMX)        │           ├─ WebSocket manager
+              ├─ Ollama   ├─ Notifications
+              └─ AirLLM   └─ Events bus
     │
-    ├── Voice NLU + TTS (pyttsx3, local)
+    ├── Integrations (voice NLU, Telegram, Siri Shortcuts)
     ├── WebSocket live feed (ws_manager)
-    ├── L402 Lightning proxy (macaroon + invoice)
     ├── Push notifications (local + macOS native)
-    └── Siri Shortcuts API endpoints
+    └── Spark (events, predictions, advisory)
 
 Persistence: timmy.db (Agno memory), data/swarm.db (registry + tasks)
 External:    Ollama :11434, optional Redis, optional LND gRPC
@@ -129,23 +124,13 @@ External:    Ollama :11434, optional Redis, optional LND gRPC
 ```
 src/
   config.py           # pydantic-settings — all env vars live here
-  timmy/              # Core agent (agent.py, backends.py, cli.py, prompts.py)
-  hands/              # Autonomous scheduled agents (registry, scheduler, runner)
+  timmy/              # Core agent, personas, agent interface, semantic memory
   dashboard/          # FastAPI app, routes, Jinja2 templates
-  swarm/              # Multi-agent: coordinator, registry, bidder, tasks, comms
-  timmy_serve/        # L402 proxy, payment handler, TTS, serve CLI
+  infrastructure/     # WebSocket, notifications, events, LLM router
+  integrations/       # Discord, Telegram, Siri Shortcuts, voice NLU
   spark/              # Intelligence engine — events, predictions, advisory
-  creative/           # Creative director + video assembler pipeline
-  tools/              # Git, image, music, video tools for persona agents
-  lightning/          # Lightning backend abstraction (mock + LND)
-  agent_core/         # Substrate-agnostic agent interface
-  voice/              # NLU intent detection
-  ws_manager/         # WebSocket connection manager
-  notifications/      # Push notification store
-  shortcuts/          # Siri Shortcuts endpoints
-  telegram_bot/       # Telegram bridge
-  self_tdd/           # Continuous test watchdog
-hands/                # Hand manifests — oracle/, sentinel/, etc.
+  brain/              # Identity system, memory interface
+  timmy_serve/        # API server, TTS, inter-agent communication
 tests/                # one test file per module, all mocked
 static/style.css      # Dark mission-control theme (JetBrains Mono)
 docs/                 # GitHub Pages landing page
@@ -174,43 +159,6 @@ Open `http://<your-ip>:8000` on your phone (same Wi-Fi network).
 Mobile-specific routes:
 - `/mobile` — single-column optimized layout
 - `/mobile-test` — 21-scenario HITL test harness (layout, touch, scroll, notch)
-
----
-
-## Hands — Autonomous Agents
-
-Hands are scheduled, autonomous agents that run on cron schedules. Each Hand has a `HAND.toml` manifest, `SYSTEM.md` prompt, and optional `skills/` directory.
-
-**Built-in Hands:**
-
-| Hand | Schedule | Purpose |
-|------|----------|---------|
-| **Oracle** | 7am, 7pm UTC | Bitcoin intelligence — price, on-chain, macro analysis |
-| **Sentinel** | Every 15 min | System health — dashboard, agents, database, resources |
-| **Scout** | Every hour | OSINT monitoring — HN, Reddit, RSS for Bitcoin/sovereign AI |
-| **Scribe** | Daily 9am | Content production — blog posts, docs, changelog |
-| **Ledger** | Every 6 hours | Treasury tracking — Bitcoin/Lightning balances, payment audit |
-| **Weaver** | Sunday 10am | Creative pipeline — orchestrates Pixel+Lyra+Reel for video |
-
-**Dashboard:** `/hands` — manage, trigger, approve actions
-
-**Example HAND.toml:**
-```toml
-[hand]
-name = "oracle"
-schedule = "0 7,19 * * *"  # Twice daily
-enabled = true
-
-[tools]
-required = ["mempool_fetch", "price_fetch"]
-
-[approval_gates]
-broadcast = { action = "broadcast", description = "Post to dashboard" }
-
-[output]
-dashboard = true
-channel = "telegram"
-```
 
 ---
 
@@ -274,5 +222,5 @@ bash scripts/activate_self_tdd.sh --big-brain   # also installs AirLLM
 | Version | Name | Status |
 |---------|------|--------|
 | 1.0 | Genesis | Complete — Agno + Ollama + SQLite + Dashboard |
-| 2.0 | Exodus | In progress — Swarm + L402 + Voice + Marketplace + Hands |
+| 2.0 | Exodus | In progress — Voice + Marketplace + Integrations |
 | 3.0 | Revelation | Planned — Lightning treasury + single `.app` bundle |
