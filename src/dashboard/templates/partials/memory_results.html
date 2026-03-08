@@ -1,0 +1,34 @@
+<div class="mc-results-section">
+  <h3>Search Results</h3>
+
+  {% if results %}
+  <div class="memory-results">
+    {% for mem in results %}
+    <div class="memory-entry" data-relevance="{{ mem.relevance_score }}">
+      <div class="memory-header">
+        <span class="memory-source">{{ mem.source }}</span>
+        <span class="memory-type mc-badge">{{ mem.context_type }}</span>
+        {% if mem.relevance_score %}
+        <span class="memory-score">{{ "%.2f"|format(mem.relevance_score) }}</span>
+        {% endif %}
+      </div>
+      <div class="memory-content">{{ mem.content }}</div>
+      <div class="memory-meta">
+        <span class="memory-time">{{ mem.timestamp[11:16] }}</span>
+        {% if mem.agent_id %}
+        <span class="memory-agent">Agent: {{ mem.agent_id[:8] }}...</span>
+        {% endif %}
+        {% if mem.task_id %}
+        <span class="memory-task">Task: {{ mem.task_id[:8] }}...</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="mc-empty-state">
+    <p>No results found for "{{ query }}"</p>
+    <p class="mc-text-secondary">Try different keywords or check spelling.</p>
+  </div>
+  {% endif %}
+</div>

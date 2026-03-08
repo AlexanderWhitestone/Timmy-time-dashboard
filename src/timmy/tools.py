@@ -447,10 +447,11 @@ def create_full_toolkit(base_dir: str | Path | None = None):
 
     # Memory search and write — persistent recall across all channels
     try:
-        from timmy.semantic_memory import memory_search, memory_write
+        from timmy.semantic_memory import memory_search, memory_write, memory_read
 
         toolkit.register(memory_search, name="memory_search")
         toolkit.register(memory_write, name="memory_write")
+        toolkit.register(memory_read, name="memory_read")
     except Exception:
         logger.debug("Memory tools not available")
 

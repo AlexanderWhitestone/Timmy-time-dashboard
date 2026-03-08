@@ -1,0 +1,13 @@
+{% if facts %}
+<ul class="mc-fact-list" style="list-style: none; padding: 0;">
+  {% for fact in facts %}
+  <li class="memory-fact" id="fact-{{ fact.id }}" style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.08);">
+    <span class="fact-content" style="flex:1;">{{ fact.content }}</span>
+    <button class="mc-btn mc-btn-small" onclick="editFact('{{ fact.id }}', this)" style="font-size:0.7rem; padding:2px 8px;">EDIT</button>
+    <button class="mc-btn mc-btn-small" onclick="deleteFact('{{ fact.id }}')" style="font-size:0.7rem; padding:2px 8px; color:#ef4444;">DEL</button>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="mc-text-secondary">No personal facts stored yet.</p>
+{% endif %}
