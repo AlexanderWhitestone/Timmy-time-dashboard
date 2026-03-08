@@ -1,14 +1,15 @@
-"""Test that Ollama model is created with a generous request timeout.
+"""Test that Ollama model is created with a generous timeout.
 
 The default httpx timeout is too short for complex prompts (30-60s generation).
-This caused socket read errors in production.
+This caused socket read errors in production. The agno Ollama class uses
+``timeout`` (not ``request_timeout``).
 """
 
 from unittest.mock import patch, MagicMock
 
 
-def test_base_agent_sets_request_timeout():
-    """BaseAgent creates Ollama with request_timeout=300."""
+def test_base_agent_sets_timeout():
+    """BaseAgent creates Ollama with timeout=300."""
     with patch("timmy.agents.base.Ollama") as mock_ollama, \
          patch("timmy.agents.base.Agent"):
         mock_ollama.return_value = MagicMock()
@@ -32,16 +33,16 @@ def test_base_agent_sets_request_timeout():
         except Exception:
             pass  # MCP registry may not be available
 
-        # Verify Ollama was called with request_timeout
+        # Verify Ollama was called with timeout
         if mock_ollama.called:
             _, kwargs = mock_ollama.call_args
-            assert kwargs.get("request_timeout") == 300, (
-                f"Expected request_timeout=300, got {kwargs.get('request_timeout')}"
+            assert kwargs.get("timeout") == 300, (
+                f"Expected timeout=300, got {kwargs.get('timeout')}"
             )
 
 
-def test_main_agent_sets_request_timeout():
-    """create_timmy() creates Ollama with request_timeout=300."""
+def test_main_agent_sets_timeout():
+    """create_timmy() creates Ollama with timeout=300."""
     with patch("timmy.agent.Ollama") as mock_ollama, \
          patch("timmy.agent.SqliteDb"), \
          patch("timmy.agent.Agent"):
@@ -55,6 +56,6 @@ def test_main_agent_sets_request_timeout():
 
         if mock_ollama.called:
             _, kwargs = mock_ollama.call_args
-            assert kwargs.get("request_timeout") == 300, (
-                f"Expected request_timeout=300, got {kwargs.get('request_timeout')}"
+            assert kwargs.get("timeout") == 300, (
+                f"Expected timeout=300, got {kwargs.get('timeout')}"
             )

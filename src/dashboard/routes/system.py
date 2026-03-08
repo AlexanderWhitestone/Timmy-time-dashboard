@@ -3,7 +3,7 @@
 import logging
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 
 from dashboard.templating import templates
 
@@ -102,3 +102,21 @@ async def hands_page(request: Request):
 @router.get("/creative/ui", response_class=HTMLResponse)
 async def creative_ui(request: Request):
     return templates.TemplateResponse(request, "creative.html", {})
+
+
+@router.get("/api/notifications", response_class=JSONResponse)
+async def api_notifications():
+    """Return recent system events for the notification dropdown."""
+    try:
+        from spark.engine import spark_engine
+        events = spark_engine.get_timeline(limit=20)
+        return JSONResponse([
+            {
+                "event_type": e.event_type,
+                "title": getattr(e, "description", e.event_type),
+                "timestamp": str(getattr(e, "timestamp", "")),
+            }
+            for e in events
+        ])
+    except Exception:
+        return JSONResponse([])

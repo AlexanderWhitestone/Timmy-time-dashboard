@@ -275,7 +275,7 @@ def create_timmy(
 
     return Agent(
         name="Agent",
-        model=Ollama(id=model_name, host=settings.ollama_url, request_timeout=300),
+        model=Ollama(id=model_name, host=settings.ollama_url, timeout=300),
         db=SqliteDb(db_file=db_file),
         description=full_prompt,
         add_history_to_context=True,
