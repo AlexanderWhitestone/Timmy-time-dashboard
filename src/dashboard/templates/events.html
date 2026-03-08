@@ -63,14 +63,14 @@
       </thead>
       <tbody>
         {% for event in events %}
-        <tr class="event-row" data-type="{{ event.event_type.value }}">
-          <td class="event-time">{{ event.timestamp[11:19] }}</td>
+        <tr class="event-row" data-type="{{ event.event_type }}">
+          <td class="event-time">{{ event.created_at[11:19] }}</td>
           <td>
-            <span class="mc-badge mc-badge-{{ event.event_type.value.split('.')[0] }}">
-              {{ event.event_type.value }}
+            <span class="mc-badge mc-badge-{{ event.event_type.split('.')[0] }}">
+              {{ event.event_type }}
             </span>
           </td>
-          <td>{{ event.source }}</td>
+          <td>{{ event.agent_id or '-' }}</td>
           <td>
             {% if event.task_id %}
             <a href="/swarm/events?task_id={{ event.task_id }}">{{ event.task_id[:8] }}...</a>

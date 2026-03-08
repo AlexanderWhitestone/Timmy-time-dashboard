@@ -17,6 +17,10 @@ env/
 .env
 .env.*
 !.env.example
+discord_credentials.txt
+
+# Backup / temp files
+*~
 
 # SQLite — never commit databases or WAL/SHM artifacts
 *.db
@@ -54,6 +58,19 @@ src/data/
 *.swp
 *.swo
 .claude/
+
+# Local content — user-specific or generated
+MEMORY.md
+memory/self/user_profile.md
+TIMMYTIME
+introduction.txt
+messages.txt
+morning_briefing.txt
+markdown_report.md
+data/timmy_soul.jsonl
+scripts/migrate_to_zeroclaw.py
+src/infrastructure/db_pool.py
+workspace/
 
 # macOS
 .DS_Store
