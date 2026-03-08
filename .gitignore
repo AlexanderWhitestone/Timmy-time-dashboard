@@ -62,7 +62,6 @@ src/data/
 # Local content — user-specific or generated
 MEMORY.md
 memory/self/user_profile.md
-src/timmy/prompts.py
 TIMMYTIME
 introduction.txt
 messages.txt
