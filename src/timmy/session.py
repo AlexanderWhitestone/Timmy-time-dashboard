@@ -77,8 +77,12 @@ def chat(message: str, session_id: Optional[str] = None) -> str:
     _extract_facts(message)
 
     # Run with session_id so Agno retrieves history from SQLite
-    run = agent.run(message, stream=False, session_id=sid)
-    response_text = run.content if hasattr(run, "content") else str(run)
+    try:
+        run = agent.run(message, stream=False, session_id=sid)
+        response_text = run.content if hasattr(run, "content") else str(run)
+    except Exception as exc:
+        logger.error("Session: agent.run() failed: %s", exc)
+        return "I'm having trouble reaching my language model right now. Please try again shortly."
 
     # Post-processing: clean up any leaked tool calls or chain-of-thought
     response_text = _clean_response(response_text)
