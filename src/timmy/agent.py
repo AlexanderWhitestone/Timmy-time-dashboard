@@ -282,6 +282,8 @@ def create_timmy(
         num_history_runs=20,
         markdown=True,
         tools=[tools] if tools else None,
+        show_tool_calls=True if use_tools else False,
+        tool_call_limit=settings.max_agent_steps if use_tools else None,
         telemetry=settings.telemetry_enabled,
     )
 
