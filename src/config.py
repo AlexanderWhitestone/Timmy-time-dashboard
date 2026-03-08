@@ -106,6 +106,16 @@ class Settings(BaseSettings):
     # In production, security settings are strictly enforced.
     timmy_env: Literal["development", "production"] = "development"
 
+    # ── Memory Management ──────────────────────────────────────────────
+    # Auto-prune vector store memories older than this many days on startup.
+    # Set to 0 to disable auto-pruning.
+    memory_prune_days: int = 90
+    # When True, fact-type memories are kept even when older than the TTL.
+    memory_prune_keep_facts: bool = True
+    # Maximum size in MB for the memory/notes/ vault directory.
+    # When exceeded, a warning is logged. Set to 0 to disable.
+    memory_vault_max_mb: int = 100
+
     # ── Test / Diagnostics ─────────────────────────────────────────────
     # Skip loading heavy embedding models (for tests / low-memory envs).
     timmy_skip_embeddings: bool = False

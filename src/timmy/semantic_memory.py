@@ -324,7 +324,11 @@ memory_searcher = MemorySearcher()
 
 
 def memory_search(query: str, top_k: int = 5) -> str:
-    """Search past conversations and notes for relevant context.
+    """Search past conversations, notes, and stored facts for relevant context.
+
+    Searches across both the vault (indexed markdown files) and the
+    runtime memory store (facts and conversation fragments stored via
+    memory_write).
 
     Args:
         query: What to search for (e.g. "Bitcoin strategy", "server setup").
@@ -336,12 +340,62 @@ def memory_search(query: str, top_k: int = 5) -> str:
     # Guard: model sometimes passes None for top_k
     if top_k is None:
         top_k = 5
-    results = semantic_memory.search(query, top_k)
-    if not results:
-        return "No relevant memories found."
-    parts = []
-    for content, score in results:
+
+    parts: list[str] = []
+
+    # 1. Search semantic vault (indexed markdown files)
+    vault_results = semantic_memory.search(query, top_k)
+    for content, score in vault_results:
         if score < 0.2:
             continue
-        parts.append(f"[score {score:.2f}] {content[:300]}")
-    return "\n\n".join(parts) if parts else "No relevant memories found."
+        parts.append(f"[vault score {score:.2f}] {content[:300]}")
+
+    # 2. Search runtime vector store (stored facts/conversations)
+    try:
+        from timmy.memory.vector_store import search_memories
+        runtime_results = search_memories(query, limit=top_k, min_relevance=0.2)
+        for entry in runtime_results:
+            label = entry.context_type or "memory"
+            parts.append(f"[{label}] {entry.content[:300]}")
+    except Exception as exc:
+        logger.debug("Vector store search unavailable: %s", exc)
+
+    if not parts:
+        return "No relevant memories found."
+    return "\n\n".join(parts)
+
+
+def memory_write(content: str, context_type: str = "fact") -> str:
+    """Store a piece of information in persistent memory.
+
+    Use this tool when the user explicitly asks you to remember something.
+    Stored memories are searchable via memory_search across all channels
+    (web GUI, Discord, Telegram, etc.).
+
+    Args:
+        content: The information to remember (e.g. a phrase, fact, or note).
+        context_type: Type of memory — "fact" for permanent facts,
+                      "conversation" for conversation context,
+                      "document" for document fragments.
+
+    Returns:
+        Confirmation that the memory was stored.
+    """
+    if not content or not content.strip():
+        return "Nothing to store — content is empty."
+
+    valid_types = ("fact", "conversation", "document")
+    if context_type not in valid_types:
+        context_type = "fact"
+
+    try:
+        from timmy.memory.vector_store import store_memory
+        entry = store_memory(
+            content=content.strip(),
+            source="agent",
+            context_type=context_type,
+        )
+        return f"Stored in memory (type={context_type}, id={entry.id[:8]}). This is now searchable across all channels."
+    except Exception as exc:
+        logger.error("Failed to write memory: %s", exc)
+        return f"Failed to store memory: {exc}"

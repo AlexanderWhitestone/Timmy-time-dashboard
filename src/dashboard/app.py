@@ -204,6 +204,34 @@ async def lifespan(app: FastAPI):
     if spark_engine.enabled:
         logger.info("Spark Intelligence active — event capture enabled")
 
+    # Auto-prune old vector store memories on startup
+    if settings.memory_prune_days > 0:
+        try:
+            from timmy.memory.vector_store import prune_memories
+            pruned = prune_memories(
+                older_than_days=settings.memory_prune_days,
+                keep_facts=settings.memory_prune_keep_facts,
+            )
+            if pruned:
+                logger.info("Memory auto-prune: removed %d entries older than %d days", pruned, settings.memory_prune_days)
+        except Exception as exc:
+            logger.debug("Memory auto-prune skipped: %s", exc)
+
+    # Warn if memory vault exceeds size limit
+    if settings.memory_vault_max_mb > 0:
+        try:
+            vault_path = Path(settings.repo_root) / "memory" / "notes"
+            if vault_path.exists():
+                total_bytes = sum(f.stat().st_size for f in vault_path.rglob("*") if f.is_file())
+                total_mb = total_bytes / (1024 * 1024)
+                if total_mb > settings.memory_vault_max_mb:
+                    logger.warning(
+                        "Memory vault (%.1f MB) exceeds limit (%d MB) — consider archiving old notes",
+                        total_mb, settings.memory_vault_max_mb,
+                    )
+        except Exception as exc:
+            logger.debug("Vault size check skipped: %s", exc)
+
     # Start chat integrations in background
     chat_task = asyncio.create_task(_start_chat_integrations_background())
 

@@ -24,15 +24,22 @@ class TestDelegateTask:
         assert isinstance(result, dict)
 
     def test_all_valid_agents_accepted(self):
-        valid_agents = ["seer", "forge", "echo", "helm", "quill", "mace"]
+        valid_agents = ["seer", "forge", "echo", "helm", "quill"]
         for agent in valid_agents:
             result = delegate_task(agent, "test task")
             assert "Unknown agent" not in result.get("error", ""), f"{agent} rejected"
 
+    def test_mace_no_longer_valid(self):
+        result = delegate_task("mace", "run security scan")
+        assert result["success"] is False
+        assert "Unknown agent" in result["error"]
+
 
 class TestListSwarmAgents:
-    def test_graceful_failure_when_swarm_unavailable(self):
+    def test_returns_agents_from_personas(self):
         result = list_swarm_agents()
-        assert result["success"] is False
-        assert result["agents"] == []
-        assert "error" in result
+        assert result["success"] is True
+        assert len(result["agents"]) > 0
+        agent_names = [a["name"] for a in result["agents"]]
+        assert "Seer" in agent_names
+        assert "Forge" in agent_names

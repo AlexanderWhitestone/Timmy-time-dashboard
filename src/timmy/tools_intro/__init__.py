@@ -209,78 +209,41 @@ def get_memory_status() -> dict[str, Any]:
 
 
 def get_task_queue_status() -> dict[str, Any]:
-    """Get current task queue status for Timmy.
+    """Get current task queue status.
 
-    Returns:
-        Dict with queue counts by status and current task info.
+    The swarm task queue was removed. This returns a stub indicating
+    the subsystem is not available.
     """
-    try:
-        from swarm.task_queue.models import (
-            get_counts_by_status,
-            get_current_task_for_agent,
-        )
-
-        counts = get_counts_by_status()
-        current = get_current_task_for_agent("default")
-
-        result: dict[str, Any] = {
-            "counts": counts,
-            "total": sum(counts.values()),
-        }
-
-        if current:
-            result["current_task"] = {
-                "id": current.id,
-                "title": current.title,
-                "type": current.task_type,
-                "started_at": current.started_at,
-            }
-        else:
-            result["current_task"] = None
-
-        return result
-    except Exception as exc:
-        logger.debug("Task queue status unavailable: %s", exc)
-        return {"error": str(exc)}
+    return {
+        "counts": {},
+        "total": 0,
+        "current_task": None,
+        "note": "Task queue not available (swarm module removed)",
+    }
 
 
 def get_agent_roster() -> dict[str, Any]:
-    """Get the swarm agent roster with last-seen ages.
+    """Get the agent roster from the orchestrator's sub-agent definitions.
 
     Returns:
         Dict with agent list and summary.
     """
     try:
-        from swarm.registry import list_agents
+        from timmy.agents.timmy import _PERSONAS
 
-        agents = list_agents()
-        now = datetime.now(timezone.utc)
         roster = []
-
-        for agent in agents:
-            last_seen = agent.last_seen
-            try:
-                ts = datetime.fromisoformat(last_seen)
-                if ts.tzinfo is None:
-                    ts = ts.replace(tzinfo=timezone.utc)
-                age_seconds = int((now - ts).total_seconds())
-            except Exception:
-                age_seconds = -1
-
+        for persona in _PERSONAS:
             roster.append({
-                "id": agent.id,
-                "name": agent.name,
-                "status": agent.status,
-                "capabilities": agent.capabilities,
-                "last_seen_seconds_ago": age_seconds,
+                "id": persona["agent_id"],
+                "name": persona["name"],
+                "status": "available",
+                "capabilities": ", ".join(persona.get("tools", [])),
+                "role": persona.get("role", ""),
             })
 
         return {
             "agents": roster,
             "total": len(roster),
-            "idle": sum(1 for a in roster if a["status"] == "idle"),
-            "busy": sum(1 for a in roster if a["status"] == "busy"),
-            "offline": sum(1 for a in roster if a["status"] == "offline"),
         }
     except Exception as exc:
         logger.debug("Agent roster unavailable: %s", exc)
