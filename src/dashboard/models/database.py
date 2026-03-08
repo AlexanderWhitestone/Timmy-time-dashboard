@@ -12,6 +12,11 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
+def create_tables():
+    """Create all tables defined by models that have imported Base."""
+    Base.metadata.create_all(bind=engine)
+
+
 def get_db():
     db = SessionLocal()
     try:

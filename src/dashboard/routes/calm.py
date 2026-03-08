@@ -8,8 +8,11 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
 from dashboard.models.calm import JournalEntry, Task, TaskCertainty, TaskState
-from dashboard.models.database import SessionLocal, engine, get_db
+from dashboard.models.database import SessionLocal, engine, get_db, create_tables
 from dashboard.templating import templates
+
+# Ensure CALM tables exist (safe to call multiple times)
+create_tables()
 
 logger = logging.getLogger(__name__)
 

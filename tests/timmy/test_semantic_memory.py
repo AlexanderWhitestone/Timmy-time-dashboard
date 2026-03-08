@@ -12,6 +12,7 @@ from timmy.semantic_memory import (
     MemorySearcher,
     MemoryChunk,
     memory_search,
+    memory_read,
     _get_embedding_model,
 )
 
@@ -229,6 +230,22 @@ class TestMemorySearch:
 
     def test_none_top_k_handled(self):
         result = memory_search("test", top_k=None)
+        assert isinstance(result, str)
+
+
+class TestMemoryRead:
+    """Test module-level memory_read function."""
+
+    def test_memory_read_returns_string(self):
+        result = memory_read()
+        assert isinstance(result, str)
+
+    def test_memory_read_with_query(self):
+        result = memory_read("some query")
+        assert isinstance(result, str)
+
+    def test_memory_read_none_top_k(self):
+        result = memory_read("test", top_k=None)
         assert isinstance(result, str)
 
 
