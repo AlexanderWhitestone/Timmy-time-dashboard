@@ -100,13 +100,30 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         except Exception as exc:
             # Calculate duration even for failed requests
             duration_ms = (time.time() - start_time) * 1000
-            
+
             # Log the error
             logger.error(
                 f"[{correlation_id}] {request.method} {request.url.path} "
                 f"- ERROR - {duration_ms:.2f}ms - {client_ip} - {str(exc)}"
             )
-            
+
+            # Auto-escalate: create bug report task from unhandled exception
+            try:
+                from infrastructure.error_capture import capture_error
+                capture_error(
+                    exc,
+                    source="http",
+                    context={
+                        "method": request.method,
+                        "path": request.url.path,
+                        "correlation_id": correlation_id,
+                        "client_ip": client_ip,
+                        "duration_ms": f"{duration_ms:.0f}",
+                    },
+                )
+            except Exception:
+                pass  # never let escalation break the request
+
             # Re-raise the exception
             raise
     

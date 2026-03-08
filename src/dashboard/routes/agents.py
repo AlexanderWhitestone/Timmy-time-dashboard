@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from datetime import datetime
 
@@ -69,7 +70,7 @@ async def chat_agent(request: Request, message: str = Form(...)):
     error_text = None
 
     try:
-        response_text = agent_chat(message)
+        response_text = await asyncio.to_thread(agent_chat, message)
     except Exception as exc:
         logger.error("Chat error: %s", exc)
         error_text = f"Chat error: {exc}"

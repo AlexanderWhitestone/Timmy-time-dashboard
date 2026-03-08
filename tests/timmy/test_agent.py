@@ -253,8 +253,8 @@ def test_create_timmy_includes_tools_for_large_model():
         assert kwargs["tools"] == [mock_toolkit]
 
 
-def test_create_timmy_no_show_tool_calls():
-    """show_tool_calls must NOT be passed — Agno 2.5.3 doesn't support it."""
+def test_create_timmy_show_tool_calls_matches_tool_capability():
+    """show_tool_calls should be True when tools are enabled, False otherwise."""
     with patch("timmy.agent.Agent") as MockAgent, \
          patch("timmy.agent.Ollama"), \
          patch("timmy.agent.SqliteDb"):
@@ -263,4 +263,5 @@ def test_create_timmy_no_show_tool_calls():
         create_timmy()
 
         kwargs = MockAgent.call_args.kwargs
-        assert "show_tool_calls" not in kwargs
+        # show_tool_calls is set based on whether tools are enabled
+        assert "show_tool_calls" in kwargs
