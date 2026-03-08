@@ -47,28 +47,41 @@ async def api_list_agents():
 
 
 @router.get("/marketplace")
+async def marketplace_json(request: Request):
+    """Marketplace JSON API (backward compat)."""
+    return await api_list_agents()
+
+
+@router.get("/marketplace/ui", response_class=HTMLResponse)
 async def marketplace_ui(request: Request):
-    """Marketplace page — returns JSON for API requests, HTML for browser."""
-    # Check if client wants JSON (common test clients don't set Accept header)
-    accept = request.headers.get("accept", "")
-    # Return JSON if Accept header indicates JSON OR if no preference (default to JSON for API)
-    if "application/json" in accept or accept == "*/*" or not accept:
-        return await api_list_agents()
-    
-    # Browser request - return HTML
+    """Marketplace HTML page."""
     try:
         brain = BrainClient()
         tasks = await brain.get_pending_tasks(limit=20)
     except Exception:
         tasks = []
-    
+
+    # Enrich agents with fields the template expects
+    enriched = []
+    for agent in AGENT_CATALOG:
+        a = dict(agent)
+        a.setdefault("status", a.get("default_status", "active"))
+        a.setdefault("tasks_completed", 0)
+        a.setdefault("total_earned", 0)
+        enriched.append(a)
+
+    active = sum(1 for a in enriched if a["status"] == "active")
+
     return templates.TemplateResponse(
         request,
         "marketplace.html",
         {
-            "agents": AGENT_CATALOG,
+            "agents": enriched,
             "pending_tasks": tasks,
             "message": "Personas deprecated — use Brain Task Queue",
+            "page_title": "Agent Marketplace",
+            "active_count": active,
+            "planned_count": 0,
         }
     )
 

@@ -89,7 +89,9 @@ async def mission_control(request: Request):
 
 @router.get("/bugs", response_class=HTMLResponse)
 async def bugs_page(request: Request):
-    return templates.TemplateResponse(request, "bugs.html", {"bugs": []})
+    return templates.TemplateResponse(request, "bugs.html", {
+        "bugs": [], "total": 0, "stats": {}, "filter_status": None,
+    })
 
 
 @router.get("/self-coding", response_class=HTMLResponse)
