@@ -7,11 +7,12 @@ POST /briefing/approvals/{id}/reject   — reject an item (HTMX)
 """
 
 import logging
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from timmy.briefing import engine as briefing_engine
+from timmy.briefing import Briefing, engine as briefing_engine
 from timmy import approvals as approval_store
 from dashboard.templating import templates
 
@@ -23,7 +24,20 @@ router = APIRouter(prefix="/briefing", tags=["briefing"])
 @router.get("", response_class=HTMLResponse)
 async def get_briefing(request: Request):
     """Return today's briefing page (generated or cached)."""
-    briefing = briefing_engine.get_or_generate()
+    try:
+        briefing = briefing_engine.get_or_generate()
+    except Exception:
+        logger.exception("Briefing generation failed")
+        now = datetime.now(timezone.utc)
+        briefing = Briefing(
+            generated_at=now,
+            summary=(
+                "Good morning. The briefing could not be generated right now. "
+                "Check that Ollama is running and try again."
+            ),
+            period_start=now,
+            period_end=now,
+        )
     return templates.TemplateResponse(
         request,
         "briefing.html",
