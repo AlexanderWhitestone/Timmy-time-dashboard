@@ -63,7 +63,7 @@ class BaseAgent(ABC):
         
         return Agent(
             name=self.name,
-            model=Ollama(id=settings.ollama_model, host=settings.ollama_url, request_timeout=300),
+            model=Ollama(id=settings.ollama_model, host=settings.ollama_url, timeout=300),
             description=system_prompt,
             tools=tool_instances if tool_instances else None,
             add_history_to_context=True,

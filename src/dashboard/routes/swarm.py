@@ -77,6 +77,15 @@ async def swarm_ws(websocket: WebSocket):
     """WebSocket endpoint for live swarm updates."""
     await ws_manager.connect(websocket)
     try:
+        # Send initial state so frontend can clear loading placeholders
+        await websocket.send_json({
+            "type": "initial_state",
+            "data": {
+                "agents": {"total": 0, "active": 0, "list": []},
+                "tasks": {"active": 0},
+                "auctions": {"list": []},
+            },
+        })
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:

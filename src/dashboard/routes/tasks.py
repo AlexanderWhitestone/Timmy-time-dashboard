@@ -373,3 +373,37 @@ async def api_delete_task(task_id: str):
     if cursor.rowcount == 0:
         raise HTTPException(404, "Task not found")
     return JSONResponse({"success": True, "id": task_id})
+
+
+# ---------------------------------------------------------------------------
+# Queue status (polled by the chat panel every 10 seconds)
+# ---------------------------------------------------------------------------
+
+@router.get("/api/queue/status", response_class=JSONResponse)
+async def queue_status(assigned_to: str = "default"):
+    """Return queue status for the chat panel's agent status indicator."""
+    db = _get_db()
+    try:
+        running = db.execute(
+            "SELECT * FROM tasks WHERE status='running' AND assigned_to=? LIMIT 1",
+            (assigned_to,),
+        ).fetchone()
+        ahead = db.execute(
+            "SELECT COUNT(*) as cnt FROM tasks WHERE status IN ('pending_approval','approved') AND assigned_to=?",
+            (assigned_to,),
+        ).fetchone()
+    finally:
+        db.close()
+
+    if running:
+        return JSONResponse({
+            "is_working": True,
+            "current_task": {"id": running["id"], "title": running["title"]},
+            "tasks_ahead": 0,
+        })
+
+    return JSONResponse({
+        "is_working": False,
+        "current_task": None,
+        "tasks_ahead": ahead["cnt"] if ahead else 0,
+    })
