@@ -455,6 +455,51 @@ def create_full_toolkit(base_dir: str | Path | None = None):
     except Exception:
         logger.debug("Memory tools not available")
 
+    # Agentic loop — background multi-step task execution
+    try:
+        from timmy.agentic_loop import run_agentic_loop
+
+        def plan_and_execute(task: str) -> str:
+            """Execute a complex multi-step task in the background with progress tracking.
+
+            Use this when a task requires 3 or more sequential tool calls that may
+            take significant time. The task will run in the background and stream
+            progress updates to the user via WebSocket.
+
+            Args:
+                task: Full description of the multi-step task to execute.
+
+            Returns:
+                Task ID and confirmation that background execution has started.
+            """
+            import asyncio
+            task_id = None
+
+            async def _launch():
+                nonlocal task_id
+                result = await run_agentic_loop(task)
+                return result
+
+            # Spawn as a background task on the running event loop
+            try:
+                loop = asyncio.get_running_loop()
+                future = asyncio.ensure_future(_launch())
+                task_id = id(future)
+                logger.info("Agentic loop started (task=%s)", task[:80])
+            except RuntimeError:
+                # No running loop — run synchronously (shouldn't happen in prod)
+                result = asyncio.run(_launch())
+                return f"Task completed: {result.summary}"
+
+            return (
+                f"Background task started. I'll execute this step-by-step "
+                f"and stream progress updates. You can monitor via the dashboard."
+            )
+
+        toolkit.register(plan_and_execute, name="plan_and_execute")
+    except Exception:
+        logger.debug("plan_and_execute tool not available")
+
     # System introspection - query runtime environment (sovereign self-knowledge)
     try:
         from timmy.tools_intro import (

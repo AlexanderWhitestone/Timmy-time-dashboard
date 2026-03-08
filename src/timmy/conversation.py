@@ -62,10 +62,25 @@ class ConversationManager:
         if session_id in self._contexts:
             del self._contexts[session_id]
     
+    # Words that look like names but are actually verbs/UI states
+    _NAME_BLOCKLIST = frozenset({
+        "sending", "loading", "pending", "processing", "typing",
+        "working", "going", "trying", "looking", "getting", "doing",
+        "waiting", "running", "checking", "coming", "leaving",
+        "thinking", "reading", "writing", "watching", "listening",
+        "playing", "eating", "sleeping", "sitting", "standing",
+        "walking", "talking", "asking", "telling", "feeling",
+        "hoping", "wondering", "glad", "happy", "sorry", "sure",
+        "fine", "good", "great", "okay", "here", "there", "back",
+        "done", "ready", "busy", "free", "available", "interested",
+        "confused", "lost", "stuck", "curious", "excited", "tired",
+        "not", "also", "just", "still", "already", "currently",
+    })
+
     def extract_user_name(self, message: str) -> Optional[str]:
         """Try to extract user's name from message."""
         message_lower = message.lower()
-        
+
         # Common patterns
         patterns = [
             "my name is ",
@@ -73,16 +88,23 @@ class ConversationManager:
             "i am ",
             "call me ",
         ]
-        
+
         for pattern in patterns:
             if pattern in message_lower:
                 idx = message_lower.find(pattern) + len(pattern)
                 remainder = message[idx:].strip()
+                if not remainder:
+                    continue
                 # Take first word as name
                 name = remainder.split()[0].strip(".,!?;:")
+                if not name:
+                    continue
+                # Reject common verbs, adjectives, and UI-state words
+                if name.lower() in self._NAME_BLOCKLIST:
+                    continue
                 # Capitalize first letter
                 return name.capitalize()
-        
+
         return None
     
     def should_use_tools(self, message: str, context: ConversationContext) -> bool:

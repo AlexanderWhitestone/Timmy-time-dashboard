@@ -24,9 +24,9 @@ router = APIRouter(prefix="/grok", tags=["grok"])
 _grok_mode_active: bool = False
 
 
-@router.get("/status")
-async def grok_status():
-    """Return Grok backend status as JSON."""
+@router.get("/status", response_class=HTMLResponse)
+async def grok_status(request: Request):
+    """Return Grok backend status as an HTML dashboard page."""
     from timmy.backends import grok_available
 
     status = {
@@ -40,10 +40,11 @@ async def grok_status():
     }
 
     # Include usage stats if backend exists
+    stats = None
     try:
         from timmy.backends import get_grok_backend
         backend = get_grok_backend()
-        status["stats"] = {
+        stats = {
             "total_requests": backend.stats.total_requests,
             "total_prompt_tokens": backend.stats.total_prompt_tokens,
             "total_completion_tokens": backend.stats.total_completion_tokens,
@@ -51,9 +52,12 @@ async def grok_status():
             "errors": backend.stats.errors,
         }
     except Exception:
-        status["stats"] = None
+        pass
 
-    return status
+    return templates.TemplateResponse(request, "grok_status.html", {
+        "status": status,
+        "stats": stats,
+    })
 
 
 @router.post("/toggle")

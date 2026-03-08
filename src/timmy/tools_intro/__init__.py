@@ -134,7 +134,7 @@ def get_memory_status() -> dict[str, Any]:
     tier1_info: dict[str, Any] = {
         "exists": tier1_exists,
         "path": str(memory_md),
-        "preview": tier1_content[:200] if tier1_content else None,
+        "preview": " ".join(tier1_content[:200].split()) if tier1_content else None,
     }
     if tier1_exists:
         lines = memory_md.read_text().splitlines()
