@@ -61,7 +61,7 @@ src/data/
 
 # Local content — user-specific or generated
 MEMORY.md
-memory/self/user_profile.md
+memory/self/
 TIMMYTIME
 introduction.txt
 messages.txt
