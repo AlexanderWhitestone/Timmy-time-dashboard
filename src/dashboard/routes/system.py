@@ -77,11 +77,6 @@ async def self_modify_queue(request: Request):
     )
 
 
-@router.get("/tasks", response_class=HTMLResponse)
-async def tasks_page(request: Request):
-    return templates.TemplateResponse(request, "tasks.html", {"tasks": []})
-
-
 @router.get("/swarm/mission-control", response_class=HTMLResponse)
 async def mission_control(request: Request):
     return templates.TemplateResponse(request, "mission_control.html", {})
@@ -102,11 +97,6 @@ async def self_coding(request: Request):
 @router.get("/hands", response_class=HTMLResponse)
 async def hands_page(request: Request):
     return templates.TemplateResponse(request, "hands.html", {"executions": []})
-
-
-@router.get("/work-orders/queue", response_class=HTMLResponse)
-async def work_orders(request: Request):
-    return templates.TemplateResponse(request, "work_orders.html", {"orders": []})
 
 
 @router.get("/creative/ui", response_class=HTMLResponse)

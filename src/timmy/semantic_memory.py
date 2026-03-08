@@ -365,6 +365,49 @@ def memory_search(query: str, top_k: int = 5) -> str:
     return "\n\n".join(parts)
 
 
+def memory_read(query: str = "", top_k: int = 5) -> str:
+    """Read from persistent memory — search facts, notes, and past conversations.
+
+    This is the primary tool for recalling stored information. If no query
+    is given, returns the most recent personal facts.  With a query, it
+    searches semantically across all stored memories.
+
+    Args:
+        query: Optional search term. Leave empty to list recent facts.
+        top_k: Maximum results to return (default 5).
+
+    Returns:
+        Formatted string of memory contents.
+    """
+    if top_k is None:
+        top_k = 5
+
+    parts: list[str] = []
+
+    # Always include personal facts first
+    try:
+        from timmy.memory.vector_store import search_memories
+        facts = search_memories(query or "", limit=top_k, min_relevance=0.0)
+        fact_entries = [e for e in facts if (e.context_type or "") == "fact"]
+        if fact_entries:
+            parts.append("## Personal Facts")
+            for entry in fact_entries[:top_k]:
+                parts.append(f"- {entry.content[:300]}")
+    except Exception as exc:
+        logger.debug("Vector store unavailable for memory_read: %s", exc)
+
+    # If a query was provided, also do semantic search
+    if query:
+        search_result = memory_search(query, top_k)
+        if search_result and search_result != "No relevant memories found.":
+            parts.append("\n## Search Results")
+            parts.append(search_result)
+
+    if not parts:
+        return "No memories stored yet. Use memory_write to store information."
+    return "\n".join(parts)
+
+
 def memory_write(content: str, context_type: str = "fact") -> str:
     """Store a piece of information in persistent memory.
 

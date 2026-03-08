@@ -61,6 +61,8 @@ def clean_database(tmp_path):
     tmp_swarm_db = tmp_path / "swarm.db"
     tmp_spark_db = tmp_path / "spark.db"
     tmp_self_coding_db = tmp_path / "self_coding.db"
+    tmp_tasks_db = tmp_path / "tasks.db"
+    tmp_work_orders_db = tmp_path / "work_orders.db"
 
     _swarm_db_modules = [
         "timmy.memory.vector_store",
@@ -95,6 +97,18 @@ def clean_database(tmp_path):
             mod = __import__(mod_name, fromlist=["DEFAULT_DB_PATH"])
             originals[(mod_name, "DEFAULT_DB_PATH")] = getattr(mod, "DEFAULT_DB_PATH")
             setattr(mod, "DEFAULT_DB_PATH", tmp_self_coding_db)
+        except Exception:
+            pass
+
+    # Redirect task queue and work orders DBs to temp dir
+    for mod_name, tmp_db in [
+        ("dashboard.routes.tasks", tmp_tasks_db),
+        ("dashboard.routes.work_orders", tmp_work_orders_db),
+    ]:
+        try:
+            mod = __import__(mod_name, fromlist=["DB_PATH"])
+            originals[(mod_name, "DB_PATH")] = getattr(mod, "DB_PATH")
+            setattr(mod, "DB_PATH", tmp_db)
         except Exception:
             pass
 
