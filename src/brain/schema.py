@@ -7,9 +7,9 @@ SQL to initialize rqlite with memories and tasks tables.
 SCHEMA_VERSION = 1
 
 INIT_SQL = """
--- Enable SQLite extensions
-.load vector0
-.load vec0
+-- Note: sqlite-vec extensions must be loaded programmatically
+-- via conn.load_extension("vector0") / conn.load_extension("vec0")
+-- before executing this schema. Dot-commands are CLI-only.
 
 -- Memories table with vector search
 CREATE TABLE IF NOT EXISTS memories (

@@ -431,8 +431,28 @@ class MemorySystem:
         return "\n".join(summary_parts) if summary_parts else ""
     
     def get_system_context(self) -> str:
-        """Get full context for system prompt injection."""
-        return self.start_session()
+        """Get full context for system prompt injection.
+
+        Unlike start_session(), this does NOT clear the handoff.
+        Safe to call multiple times without data loss.
+        """
+        context_parts = []
+
+        # 1. Hot memory
+        hot_content = self.hot.read()
+        context_parts.append("## Hot Memory\n" + hot_content)
+
+        # 2. Last session handoff (read-only, do NOT clear)
+        handoff_content = self.handoff.read_handoff()
+        if handoff_content:
+            context_parts.append("## Previous Session\n" + handoff_content)
+
+        # 3. User profile (key fields only)
+        profile = self._load_user_profile_summary()
+        if profile:
+            context_parts.append("## User Context\n" + profile)
+
+        return "\n\n---\n\n".join(context_parts)
 
 
 # Module-level singleton

@@ -164,10 +164,10 @@ def get_memory_status() -> dict[str, Any]:
         if sem_db.exists():
             conn = sqlite3.connect(str(sem_db))
             row = conn.execute(
-                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='vectors'"
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='chunks'"
             ).fetchone()
             if row and row[0]:
-                count = conn.execute("SELECT COUNT(*) FROM vectors").fetchone()
+                count = conn.execute("SELECT COUNT(*) FROM chunks").fetchone()
                 tier3_info["available"] = True
                 tier3_info["vector_count"] = count[0] if count else 0
             conn.close()

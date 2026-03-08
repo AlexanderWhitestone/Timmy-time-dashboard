@@ -82,13 +82,10 @@ def build_timmy_context_sync() -> dict[str, Any]:
         logger.warning("Could not load agents for context: %s", exc)
         ctx["agents"] = []
     
-    # 3. Read hot memory
+    # 3. Read hot memory (via HotMemory to auto-create if missing)
     try:
-        memory_path = Path(settings.repo_root) / "MEMORY.md"
-        if memory_path.exists():
-            ctx["memory"] = memory_path.read_text()[:2000]  # First 2000 chars
-        else:
-            ctx["memory"] = "(MEMORY.md not found)"
+        from timmy.memory_system import memory_system
+        ctx["memory"] = memory_system.hot.read()[:2000]
     except Exception as exc:
         logger.warning("Could not load memory for context: %s", exc)
         ctx["memory"] = "(Memory unavailable)"
