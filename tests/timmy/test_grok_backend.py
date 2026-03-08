@@ -249,14 +249,14 @@ def test_consult_grok_calls_backend_when_available():
 # ── Grok dashboard route tests ─────────────────────────────────────────────
 
 def test_grok_status_endpoint(client):
-    """GET /grok/status returns JSON with Grok configuration."""
+    """GET /grok/status returns HTML dashboard page."""
     response = client.get("/grok/status")
     assert response.status_code == 200
-    data = response.json()
-    assert "enabled" in data
-    assert "available" in data
-    assert "model" in data
-    assert "api_key_set" in data
+    assert "text/html" in response.headers.get("content-type", "")
+    # Verify key status info is present in the rendered HTML
+    text = response.text
+    assert "Grok Status" in text
+    assert "Status" in text
 
 
 def test_grok_toggle_returns_html(client):

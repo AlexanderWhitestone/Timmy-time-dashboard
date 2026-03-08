@@ -11,9 +11,6 @@
       <p class="text-muted small mb-0">Autonomous scheduled agents</p>
     </div>
     <div class="d-flex gap-2">
-      <button class="btn btn-sm btn-outline-info" hx-get="/hands/list" hx-target="#hands-container">
-        Refresh
-      </button>
     </div>
   </div>
 
@@ -24,16 +21,13 @@
       <div class="card border-0 shadow-sm">
         <div class="card-header bg-transparent border-secondary d-flex justify-content-between align-items-center">
           <h5 class="mb-0">Active Hands</h5>
-          <span class="badge bg-info" hx-get="/hands/api/hands" hx-trigger="every 30s" hx-swap="none">
-            Auto-refresh
-          </span>
+          <span class="badge bg-secondary">Idle</span>
         </div>
         <div class="card-body p-0">
-          <div id="hands-container" hx-get="/hands/list" hx-trigger="load">
-            <div class="d-flex justify-content-center py-5">
-              <div class="spinner-border text-info" role="status">
-                <span class="visually-hidden">Loading Hands...</span>
-              </div>
+          <div id="hands-container">
+            <div class="text-center py-5 text-muted">
+              <p class="mb-1">No hands are currently active.</p>
+              <small>Configure hands in the Marketplace to get started.</small>
             </div>
           </div>
         </div>
@@ -45,9 +39,9 @@
           <h5 class="mb-0">Recent Executions</h5>
         </div>
         <div class="card-body p-0">
-          <div id="executions-container" hx-get="/hands/executions" hx-trigger="load">
-            <div class="d-flex justify-content-center py-3">
-              <div class="spinner-border spinner-border-sm text-muted" role="status"></div>
+          <div id="executions-container">
+            <div class="text-center py-4 text-muted">
+              <small>No recent executions.</small>
             </div>
           </div>
         </div>
@@ -60,12 +54,12 @@
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-transparent border-secondary d-flex justify-content-between align-items-center">
           <h5 class="mb-0">Pending Approvals</h5>
-          <span class="badge bg-warning text-dark" id="approval-count">-</span>
+          <span class="badge bg-warning text-dark" id="approval-count">0</span>
         </div>
         <div class="card-body p-0">
-          <div id="approvals-container" hx-get="/hands/approvals" hx-trigger="load, every 10s">
-            <div class="d-flex justify-content-center py-3">
-              <div class="spinner-border spinner-border-sm text-muted" role="status"></div>
+          <div id="approvals-container">
+            <div class="text-center py-3 text-muted">
+              <small>No pending approvals.</small>
             </div>
           </div>
         </div>

@@ -134,6 +134,10 @@ def _clean_response(text: str) -> str:
     if not text:
         return text
 
+    # Convert literal \n escape sequences to actual newlines
+    # (models sometimes output these in tool-result text)
+    text = text.replace("\\n", "\n")
+
     # Strip JSON tool call blocks
     text = _TOOL_CALL_JSON.sub("", text)
 

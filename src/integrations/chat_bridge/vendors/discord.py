@@ -355,25 +355,39 @@ class DiscordVendor(ChatPlatform):
         else:
             session_id = f"discord_{message.channel.id}"
 
-        # Run Timmy agent (singleton, with session continuity)
+        # Run Timmy agent with typing indicator and timeout
+        response = None
         try:
             agent = _get_discord_agent()
-            run = await asyncio.to_thread(
-                agent.run, content, stream=False, session_id=session_id
-            )
+
+            # Show typing indicator while the agent processes
+            async with target.typing():
+                run = await asyncio.wait_for(
+                    asyncio.to_thread(
+                        agent.run, content, stream=False, session_id=session_id
+                    ),
+                    timeout=300,
+                )
             response = run.content if hasattr(run, "content") else str(run)
+        except asyncio.TimeoutError:
+            logger.error("Discord: agent.run() timed out after 300s")
+            response = "Sorry, that took too long. Please try a simpler request."
         except Exception as exc:
-            logger.error("Timmy error in Discord handler: %s", exc)
-            response = f"Timmy is offline: {exc}"
+            logger.error("Discord: agent.run() failed: %s", exc)
+            response = "I'm having trouble reaching my language model right now. Please try again shortly."
 
         # Strip hallucinated tool-call JSON and chain-of-thought narration
         from timmy.session import _clean_response
 
         response = _clean_response(response)
 
-        # Discord has a 2000 character limit
+        # Discord has a 2000 character limit — send with error handling
         for chunk in _chunk_message(response, 2000):
-            await target.send(chunk)
+            try:
+                await target.send(chunk)
+            except Exception as exc:
+                logger.error("Discord: failed to send message chunk: %s", exc)
+                break
 
     async def _get_or_create_thread(self, message):
         """Get the active thread for a channel, or create one.

@@ -39,7 +39,8 @@
     <button class="task-btn task-btn-veto"
             hx-post="/tasks/{{ task.id }}/veto"
             hx-target="#task-{{ task.id }}"
-            hx-swap="outerHTML">VETO</button>
+            hx-swap="outerHTML"
+            hx-confirm="Veto this task? This cannot be undone.">VETO</button>
   </div>
   <!-- Inline modify form (hidden by default) -->
   <form id="modify-{{ task.id }}" style="display:none; margin-top:8px;"
@@ -58,7 +59,8 @@
     <button class="task-btn task-btn-veto"
             hx-post="/tasks/{{ task.id }}/veto"
             hx-target="#task-{{ task.id }}"
-            hx-swap="outerHTML">VETO</button>
+            hx-swap="outerHTML"
+            hx-confirm="Veto this task? This cannot be undone.">VETO</button>
   </div>
 
   {% elif task.status.value == 'running' %}

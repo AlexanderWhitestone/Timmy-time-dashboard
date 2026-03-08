@@ -37,7 +37,7 @@
             hx-sync="this:drop"
             hx-disabled-elt="find button"
             hx-on::after-settle="scrollChat()"
-            hx-on::after-request="if(event.detail.successful){this.querySelector('[name=message]').value='';}"
+            hx-on::after-request="handleAfterRequest(event)"
             class="d-flex gap-2"
             id="agent-chat-form">
         <input type="text"
@@ -71,6 +71,29 @@
 
 <script>
   scrollChat();
+
+  function handleAfterRequest(event) {
+    var detail = event.detail;
+    if (detail.successful) {
+      document.getElementById('agent-chat-form').querySelector('[name=message]').value = '';
+    } else if (detail.failed) {
+      // Show error message in chat log
+      var chatLog = document.getElementById('chat-log');
+      var div = document.createElement('div');
+      div.className = 'chat-message error-msg';
+      var meta = document.createElement('div');
+      meta.className = 'msg-meta';
+      var now = new Date();
+      meta.textContent = 'SYSTEM // ' + now.toTimeString().slice(0, 8);
+      var body = document.createElement('div');
+      body.className = 'msg-body';
+      body.textContent = 'Request timed out or failed. Try breaking the task into smaller steps.';
+      div.appendChild(meta);
+      div.appendChild(body);
+      chatLog.appendChild(div);
+      chatLog.scrollTop = chatLog.scrollHeight;
+    }
+  }
 
   function askGrok() {
     var input = document.getElementById('agent-chat-input');
