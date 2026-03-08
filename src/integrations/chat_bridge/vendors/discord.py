@@ -32,6 +32,25 @@ logger = logging.getLogger(__name__)
 
 _STATE_FILE = Path(__file__).parent.parent.parent.parent / "discord_state.json"
 
+# Module-level agent singleton — reused across all Discord messages.
+# Mirrors the pattern from timmy.session._agent.
+_discord_agent = None
+
+
+def _get_discord_agent():
+    """Lazy-initialize the Discord agent singleton."""
+    global _discord_agent
+    if _discord_agent is None:
+        from timmy.agent import create_timmy
+
+        try:
+            _discord_agent = create_timmy()
+            logger.info("Discord: Timmy agent initialized (singleton)")
+        except Exception as exc:
+            logger.error("Discord: Failed to create Timmy agent: %s", exc)
+            raise
+    return _discord_agent
+
 
 class DiscordVendor(ChatPlatform):
     """Discord integration with native thread conversations.
@@ -330,16 +349,27 @@ class DiscordVendor(ChatPlatform):
         thread = await self._get_or_create_thread(message)
         target = thread or message.channel
 
-        # Run Timmy agent
-        try:
-            from timmy.agent import create_timmy
+        # Derive session_id for per-conversation history via Agno's SQLite
+        if thread:
+            session_id = f"discord_{thread.id}"
+        else:
+            session_id = f"discord_{message.channel.id}"
 
-            agent = create_timmy()
-            run = await asyncio.to_thread(agent.run, content, stream=False)
+        # Run Timmy agent (singleton, with session continuity)
+        try:
+            agent = _get_discord_agent()
+            run = await asyncio.to_thread(
+                agent.run, content, stream=False, session_id=session_id
+            )
             response = run.content if hasattr(run, "content") else str(run)
         except Exception as exc:
             logger.error("Timmy error in Discord handler: %s", exc)
             response = f"Timmy is offline: {exc}"
+
+        # Strip hallucinated tool-call JSON and chain-of-thought narration
+        from timmy.session import _clean_response
+
+        response = _clean_response(response)
 
         # Discord has a 2000 character limit
         for chunk in _chunk_message(response, 2000):

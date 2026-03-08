@@ -63,8 +63,17 @@ class TestBuildContext:
         memory_file.write_text("# Important memories\nRemember this.")
         mock_settings.repo_root = str(tmp_path)
 
-        ctx = build_timmy_context_sync()
-        assert "Important memories" in ctx["memory"]
+        # Patch HotMemory path so it reads from tmp_path
+        from timmy.memory_system import memory_system
+        original_path = memory_system.hot.path
+        memory_system.hot.path = memory_file
+        memory_system.hot._content = None  # Clear cache
+        try:
+            ctx = build_timmy_context_sync()
+            assert "Important memories" in ctx["memory"]
+        finally:
+            memory_system.hot.path = original_path
+            memory_system.hot._content = None
 
 
 class TestFormatPrompt:

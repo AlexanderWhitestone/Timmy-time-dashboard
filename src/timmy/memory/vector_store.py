@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-DB_PATH = Path("data/swarm.db")
+DB_PATH = Path(__file__).parent.parent.parent.parent / "data" / "swarm.db"
 
 # Simple embedding function using sentence-transformers if available,
 # otherwise fall back to keyword-based "pseudo-embeddings"
