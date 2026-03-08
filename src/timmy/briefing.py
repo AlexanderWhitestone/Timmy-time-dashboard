@@ -299,7 +299,12 @@ class BriefingEngine:
             from timmy.agent import create_timmy
             agent = create_timmy()
             run = agent.run(prompt, stream=False)
-            return run.content if hasattr(run, "content") else str(run)
+            result = run.content if hasattr(run, "content") else str(run)
+            # Ensure we always return an actual string (guards against
+            # MagicMock objects when agno is stubbed in tests).
+            if not isinstance(result, str):
+                return str(result)
+            return result
         except Exception as exc:
             logger.warning("Agent call failed during briefing generation: %s", exc)
             return (
