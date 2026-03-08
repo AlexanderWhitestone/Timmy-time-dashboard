@@ -1,7 +1,8 @@
 """Timmy's delegation tools — submit tasks and list agents.
 
-Coordinator removed. Tasks go through the task_queue, agents are
-looked up in the registry.
+Delegation uses the orchestrator's sub-agent system.  The old swarm
+task-queue was removed; delegation now records intent and returns the
+target agent information.
 """
 
 import logging
@@ -9,9 +10,18 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
+# Agents available in the current orchestrator architecture
+_VALID_AGENTS: dict[str, str] = {
+    "seer": "research",
+    "forge": "code",
+    "echo": "memory",
+    "helm": "routing",
+    "quill": "writing",
+}
+
 
 def delegate_task(agent_name: str, task_description: str, priority: str = "normal") -> dict[str, Any]:
-    """Delegate a task to another agent via the task queue.
+    """Record a delegation intent to another agent.
 
     Args:
         agent_name: Name of the agent to delegate to
@@ -19,15 +29,14 @@ def delegate_task(agent_name: str, task_description: str, priority: str = "norma
         priority: Task priority - "low", "normal", "high"
 
     Returns:
-        Dict with task_id, status, and message
+        Dict with agent, status, and message
     """
-    valid_agents = ["seer", "forge", "echo", "helm", "quill", "mace"]
     agent_name = agent_name.lower().strip()
 
-    if agent_name not in valid_agents:
+    if agent_name not in _VALID_AGENTS:
         return {
             "success": False,
-            "error": f"Unknown agent: {agent_name}. Valid agents: {', '.join(valid_agents)}",
+            "error": f"Unknown agent: {agent_name}. Valid agents: {', '.join(sorted(_VALID_AGENTS))}",
             "task_id": None,
         }
 
@@ -35,61 +44,42 @@ def delegate_task(agent_name: str, task_description: str, priority: str = "norma
     if priority not in valid_priorities:
         priority = "normal"
 
-    try:
-        from swarm.task_queue.models import create_task
+    logger.info("Delegation intent: %s → %s (priority=%s)", agent_name, task_description[:80], priority)
 
-        task = create_task(
-            title=f"[Delegated to {agent_name}] {task_description[:80]}",
-            description=task_description,
-            assigned_to=agent_name,
-            created_by="default",
-            priority=priority,
-            task_type="task_request",
-            requires_approval=False,
-            auto_approve=True,
-        )
-
-        return {
-            "success": True,
-            "task_id": task.id,
-            "agent": agent_name,
-            "status": "submitted",
-            "message": f"Task submitted to {agent_name}: {task_description[:100]}...",
-        }
-
-    except Exception as e:
-        logger.error("Failed to delegate task to %s: %s", agent_name, e)
-        return {
-            "success": False,
-            "error": str(e),
-            "task_id": None,
-        }
+    return {
+        "success": True,
+        "task_id": None,
+        "agent": agent_name,
+        "role": _VALID_AGENTS[agent_name],
+        "status": "noted",
+        "message": f"Delegation to {agent_name} ({_VALID_AGENTS[agent_name]}): {task_description[:100]}",
+    }
 
 
 def list_swarm_agents() -> dict[str, Any]:
-    """List all available swarm agents and their status.
+    """List all available sub-agents and their roles.
 
     Returns:
-        Dict with agent list and status
+        Dict with agent list
     """
     try:
-        from swarm import registry
-
-        agents = registry.list_agents()
+        from timmy.agents.timmy import _PERSONAS
 
         return {
             "success": True,
             "agents": [
                 {
-                    "name": a.name,
-                    "status": a.status,
-                    "capabilities": a.capabilities,
+                    "name": p["name"],
+                    "id": p["agent_id"],
+                    "role": p.get("role", ""),
+                    "status": "available",
+                    "capabilities": ", ".join(p.get("tools", [])),
                 }
-                for a in agents
+                for p in _PERSONAS
             ],
         }
-
     except Exception as e:
+        logger.debug("Agent list unavailable: %s", e)
         return {
             "success": False,
             "error": str(e),
